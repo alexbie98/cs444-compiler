@@ -1,5 +1,5 @@
-lex
-joosc
+/lex
+/joosc
 *.d
 *.o
 *.swp
