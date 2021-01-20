@@ -1,5 +1,3 @@
-# cs444-w21-group28
-
 ### Run
 - `git clone https://github.com/waterloo-cs444/cs444-w21-group28.git cs444`
 - `cd cs444`
