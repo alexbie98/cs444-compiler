@@ -1,0 +1,6 @@
+lex
+joosc
+*.d
+*.o
+*.swp
+.DS_STORE
