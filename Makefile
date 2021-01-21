@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -MMD -g
 BUILDDIR = build
 SRCDIR = src
 EXEC = joosc lex
-OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o module/Module.o DFA.o Tokenize.o}
+OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o module/Module.o DFA.o Tokenize.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
 all: lex joosc
