@@ -1,26 +1,37 @@
-CXX = g++
+CXX = $(shell if [ -x "$$(command -v g++-9)" ]; then echo "g++-9"; else echo "g++"; fi)
 CXXFLAGS = -std=c++17 -Wall -MMD -g
+
 BUILDDIR = build
 SRCDIR = src
-EXEC = joosc lex
+
 OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o module/Module.o DFA.o Tokenize.o}
 DEPENDS = ${OBJECTS:.o=.d}
+
+TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Module.o}
+TEST_DEPENDS = ${TEST_OBJECTS:.o=.d}
 
 all: lex joosc
 
 lex: ${BUILDDIR}/lex/Main.o ${OBJECTS}
-	${CXX}  ${BUILDDIR}/lex/Main.o ${OBJECTS} -o lex
+	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${OBJECTS} -o lex
 
 joosc: ${BUILDDIR}/Main.o ${OBJECTS}
-	${CXX} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
+	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
 
 ${BUILDDIR}/%.o: ${SRCDIR}/%.cc
 	@mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -c -o $@ $<
 
+test: all ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
+	${CXX} ${CXXFLAGS} ${BUILDDIR}/test/Main.o ${TEST_OBJECTS} -o test
+	./test
+
 -include ${DEPENDS}
 
-.PHONY: clean
+.PHONY: clean 
 
 clean:
-	rm -r ${BUILDDIR} joosc lex
+	rm -r ${BUILDDIR} joosc lex test
+
+
+

@@ -5,3 +5,6 @@
 *.swp
 .DS_STORE
 .vscode
+/assignment_testcases
+/stdlib
+
