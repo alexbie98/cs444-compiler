@@ -1,5 +1,5 @@
 ## CS 444 - Compilers Project
-- Compiler for JOOS 1W
+- Compiler for Joos 1W
 - Victor Scurtu, Edwin Lin, and Alex Bie (Group 28)
 
 ### Setup
