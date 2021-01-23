@@ -3,6 +3,7 @@
 - Victor Scurtu, Edwin Lin, and Alex Bie (Group 28)
 
 ### Setup
+(Tested with gcc 9.3.0 and Apple clang 12.0.0)
 - `git clone https://github.com/waterloo-cs444/cs444-w21-group28.git cs444`
 - `cd cs444`
 - `make`
