@@ -85,7 +85,8 @@ RegexNode RegexProcessor::process(const std::string& input)
                 {
                     std::cout << visited.top()->children.size() << std::endl;
                     if(visited.top()->type == RegexNodeType::OR) std::cout << "OR FOUND" << std::endl;
-                    throw InvalidRegexException(std::string("Mismatched parenthesis at ") + std::to_string(index));
+                    throw InvalidRegexException(std::string("Mismatched parenthesis at ") 
+                                                + std::to_string(index) + " in " + input);
                 } 
                 visited.pop();
                 break;
@@ -113,7 +114,28 @@ RegexNode RegexProcessor::process(const std::string& input)
                         visited.top()->children.back()->bracket_chars.back().second = input[index];
                     }
                     else
-                        visited.top()->children.back()->bracket_chars.push_back({input[index], input[index]});
+                    {
+                        char c = input[index];
+                        
+                        if(input[index] == '\\')
+                        {
+                            index++;
+
+                            switch(input[index])
+                            {
+                                case 'n': c = '\n'; break;
+                                case 'r': c = '\r'; break;
+                                case 't': c = '\t'; break;
+                                case 'v': c = '\v'; break;
+                                default: 
+                                    throw InvalidRegexException(std::string("Invlaid character escape at ") 
+                                                                + std::to_string(index) + " in " + input);
+                            }
+                        }
+
+                        visited.top()->children.back()->bracket_chars.push_back({c, c});
+                    }
+                        
 
                     index++;
                 }
