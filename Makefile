@@ -7,7 +7,7 @@ SRCDIR = src
 OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o module/Module.o DFA.o Tokenize.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
-TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Module.o}
+TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Test.o test/MunchTest.o}
 TEST_DEPENDS = ${TEST_OBJECTS:.o=.d}
 
 all: lex joosc
@@ -24,7 +24,6 @@ ${BUILDDIR}/%.o: ${SRCDIR}/%.cc
 
 test: all ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/test/Main.o ${TEST_OBJECTS} -o test
-	./test
 
 -include ${DEPENDS}
 
