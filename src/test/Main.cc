@@ -31,7 +31,9 @@ void runMarmosetTests(const string& path){
 		auto fileName = f.substr(f.rfind("/") + 1);
 		size_t index = fileName.find("_");
 
-		auto name = fileName.substr(index + 1, fileName.length()-8);
+		auto name = fileName.substr(index + 1);
+		name = name.substr(0, name.length()-5);
+
 		int expect = fileName[index - 1] == 'e' ? 42 : 0;
 
 		auto passed = runIOTest(f, name, expect);

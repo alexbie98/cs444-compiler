@@ -13,14 +13,18 @@ bool runIOTest(const string& filePath, const string& name, int expect){
 
     bool passed = result == expect;
 
-    cout << "| " << name;
+    printTestMsg(name, passed, to_string(result), to_string(expect));
+
+    return passed;
+}
+
+void printTestMsg(const string& name, bool passed, const string& result, const string& expect){
+    cout << "| Test: " << name;
     if (passed){
         cout << " " << CHECKMARK << endl;
     }
     else{
-        cout << " " << XMARK;
-        cout << " (got " << result << ", expected " << expect << ")" << endl;
+        cout << " " << XMARK << endl;
+        cout << "| got \'" << result << "\', expected \'" << expect << "\'"<< endl;
     }
-
-    return passed;
 }
