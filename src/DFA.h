@@ -5,12 +5,27 @@
 #include <tuple>
 
 enum TokenType
-{
-    ID,
-    NUM,
+{   
+    WS,
+    // control flow
     IF,
     ELSE,
-    WS
+    WHILE,
+    FOR,
+    // literals
+    INT_LIT,
+    BOOL_LIT,
+    NULL_LIT,
+    THIS_EXPR,
+    // CHAR_LIT,
+    // STRING_LIT,
+    // CHAR_ESC
+    ID,
+    // comments
+    COMMENT,
+    
+    IMPLEMENTS,
+
 };
 
 
