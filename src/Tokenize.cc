@@ -22,3 +22,4 @@ const std::vector<Token> munch(const std::string &s) {
     }
     return tokens;
 }
+

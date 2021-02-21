@@ -1,13 +1,22 @@
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <fstream>
 #include "Tokenize.h"
 
-void test_munch();
+using namespace std;
 
-int main() {
-    std::cout << "Running joosc ..." << std::endl;
+int main(int argc, char *argv[])
+{
+    // cout << "Running joosc ..." << endl;
 
-    test_munch();
+    assert(argc == 2);
+
+    ifstream t(argv[1]);
+    stringstream buffer;
+    buffer << t.rdbuf();
+    const string s = buffer.str();
+    cout << s << endl;
 }
 
 void test_munch(){

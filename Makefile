@@ -24,6 +24,9 @@ lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 joosc: ${BUILDDIR}/Main.o ${OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
 
+${BUILDDIR}/DFA.o: ${BUILDDIR}/DFA.cc
+	${CXX} ${CXXFLAGS} -c -o $@ $<
+
 ${BUILDDIR}/%.o: ${SRCDIR}/%.cc
 	@mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -c -o $@ $<

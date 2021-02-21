@@ -1,5 +1,5 @@
 #include "../src/DFA.h"
 
 %%
-(ab[cde])	WS
+(ab[cde])	INLINE_WS
 xyz	IF
