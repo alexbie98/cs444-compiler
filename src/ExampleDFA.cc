@@ -16,7 +16,7 @@ enum DFAState
 // accepting state -> token type map
 const std::map<DFAState, TokenType> STATE_TTYPE = { {ZERO, ELSE}, {SPACE, WS}, {START, ID}};
 
-const std::pair<TokenType, long> longestPrefixRecognize(const long start, const std::string &s){
+const std::pair<TokenType, long> longestPrefixRecognize(size_t start, const std::string &s){
 
     DFAState currentState = START;
     std::pair<TokenType, long> matchSoFar = {ID, -1};

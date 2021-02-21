@@ -1,6 +1,7 @@
 /lex
 /joosc
 /test
+/lex_test
 *.d
 *.o
 *.swp

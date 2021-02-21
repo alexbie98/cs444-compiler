@@ -1,8 +1,5 @@
-enum States
-{
-    A, B, C
-};
+#include "../src/DFA.h"
 
 %%
-((test\\?)|(1?)*)+[a-zV0-9]	  return A;
-a|(b[^a-b][ \t\n])*	              return B;
+(ab[cde])	WS
+xyz	IF

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include "RegexProcessor.h"
+#include "FA.h"
 
 static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](char c) { return !std::isspace(c); }));
@@ -65,5 +66,24 @@ int main(int argc, char** argv) {
         std::cout << it.second << std::endl;
     }
 
+    // Create an NFA that OR's together all the nfas and attaches rules to the accepting states
+    NFA nfa = RegexNodeToNFA(&rules[0].first);
+    populateRules(nfa, 0);
+    for(size_t i = 1; i < rules.size(); i++)
+    {
+        NFA new_nfa = RegexNodeToNFA(&rules[i].first);
+        populateRules(new_nfa, i);
+        nfa = orNFA(nfa, new_nfa);
+    }
+
+    // printNFA(RegexNodeToNFA(&rules[0].first));
+    // printNFA(nfa);
+    // printNFA(NFAToDFA(nfa));
+
+    generateWorkingDFA(NFAToDFA(nfa), rules, out);
+
     out.close();
 }
+
+// ((test\\?)|(1?)*)+[a-zV0-9]	  A
+// a|(b[^a-b][ \t\n])*	              B

@@ -127,6 +127,8 @@ RegexNode RegexProcessor::process(const std::string& input)
                                 case 'r': c = '\r'; break;
                                 case 't': c = '\t'; break;
                                 case 'v': c = '\v'; break;
+                                case 'f': c = '\f'; break;
+                                case '0': c = '\0'; break;
                                 default: 
                                     throw InvalidRegexException(std::string("Invlaid character escape at ") 
                                                                 + std::to_string(index) + " in " + input);

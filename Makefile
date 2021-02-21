@@ -7,7 +7,10 @@ SRCDIR = src
 OBJECTS = ${addprefix ${BUILDDIR}/,  module/Module.o DFA.o Tokenize.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
-LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o}
+LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o lex/FA.o}
+LEX_DEPENDS = ${OBJECTS:.o=.d}
+
+LEX_TEST_OBJECTS = ${addprefix ${BUILDDIR}/, lex/test/Test.o TestDFA.o}
 LEX_DEPENDS = ${OBJECTS:.o=.d}
 
 TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Test.o test/MunchTest.o}
@@ -25,11 +28,17 @@ ${BUILDDIR}/%.o: ${SRCDIR}/%.cc
 	@mkdir -p $(@D)
 	${CXX} ${CXXFLAGS} -c -o $@ $<
 
-${SRCDIR}/DFA.cc: scanner.lex
-	./lex scanner.lex ${SRCDIR}/DFA.cc
+${BUILDDIR}/DFA.cc: scanner.lex lex
+	./lex scanner.lex ${BUILDDIR}/DFA.cc
+
+${BUILDDIR}/TestDFA.cc: src/lex/test/test.lex lex
+	./lex src/lex/test/test.lex ${BUILDDIR}/TestDFA.cc
 
 test: all ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/test/Main.o ${TEST_OBJECTS} -o test
+
+lex_test: lex ${LEX_TEST_OBJECTS}
+	${CXX} ${CXXFLAGS} ${LEX_TEST_OBJECTS} -o lex_test
 
 -include ${DEPENDS}
 
