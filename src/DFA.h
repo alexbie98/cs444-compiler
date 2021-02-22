@@ -4,23 +4,35 @@
 #include <tuple>
 
 enum TokenType
-{   
-    // WHITESPACE ---------------------
+{
+    // WHITESPACE ------------------
 
     WS,
 
-    // COMMENT ------------------------
+    // COMMENT ---------------------
 
     COMMENT,
 
-    // KEYWORDS -----------------------
+    // SEPARATOR -------------------
+
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    RBRACE,
+    LBRACKET,
+    RBRACKET,
+    SEMICOLON,
+    COMMA,
+    DOT,
+
+    // KEYWORDS --------------------
 
     // control flow
     IF,
     ELSE,
     WHILE,
     FOR,
-    
+
     // class
     CLASS,
     EXTENDS,
@@ -38,7 +50,7 @@ enum TokenType
     FINAL,
     NATIVE,
 
-    // packages
+    // package
     PACKAGE,
     IMPORT,
 
@@ -46,7 +58,7 @@ enum TokenType
     RETURN,
     VOID,
 
-    // types
+    // type
     INT,
     BOOLEAN,
     CHAR,
@@ -54,49 +66,91 @@ enum TokenType
     SHORT,
     ARRAY,
 
-    // LITERALS ----------------------
+    // UNSUPPORTED KEYWORDS -----------
 
-    INT_LIT,
+    CONST,
+    STRICTFP,
+    SYNCHRONIZED,
+    TRANSIENT,
+    VOLATILE,
+
+    DOUBLE,
+    FLOAT,
+    LONG,
+
+    CATCH,
+    FINALLY,
+    THROW,
+    THROWS,
+    TRY,
+
+    NEW,
+    SUPER,
+
+    BREAK,
+    CASE,
+    CONTINUE,
+    DEFAULT,
+    DO,
+    GOTO,
+    SWITCH,
+
+    // LITERAL ---------------
+
     BOOLEAN_LIT,
     NULL_LIT,
     CHAR_LIT,
     STRING_LIT,
+    INT_LIT,
 
-    // SEPARATORS --------------------
+    // OPERATOR --------------
 
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
-    LBRACKET,
-    RBRACKET,
-    SEMICOLON,
-    COMMA,
-    DOT,
-
-    // OPERATORS ----------------------
-
-    PLUS,
-    SUB,
-    MUL,
-    DIV,
-    MOD,
-    INCR,
-    DECR,
-    EQ,
-    LT,
+    ASSIGN,
     GT,
-    OR,
+    LT,
+    NOT,
+    BITWISE_NOT, // unsupported
+    TERNARY_IF, // unsupported
+    TERNARY_ELSE, // unsupported
+    EQ,
+    LEQ,
+    GEQ,
+    NEQ,
     AND,
-    EAGER_OR,
+    OR,
+    INCR, // unsupported
+    DECR, // unsupported
+    PLUS,
+    MINUS,
+    MULT,
+    DIV,
     EAGER_AND,
+    EAGER_OR,
+    XOR,
+    REMAINDER,
+    LSHIFT, // unsupported
+    RSHIFT, // unsupported
+    UNSIGNED_RSHIFT, // unsupported
+    PLUS_ASSIGN, // unsupported
+    MINUS_ASSIGN, // unsupported
+    MULT_ASSIGN, // unsupported
+    DIV_ASSIGN, // unsupported
+    BITWISE_AND_ASSIGN, // unsupported
+    BITWISE_OR_ASSIGN, // unsupported
+    BITWISE_XOR_ASSIGN, // unsupported
+    REMAINDER_ASSIGN, // unsupported
+    LSHIFT_ASSIGN, // unsupported
+    RSHIFT_ASSIGN, // unsupported
+    UNSIGNED_RSHIFT_ASSIGN, // unsupported
 
-    // IDENTIFIER ----------------------
+    // IDENTIFIER ------------
+
     ID,
 
-    // REJECT (not an actual token, produced when there is not prefix match) --------------------------
+    // REJECT (not an actual token, produced when there is not prefix match) --------------
 
     REJECT
+
 };
 
 

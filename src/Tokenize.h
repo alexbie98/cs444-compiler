@@ -18,4 +18,4 @@ const std::vector<Token> munch(const std::string &s);
  * @param s program text
  * @return new program text after processing
  */
-const std::string preprocess(const std::string &s);
+const std::string& preprocess(std::string &s);

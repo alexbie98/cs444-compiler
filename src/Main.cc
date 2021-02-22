@@ -6,6 +6,9 @@
 
 using namespace std;
 
+void test_preprocess();
+void test_munch();
+
 int main(int argc, char *argv[])
 {
     // cout << "Running joosc ..." << endl;
@@ -15,16 +18,31 @@ int main(int argc, char *argv[])
     ifstream t(argv[1]);
     stringstream buffer;
     buffer << t.rdbuf();
-    const string s = buffer.str();
-    cout << s << endl;
+    string text = buffer.str();
+
+    const string& processedText = preprocess(text);
+
+    cout << processedText << endl;
+
+    test_preprocess();
+}
+
+void test_preprocess(){
+    string text = "\r\nanc\n\n\rasda\n\r\n\n qqq \n\ra\r\n\r";
+    const string& processedText = preprocess(text);
+
+    assert(processedText == "\nanc\n\n\nasda\n\n\n qqq \n\na\n\n");
+
+    cout << "preprocess test passed" << endl;
+
 }
 
 void test_munch(){
 
-    std::string s = "11 0011111111011011    0011";
-    std::vector<Token> tokens = munch(s);
+    string s = "11 0011111111011011    0011";
+    vector<Token> tokens = munch(s);
 
     for (const auto & t: tokens) {
-        std::cout << t.first << "  " << t.second << std::endl;
+        cout << t.first << "  " << t.second << endl;
     }
 }
