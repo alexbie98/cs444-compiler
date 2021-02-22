@@ -51,6 +51,25 @@ void RegexProcessor::swapLastChild(RegexNode* parent, RegexNodeType type)
     parent->children.push_back(std::move(new_node));
 }
 
+// Modifies "represents" and returns true if the escape sequence "escape" 
+// represents a special character. Otherwise, does not modify "represents"
+// and returns false.
+bool specialEscape(char escape, char& represents)
+{
+    switch(escape)
+    {
+        case 'n': represents = '\n'; break;
+        case 'r': represents = '\r'; break;
+        case 't': represents = '\t'; break;
+        case 'v': represents = '\v'; break;
+        case 'f': represents = '\f'; break;
+        case '0': represents = '\0'; break;
+        default: 
+            return false;
+    }
+    return true;
+}
+
 RegexNode RegexProcessor::process(const std::string& input)
 {
     std::stack<RegexNode*> visited;
@@ -121,17 +140,10 @@ RegexNode RegexProcessor::process(const std::string& input)
                         {
                             index++;
 
-                            switch(input[index])
+                            if(!specialEscape(input[index], c))
                             {
-                                case 'n': c = '\n'; break;
-                                case 'r': c = '\r'; break;
-                                case 't': c = '\t'; break;
-                                case 'v': c = '\v'; break;
-                                case 'f': c = '\f'; break;
-                                case '0': c = '\0'; break;
-                                default: 
-                                    throw InvalidRegexException(std::string("Invlaid character escape at ") 
-                                                                + std::to_string(index) + " in " + input);
+                                throw InvalidRegexException(std::string("Invalid character escape at ") 
+                                                            + std::to_string(index) + " in " + input);
                             }
                         }
 
@@ -167,7 +179,17 @@ RegexNode RegexProcessor::process(const std::string& input)
 
             case '\\':
                 index++;
-                // Fall into default character processing
+                // Similar to default case which handles CHAR
+                {
+                    char c = input[index];
+                    specialEscape(input[index], c);
+                    
+                    updateOr();
+                    visited.top()->children.push_back(std::make_unique<RegexNode>());
+                    visited.top()->children.back()->type = RegexNodeType::CHAR;
+                    visited.top()->children.back()->character = c;
+                }
+                break;
             
             default:
                 updateOr();
