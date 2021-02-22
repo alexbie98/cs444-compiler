@@ -12,3 +12,4 @@ x(yz)+	C
 .l.	E
 m(no)*[^q]*	F
 /\*([^*]*(\*)+[^*/])*[^*]*(\*)*\*/	ML_COMMENT
+tab\ttab	G

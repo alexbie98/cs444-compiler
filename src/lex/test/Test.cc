@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     test("/*alala*/", ML_COMMENT, 9);
     test("/*alala*/alala*/alala", ML_COMMENT, 9);
     test("*/", REJECT);
+    test("tab\ttab", G);
 
     if(failed) std::cout << failed << " tests failed." << std::endl;
     else std::cout << "All tests succeeded!" << std::endl;
