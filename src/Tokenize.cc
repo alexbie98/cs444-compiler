@@ -23,3 +23,7 @@ const std::vector<Token> munch(const std::string &s) {
     return tokens;
 }
 
+
+const std::string preprocess(const std::string &s){
+    return s;
+}

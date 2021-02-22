@@ -12,11 +12,10 @@ const std::vector<Token> munch(const std::string &s);
 
 
 /**
- * Performs some initial preprocessing to the input string to simplify some things
- *  1. convert whitespace chars SP, HT, FF -> SP
- *  2. convert line endings LF, CR, CRLF -> LF
+ * Performs initial preprocessing to the input string
+ *  1. convert line endings LF, CR, CRLF -> LF
  * 
  * @param s program text
  * @return new program text after processing
  */
-// const std::string preprocess(const std::string &s);
+const std::string preprocess(const std::string &s);

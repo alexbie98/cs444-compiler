@@ -7,8 +7,7 @@ enum TokenType
 {   
     // WHITESPACE ---------------------
 
-    LINE_TERMINATOR,
-    INLINE_WS,
+    WS,
 
     // COMMENT ------------------------
 
