@@ -9,7 +9,7 @@ typedef std::pair<TokenType, std::string> Token;
 
 const std::vector<Token> munch(const std::string &s);
 
-
+extern const std::string TOKEN_NAME [];
 
 /**
  * Performs initial preprocessing to the input string
@@ -19,3 +19,5 @@ const std::vector<Token> munch(const std::string &s);
  * @return new program text after processing
  */
 const std::string& preprocess(std::string &s);
+
+void printToken(const Token &t);

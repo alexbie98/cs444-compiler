@@ -525,6 +525,9 @@ void generateWorkingDFA(const NFA& dfa, const std::vector<std::pair<RegexNode, s
                         case '\v': out << "\\v"; break;
                         case '\f': out << "\\f"; break;
                         case '\0': out << "\\0"; break;
+                        case '\'': out << "\\'"; break;
+                        case '\\': out << "\\\\"; break;
+                        case '"': out << "\\\""; break;
                         default: out << std::get<1>(trans); break;
                     }
 

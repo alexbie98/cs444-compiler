@@ -22,9 +22,12 @@ int main(int argc, char *argv[])
 
     const string& processedText = preprocess(text);
 
-    cout << processedText << endl;
-
     test_preprocess();
+
+    vector<Token> tokens = munch(processedText);
+    for (const auto & t: tokens) {
+        printToken(t);
+    }
 }
 
 void test_preprocess(){
@@ -43,6 +46,6 @@ void test_munch(){
     vector<Token> tokens = munch(s);
 
     for (const auto & t: tokens) {
-        cout << t.first << "  " << t.second << endl;
+        cout << TOKEN_NAME[t.first] << "  " << t.second << endl;
     }
 }
