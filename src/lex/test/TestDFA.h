@@ -13,7 +13,8 @@ enum TokenType
     H,
     ML_COMMENT,
     ESCAPES,
-    REJECT
+    REJECT, 
+    STRING_LIT
 };
 
 const std::pair<TokenType, long> longestPrefixRecognize(size_t start, const std::string &s);

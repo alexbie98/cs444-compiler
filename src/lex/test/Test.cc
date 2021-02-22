@@ -47,6 +47,10 @@ int main(int argc, char** argv) {
     test("tab\ttab", G);
     test(std::string("\n\r\t\v\f\0", 6), ESCAPES);
 
+    test("\"\"", STRING_LIT);
+    test("\"alalal\"", STRING_LIT);
+    test("\"", REJECT);
+
     if(failed) std::cout << failed << " tests failed." << std::endl;
     else std::cout << "All tests succeeded!" << std::endl;
 }

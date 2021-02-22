@@ -33,6 +33,12 @@ int main(int argc, char** argv) {
     std::ifstream in(argv[1]);
     std::ofstream out(argv[2]); 
 
+    if(!in.is_open())
+    {
+        std::cout << "ERROR: Couldn't open lex file " << argv[1] << std::endl;
+        return 1;
+    }
+
     // Copy beginning to output
     std::string line;
     while(std::getline(in, line) && line != "%%")
@@ -85,12 +91,11 @@ int main(int argc, char** argv) {
         rules.emplace_back(regex_processor.process(pattern), action);
     }
 
-    // TODO Convert RegexNodes to DFAs
-    for(auto &it: rules)
-    {
-        it.first.print();
-        std::cout << it.second << std::endl;
-    }
+    // for(auto &it: rules)
+    // {
+    //     it.first.print();
+    //     std::cout << it.second << std::endl;
+    // }
 
     // Create an NFA that OR's together all the nfas and attaches rules to the accepting states
     NFA nfa = RegexNodeToNFA(&rules[0].first);
