@@ -59,6 +59,18 @@ int main(int argc, char** argv) {
             return 1;
         }
 
+        // If the line begins with a tab character, the line is ignored and treated as a comment.
+        if(tab_pos == 0)
+        {
+            continue;
+        }
+        
+        // If no '\t' character is found, the line is ingored and treated as a comment.
+        // if(tab_pos == std::string::npos)
+        // {
+        //     continue;
+        // }
+
         pattern = line.substr(0, tab_pos);
 
         action = line.substr(tab_pos+1);

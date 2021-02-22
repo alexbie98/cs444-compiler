@@ -2,9 +2,13 @@
 
 %%
 g	A
+
+	This is a comment
 (ab[cde])	B
 x(yz)+	C
 [^hi]j	D
+
+	This is another comment
 .l.	E
 m(no)*[^q]*	F
 /\*([^*]*(\*)+[^*/])*[^*]*(\*)*\*/	ML_COMMENT
