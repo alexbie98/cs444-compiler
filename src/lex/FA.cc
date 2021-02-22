@@ -357,18 +357,17 @@ NFA NFAToDFA(NFA nfa)
         nfa_node.transitions.insert( nfa_node.transitions.end(), new_transitions.begin(), new_transitions.end() );
         
         // Replace NOT_CHAR with ANY transition, and add transition to a dead state on the not character.
+        new_transitions.clear();
         for(size_t i = 0; i != original_transition_count; i++)
         {
-            Transition& trans = nfa_node.transitions[i];
-
-            if(std::get<0>(trans) == TransitionType::NOT_CHAR)
+            if(std::get<0>(nfa_node.transitions[i]) == TransitionType::NOT_CHAR)
             {
-                nfa_node.transitions.emplace_back(TransitionType::CHAR, std::get<1>(trans), nfa.size());
-
-                std::get<0>(trans) = TransitionType::ANY;
-                std::get<1>(trans) = '@'; // For debug
+                new_transitions.emplace_back(TransitionType::CHAR, std::get<1>(nfa_node.transitions[i]), nfa.size());
+                std::get<0>(nfa_node.transitions[i]) = TransitionType::ANY;
+                std::get<1>(nfa_node.transitions[i]) = '@'; // For debug
             }
         }
+        nfa_node.transitions.insert( nfa_node.transitions.end(), new_transitions.begin(), new_transitions.end() );
     }
 
     // Add a reject state at the end of the NFA
