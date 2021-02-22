@@ -22,13 +22,15 @@ string teSSSSt0
 
 ++ -- -+ - //+++
 t+ - jk%< += + = == ! = !=
-
+"\"\\''\'\"""'''''"
 ++++
 ?: <= < = => && >>>>> ><== >>== &~*
 
-([]);...{}}}}}((.   .,;;]) //)
+([]);...{}}}}}((.   .,;;]) //)"a"
 
 test throwthrows throws[] thro protected static void int voidint void6
 
 // restricted public this
 public this+[['\t'0x000045 0 1234499+4nativef final const.final.buerger.tekashi69]
+"\"asdsc \n  asd"
+""+"  "+"\33346abv"

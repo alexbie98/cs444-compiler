@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -MMD -g
 BUILDDIR = build
 SRCDIR = src
 
-OBJECTS = ${addprefix ${BUILDDIR}/,  module/Module.o DFA.o Tokenize.o}
+OBJECTS = ${addprefix ${BUILDDIR}/,  module/Module.o Tokenize.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
 LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o lex/FA.o}
@@ -21,8 +21,8 @@ all: lex joosc
 lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS} -o lex
 
-joosc: ${BUILDDIR}/Main.o ${OBJECTS}
-	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
+joosc: ${BUILDDIR}/Main.o ${OBJECTS} ${BUILDDIR}/DFA.o
+	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} ${BUILDDIR}/DFA.o -o joosc
 
 ${BUILDDIR}/DFA.o: ${BUILDDIR}/DFA.cc
 	${CXX} ${CXXFLAGS} -c -o $@ $<
