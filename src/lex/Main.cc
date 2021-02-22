@@ -47,15 +47,29 @@ int main(int argc, char** argv) {
     // '\t' seperates patterns from actions
     std::string pattern;
     std::string action;
-    while(std::getline(in, pattern, '\t'))
+    while(std::getline(in, line))
     {
-        if(!std::getline(in, action))
+        if(line.empty()) continue;
+
+        std::string::size_type tab_pos = line.find('\t');
+
+        if(tab_pos == std::string::npos)
+        {
+            std::cout << "ERROR: Malformed rule \"" << line << "\" provided without tab separator" << std::endl;
+            return 1;
+        }
+
+        pattern = line.substr(0, tab_pos);
+
+        action = line.substr(tab_pos+1);
+        trim(action);
+
+        if(action.empty())
         {
             std::cout << "ERROR: Pattern \"" << pattern << "\" provided without action" << std::endl;
             return 1;
         }
         
-        trim(action);
         rules.emplace_back(regex_processor.process(pattern), action);
     }
 
