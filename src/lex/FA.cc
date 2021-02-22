@@ -514,7 +514,21 @@ void generateWorkingDFA(const NFA& dfa, const std::vector<std::pair<RegexNode, s
                 }
                 else if(std::get<0>(trans) == TransitionType::CHAR)
                 {
-                    out << "\tcase '" << std::get<1>(trans) << "': goto S_" << std::get<2>(trans) << ";\n";
+                    out << "\tcase '";
+
+                    // Escape character if neccessary
+                    switch(std::get<1>(trans))
+                    {
+                        case '\n': out << "\\n"; break;
+                        case '\r': out << "\\r"; break;
+                        case '\t': out << "\\t"; break;
+                        case '\v': out << "\\v"; break;
+                        case '\f': out << "\\f"; break;
+                        case '\0': out << "\\0"; break;
+                        default: out << std::get<1>(trans); break;
+                    }
+
+                    out << "': goto S_" << std::get<2>(trans) << ";\n";
                 }
             }
 

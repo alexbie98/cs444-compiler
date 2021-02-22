@@ -12,6 +12,7 @@ enum TokenType
     G,
     H,
     ML_COMMENT,
+    ESCAPES,
     REJECT
 };
 

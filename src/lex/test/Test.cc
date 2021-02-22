@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
     test("/*alala*/alala*/alala", ML_COMMENT, 9);
     test("*/", REJECT);
     test("tab\ttab", G);
+    test(std::string("\n\r\t\v\f\0", 6), ESCAPES);
 
     if(failed) std::cout << failed << " tests failed." << std::endl;
     else std::cout << "All tests succeeded!" << std::endl;

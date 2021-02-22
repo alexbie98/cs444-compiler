@@ -13,3 +13,4 @@ x(yz)+	C
 m(no)*[^q]*	F
 /\*([^*]*(\*)+[^*/])*[^*]*(\*)*\*/	ML_COMMENT
 tab\ttab	G
+\n\r\t\v\f\0	ESCAPES
