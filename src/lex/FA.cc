@@ -129,7 +129,7 @@ NFA RegexNodeToNFA(const RegexNode* rnode)
                 }
                 else
                 {
-                    for(char c = char_range.first; c != char_range.second; c++)
+                    for(char c = char_range.first; c <= char_range.second; c++)
                     {
                         result[0].transitions.emplace_back(TransitionType::CHAR, c, 1);
                     }
@@ -149,7 +149,7 @@ NFA RegexNodeToNFA(const RegexNode* rnode)
                 }
                 else
                 {
-                    for(char c = char_range.first; c != char_range.second; c++)
+                    for(char c = char_range.first; c <= char_range.second; c++)
                     {
                         result[0].transitions.emplace_back(TransitionType::NOT_CHAR, c, 1);
                     }

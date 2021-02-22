@@ -130,7 +130,7 @@ RegexNode RegexProcessor::process(const std::string& input)
                     if(input[index] == '-')
                     {
                         index++;
-                        visited.top()->children.back()->bracket_chars.back().second = input[index]+1;
+                        visited.top()->children.back()->bracket_chars.back().second = input[index];
                     }
                     else
                     {
