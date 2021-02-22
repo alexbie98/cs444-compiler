@@ -167,7 +167,7 @@ NFA RegexNodeToNFA(const RegexNode* rnode)
             throw std::runtime_error("Invalid RegexNode type encountered during NFA creation");
     }
 
-    std::cout << regexNodeTypeToString(rnode->type) << " " << result.size() << std::endl;
+    // std::cout << regexNodeTypeToString(rnode->type) << " " << result.size() << std::endl;
 
     return result;
 }
