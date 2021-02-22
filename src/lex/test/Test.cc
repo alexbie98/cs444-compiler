@@ -39,6 +39,11 @@ int main(int argc, char** argv) {
     test("gla", E);
     test("glg", E);
     test("gg", A, 1);
+    test("mnononoppp", F, 10);
+    test("/**/alala", ML_COMMENT, 4);
+    test("/*alala*/", ML_COMMENT, 9);
+    test("/*alala*/alala*/alala", ML_COMMENT, 9);
+    test("*/", REJECT);
 
     if(failed) std::cout << failed << " tests failed." << std::endl;
     else std::cout << "All tests succeeded!" << std::endl;

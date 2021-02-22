@@ -247,7 +247,8 @@ NFA NFAToDFA(NFA nfa)
     }
 
     // Make all CHAR transitions that could possibly lead to an ANY transiton also lead to
-    // the destination of the ANY transition via the same character.
+    // the destination of the ANY transition via the same character. Also add an ANY transition 
+    // going to the original ANY destination (which has lower precedence).
     // Similar to following NOT_CHAR adjustments.
     for(size_t node_index = 0; node_index != nfa.size(); node_index++)
     {
@@ -294,6 +295,7 @@ NFA NFAToDFA(NFA nfa)
                         new_transitions.emplace_back(TransitionType::CHAR, std::get<1>(trans), dest);
                     }
                 }
+                new_transitions.emplace_back(TransitionType::ANY, '@', dest);
             }
         }
         nfa_node.transitions.insert( nfa_node.transitions.end(), new_transitions.begin(), new_transitions.end() );
@@ -329,7 +331,8 @@ NFA NFAToDFA(NFA nfa)
 
         // For all nodes in all the closures that the node is a part of,
         // add a transition going to the NOT_CHAR destination if they have a transtion going anywhere
-        // via a character that doesn't match the NOT_CHAR.
+        // via a character that doesn't match the NOT_CHAR. Also add an ANY transition going to the 
+        // NOT_CHAR destination (which has lower precedence).
         std::vector<Transition> new_transitions;
         for(auto const& [dest, not_chars] : not_transitions)
         {
@@ -348,6 +351,7 @@ NFA NFAToDFA(NFA nfa)
                         new_transitions.emplace_back(TransitionType::CHAR, std::get<1>(trans), dest);
                     }
                 }
+                new_transitions.emplace_back(TransitionType::ANY, '@', dest);
             }
         }
         nfa_node.transitions.insert( nfa_node.transitions.end(), new_transitions.begin(), new_transitions.end() );
