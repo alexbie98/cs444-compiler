@@ -1,133 +1,17 @@
 #include <vector>
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 #include "Tokenize.h"
+#include <cctype>
 #include "DFA.h"
 
 using namespace std;
 
-const string TOKEN_NAME [] = {
-    // WHITESPACE ------------------
-    "WS",
-    // COMMENT ---------------------
-    "COMMENT",
-    // SEPARATOR -------------------
-    "LPAREN",
-    "RPAREN",
-    "LBRACE",
-    "RBRACE",
-    "LBRACKET",
-    "RBRACKET",
-    "SEMICOLON",
-    "COMMA",
-    "DOT",
-    // KEYWORDS --------------------
-    // control flow
-    "IF",
-    "ELSE",
-    "WHILE",
-    "FOR", 
-    // class
-    "CLASS",
-    "EXTENDS",
-    "IMPLEMENTS",
-    "INTERFACE",
-    "THIS",
-    "INSTANCEOF",
-    // modifier
-    "STATIC",
-    "PUBLIC",
-    "PRIVATE",
-    "PROTECTED",
-    "ABSTRACT",
-    "FINAL",
-    "NATIVE",
-    // package
-    "PACKAGE",
-    "IMPORT",
-    // method
-    "RETURN",
-    "VOID",
-    // type
-    "INT",
-    "BOOLEAN",
-    "CHAR",
-    "BYTE",
-    "SHORT",
-    "ARRAY",
-    // UNSUPPORTED KEYWORDS -----------
-    "CONST",
-    "STRICTFP",
-    "SYNCHRONIZED",
-    "TRANSIENT",
-    "VOLATILE",
-    "DOUBLE",
-    "FLOAT",
-    "LONG",
-    "CATCH",
-    "FINALLY",
-    "THROW",
-    "THROWS",
-    "TRY",
-    "NEW",
-    "SUPER",
-    "BREAK",
-    "CASE",
-    "CONTINUE",
-    "DEFAULT",
-    "DO",
-    "GOTO",
-    "SWITCH",
-    // LITERAL ---------------
-    "BOOLEAN_LIT",
-    "NULL_LIT",
-    "CHAR_LIT",
-    "STRING_LIT",
-    "INT_LIT",
-    // OPERATOR --------------
-    "ASSIGN",
-    "GT",
-    "LT",
-    "NOT",
-    "BITWISE_NOT",  // unsupported
-    "TERNARY_IF",   // unsupported
-    "TERNARY_ELSE", // unsupported
-    "EQ",
-    "LEQ",
-    "GEQ",
-    "NEQ",
-    "AND",
-    "OR",
-    "INCR", // unsupported
-    "DECR", // unsupported
-    "PLUS",
-    "MINUS",
-    "MULT",
-    "DIV",
-    "EAGER_AND",
-    "EAGER_OR",
-    "XOR",
-    "REMAINDER",
-    "LSHIFT",                 // unsupported
-    "RSHIFT",                 // unsupported
-    "UNSIGNED_RSHIFT",        // unsupported
-    "PLUS_ASSIGN",            // unsupported
-    "MINUS_ASSIGN",           // unsupported
-    "MULT_ASSIGN",            // unsupported
-    "DIV_ASSIGN",             // unsupported
-    "BITWISE_AND_ASSIGN",     // unsupported
-    "BITWISE_OR_ASSIGN",      // unsupported
-    "BITWISE_XOR_ASSIGN",     // unsupported
-    "REMAINDER_ASSIGN",       // unsupported
-    "LSHIFT_ASSIGN",          // unsupported
-    "RSHIFT_ASSIGN",          // unsupported
-    "UNSIGNED_RSHIFT_ASSIGN", // unsupported
-    // IDENTIFIER ------------
-    "ID",
-    // REJECT (not an actual token, produced when there is not prefix match) --------------
-    "REJECT"
- };
+unsigned long LONG_INT_MAX = 2147483647;
+unsigned long LONG_UINT_MAX = 0xffffffff;
 
-const vector<Token> munch(const string &s) {
+vector<Token> munch(const string &s) {
 
     std::vector<Token> tokens;
     long i = 0;
@@ -149,11 +33,12 @@ const vector<Token> munch(const string &s) {
 }
 
 
-const string& preprocess(string &s){
+void preprocess(string &s){
 
     size_t i = 0;
     while (i < s.length()){
-        if (s[i] == '\r' && i+1 < s.length() && s[i+1] == '\n'){
+        assert(s[i] >= '\0' && s[i] <= '\177');
+        if (s[i] == '\r' && i + 1 < s.length() && s[i + 1] == '\n'){
             s.erase(i, 1);
         }
         else{
@@ -167,7 +52,6 @@ const string& preprocess(string &s){
     if (s[s.length()-1] != '\n'){
         s.insert(s.length(), "\n");
     }
-    return s;
 }
 
 void printToken(const Token& t){
@@ -196,5 +80,81 @@ void printToken(const Token& t){
             i++;
         }
     }
-    cout << TOKEN_NAME[t.first] << " " << s << endl;
+    cout << TOKEN_TYPE_STR[t.first] << " " << s << endl;
+}
+
+string parseHex(string& s){
+    transform(s.begin(), s.end(), s.begin(),
+              [](char c) { return tolower(c); });
+
+    cout << s << endl;
+
+    unsigned long val = 0;
+    for (char c : s){
+        val = 16 * val + (('0' <= c && c <= '9') ? (c - '0') : (c - 'a' + 10));
+        if (val > LONG_UINT_MAX){
+            cout << "Parse hex int exceeds bounds: " << s << endl;
+            throw 42;
+        }
+    }
+    return to_string((int) val);
+}
+
+string parseOct(const string& s){
+    unsigned long val = 0;
+    for (char c: s){
+        val = 8 * val + (c - '0');
+        if (val>LONG_UINT_MAX){
+            cout << "Parse oct int exceeds bounds: " << s << endl;
+            throw 42;
+        }
+    }
+    return to_string((int) val);
+}
+
+string parseDec(const string& s){
+    unsigned long val = 0;
+    for (char c: s){
+        val = 10 * val + (c - '0');
+        if (val>LONG_INT_MAX+1){ //  2147483648 could have a preceding -, in which case it is actually
+            cout << "Parse decimal int exceeds bounds: " << s << endl;
+            throw 42;
+        }
+    }
+    return to_string(val);
+}
+
+Token& processToken(Token& t){
+    if (t.first == INT_LIT){
+        cout << t.second << endl;
+
+        if (t.second.length()>2 && t.second[0]=='0' && (t.second[1] == 'X' || t.second[1]=='x')){
+            string hexString = t.second.substr(2);
+            t.second = parseHex(hexString);
+        }
+        else if (t.second[0] == '0'){
+            t.second = parseOct(t.second.substr(1));
+        }
+        else {
+            t.second = parseDec(t.second);
+        }
+    }
+    else if (t.first == CHAR_LIT){
+        // do nothing for now
+    }
+    else if (t.first == STRING_LIT){
+        // do nothing for now
+    }
+
+    return t;
+}
+
+void postprocess(vector<Token>& tokens){
+
+    // 1. filter WS, COMMENT tokens
+    auto it = remove_if(tokens.begin(), tokens.end(),
+                        [](const Token &t) { /*cout << TOKEN_TYPE_STR[t.first] << endl;*/return (t.first == WS || t.first == COMMENT); });
+    tokens.erase(it, tokens.end());
+
+    transform(tokens.begin(), tokens.end(), tokens.begin(), processToken);
 }

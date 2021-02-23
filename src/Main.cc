@@ -21,21 +21,28 @@ int main(int argc, char *argv[])
     buffer << t.rdbuf();
     string text = buffer.str();
 
-    const string& processedText = preprocess(text);
+    preprocess(text);
 
-    test_preprocess();
+    // test_preprocess();
 
-    vector<Token> tokens = munch(processedText);
+    
+    vector<Token> tokens = munch(text);
+    // for (const auto & t: tokens) {
+    //     printToken(t);
+    // }
+
+    postprocess(tokens);
     for (const auto & t: tokens) {
         printToken(t);
     }
+
 }
 
 void test_preprocess(){
     string text = "\r\nanc\n\n\rasda\n\r\n\n qqq \n\ra\r\n\r";
-    const string& processedText = preprocess(text);
+    preprocess(text);
 
-    assert(processedText == "\nanc\n\n\nasda\n\n\n qqq \n\na\n\n");
+    assert(text == "\nanc\n\n\nasda\n\n\n qqq \n\na\n\n");
 
     cout << "preprocess test passed" << endl;
 
@@ -47,6 +54,6 @@ void test_munch(){
     vector<Token> tokens = munch(s);
 
     for (const auto & t: tokens) {
-        cout << TOKEN_NAME[t.first] << "  " << t.second << endl;
+        cout << TOKEN_TYPE_STR[t.first] << "  " << t.second << endl;
     }
 }

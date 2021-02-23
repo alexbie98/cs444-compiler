@@ -14,8 +14,8 @@
 
  */
 
-00000000000007 0x0000f 0xffffefa12345000 08'\t'
-
+00000000000007 0x0000f /*0xffffefa12345000 08'\t'
+*/
 asds4 asddd0xx___$$$_0x12300    0a
 
 string teSSSSt0
@@ -31,6 +31,7 @@ t+ - jk%< += + = == ! = !=
 test throwthrows throws[] thro protected static void int voidint void6
 
 // restricted public this
-public this+[['\t'0x000045 0 1234499+4nativef final const.final.buerger.tekashi69]
+public this+[['\t'0x0000000000000045 0 1234499+4nativef final const.final.buerger.tekashi69]
 "\"asdsc \n  asd"
 ""+"  "+"\33346abv"
+0xffffffff 2147483648 00000000000000000000000000179a 099990xg 037777777777 000000000017777777777
