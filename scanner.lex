@@ -31,6 +31,7 @@ implements	IMPLEMENTS
 interface	INTERFACE
 this	THIS
 instanceof	INSTANCEOF
+new	NEW
 
 static	STATIC
 public	PUBLIC
@@ -69,7 +70,6 @@ throw	THROW
 throws	THROWS
 try	TRY
 	
-new	NEW
 super	SUPER
 	
 break	BREAK
@@ -84,12 +84,9 @@ switch	SWITCH
 (true)|(false)	BOOLEAN_LIT
 null	NULL_LIT
 
-'[^\n']|(\\b|(t|(n|(f|(r|("|('|(\\|([0-7]|(([0-7][0-7])|([0-3][0-7][0-7])))))))))))'	CHAR_LIT
+'[^\n\\']|(\\b|(t|(n|(f|(r|("|('|(\\|([0-7]|(([0-7][0-7])|([0-3][0-7][0-7])))))))))))'	CHAR_LIT
 
-	string lit regex ERROR constructing DFA ---------------
-"([^\n"]|(\\b|(t|(n|(f|(r|("|('|(\\|([0-7]|(([0-7][0-7])|([0-3][0-7][0-7]))))))))))))*"	STRING_LIT
-
-
+"([^\n\\"]|(\\b|(t|(n|(f|(r|("|('|(\\|([0-7]|(([0-7][0-7])|([0-3][0-7][0-7]))))))))))))*"	STRING_LIT
 
 ((0[0-7]+)|(0|([1-9][0-9]*)))|(0(X|x)(([0-9]|[a-f])|[A-F])+)	INT_LIT
 

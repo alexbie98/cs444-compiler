@@ -31,12 +31,11 @@ void runMarmosetTests(const string& path){
 		auto fileName = f.substr(f.rfind("/") + 1);
 		size_t index = fileName.find("_");
 
-		auto name = fileName.substr(index + 1);
-		name = name.substr(0, name.length()-5);
+		fileName = fileName.substr(0, fileName.length()-5);
 
-		int expect = fileName[index - 1] == 'e' ? 42 : 0;
+		int expect = fileName[index - 1] == 'e' ? 6 : 0;
 
-		auto passed = runIOTest(f, name, expect);
+		auto passed = runIOTest(f, fileName, expect);
 
 		if (passed){
 			numPassedTests++;

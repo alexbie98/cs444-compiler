@@ -31,6 +31,8 @@ void preprocess(std::string &s);
  * 2147483648 is the sole unhandled INT_LIT
  * 
  * 3. process escape sequences in CHAR_INT and STRING_INT
+ * 
+ * 4. reject unsupported tokens
  */
 void postprocess(std::vector<Token>& tokens);
 

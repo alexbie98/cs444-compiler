@@ -84,10 +84,11 @@ void printToken(const Token& t){
 }
 
 string parseHex(string& s){
+    // HEX is unsupported
+    throw 42;
+
     transform(s.begin(), s.end(), s.begin(),
               [](char c) { return tolower(c); });
-
-    cout << s << endl;
 
     unsigned long val = 0;
     for (char c : s){
@@ -101,6 +102,10 @@ string parseHex(string& s){
 }
 
 string parseOct(const string& s){
+
+    // OCT is unsupported
+    throw 42;
+
     unsigned long val = 0;
     for (char c: s){
         val = 8 * val + (c - '0');
@@ -126,13 +131,11 @@ string parseDec(const string& s){
 
 Token& processToken(Token& t){
     if (t.first == INT_LIT){
-        cout << t.second << endl;
-
         if (t.second.length()>2 && t.second[0]=='0' && (t.second[1] == 'X' || t.second[1]=='x')){
             string hexString = t.second.substr(2);
             t.second = parseHex(hexString);
         }
-        else if (t.second[0] == '0'){
+        else if (t.second[0] == '0' && t.second.length()>1){
             t.second = parseOct(t.second.substr(1));
         }
         else {
@@ -150,6 +153,14 @@ Token& processToken(Token& t){
 }
 
 void postprocess(vector<Token>& tokens){
+
+    for (const Token& t: tokens){
+        if(isUnsupported(t.first)){
+            cout << "unsupported token ";
+            printToken(t);
+            throw 42;
+        }
+    }
 
     // 1. filter WS, COMMENT tokens
     auto it = remove_if(tokens.begin(), tokens.end(),

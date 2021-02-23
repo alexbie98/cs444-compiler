@@ -64,6 +64,7 @@ bool specialEscape(char escape, char& represents)
         case 'v': represents = '\v'; break;
         case 'f': represents = '\f'; break;
         case '0': represents = '\0'; break;
+        case '\\': represents = '\\'; break;
         default: 
             return false;
     }

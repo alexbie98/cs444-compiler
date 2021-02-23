@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <assert.h>
+// #include <stdlib.h>
 #include "Tokenize.h"
 
 using namespace std;
@@ -14,26 +15,28 @@ int main(int argc, char *argv[])
 {
     // cout << "Running joosc ..." << endl;
 
-    assert(argc == 2);
-
     ifstream t(argv[1]);
     stringstream buffer;
     buffer << t.rdbuf();
     string text = buffer.str();
 
+    //test_preprocess();
+
     preprocess(text);
-
-    // test_preprocess();
-
-    
     vector<Token> tokens = munch(text);
-    // for (const auto & t: tokens) {
-    //     printToken(t);
-    // }
+
+    if (!(argc > 2 && argv[2][0] == 's')){
+        for (const auto & t: tokens) {
+            printToken(t);
+        }
+    }
+    cout << "-----------------------------------" << endl;
 
     postprocess(tokens);
-    for (const auto & t: tokens) {
-        printToken(t);
+    if (!(argc > 2 && argv[2][0] == 's')){
+        for (const auto & t: tokens) {
+            printToken(t);
+        }
     }
 
 }

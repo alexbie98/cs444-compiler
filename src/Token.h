@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 
 enum TokenType {
     // WHITESPACE ------------------
@@ -133,3 +134,5 @@ enum TokenType {
 typedef std::pair<TokenType, std::string> Token;
 
 extern const std::string TOKEN_TYPE_STR[];
+
+bool isUnsupported(const TokenType &t);

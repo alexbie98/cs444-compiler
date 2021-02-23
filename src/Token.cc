@@ -128,3 +128,59 @@ const string TOKEN_TYPE_STR[] = {
     // REJECT (not an actual token, produced when there is not prefix match) --------------
     "REJECT"
 };
+
+const std::set<TokenType> UNSUPPORTED_TOKEN_TYPE = {
+    // modifier
+    CONST,
+    STRICTFP,
+    SYNCHRONIZED,
+    TRANSIENT,
+    VOLATILE,
+    // type
+    DOUBLE,
+    FLOAT,
+    LONG,
+    // exception
+    CATCH,
+    FINALLY,
+    THROW,
+    THROWS,
+    TRY,
+    // class
+    //NEW,
+    SUPER,
+    // control flow
+    BREAK,
+    CASE,
+    CONTINUE,
+    DEFAULT,
+    DO,
+    GOTO,
+    SWITCH,
+    // LITERAL ---------------
+    BITWISE_NOT, // unsupported
+    TERNARY_IF, // unsupported
+    TERNARY_ELSE, // unsupported
+    INCR, // unsupported
+    DECR, // unsupported
+    LSHIFT, // unsupported
+    RSHIFT, // unsupported
+    UNSIGNED_RSHIFT, // unsupported
+    PLUS_ASSIGN, // unsupported
+    MINUS_ASSIGN, // unsupported
+    MULT_ASSIGN, // unsupported
+    DIV_ASSIGN, // unsupported
+    BITWISE_AND_ASSIGN, // unsupported
+    BITWISE_OR_ASSIGN, // unsupported
+    BITWISE_XOR_ASSIGN, // unsupported
+    REMAINDER_ASSIGN, // unsupported
+    LSHIFT_ASSIGN, // unsupported
+    RSHIFT_ASSIGN, // unsupported
+    UNSIGNED_RSHIFT_ASSIGN, // unsupported
+    REJECT
+};
+
+bool isUnsupported(const TokenType& type){
+
+    return UNSUPPORTED_TOKEN_TYPE.find(type) != UNSUPPORTED_TOKEN_TYPE.end();
+}
