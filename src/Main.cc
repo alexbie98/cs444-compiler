@@ -29,8 +29,8 @@ int main(int argc, char *argv[])
         for (const auto & t: tokens) {
             printToken(t);
         }
-    }
     cout << "-----------------------------------" << endl;
+    }
 
     postprocess(tokens);
     if (!(argc > 2 && argv[2][0] == 's')){

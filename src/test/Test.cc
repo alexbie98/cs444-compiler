@@ -19,6 +19,7 @@ bool runIOTest(const string& filePath, const string& name, int expect){
     // }
 
     printTestMsg(name, passed, to_string(result), to_string(expect));
+    cout << "----------------------------------------------------" << endl;
 
     return passed;
 }
