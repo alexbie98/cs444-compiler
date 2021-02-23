@@ -16,13 +16,19 @@ LEX_DEPENDS = ${OBJECTS:.o=.d}
 TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Test.o test/MunchTest.o}
 TEST_DEPENDS = ${TEST_OBJECTS:.o=.d}
 
-all: lex joosc
+PARSE_TABLE_OBJECTS = ${addprefix ${BUILDDIR}/, parseTable/LR1ParseTableGenerator.o}
+PARSE_TABLE_DEPENDS = ${PARSE_TABLE_OBJECTS:.o=.d}
+
+all: lex joosc parseTable
 
 lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS} -o lex
 
 joosc: ${BUILDDIR}/Main.o ${OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
+
+parseTable: ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS}
+	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS} -o parseTable
 
 ${BUILDDIR}/DFA.o: ${BUILDDIR}/DFA.cc
 	${CXX} ${CXXFLAGS} -c -o $@ $<
@@ -48,7 +54,7 @@ lex_test: lex ${LEX_TEST_OBJECTS}
 .PHONY: clean 
 
 clean:
-	rm -r ${BUILDDIR} joosc lex test
+	rm -r ${BUILDDIR} joosc lex test parseTable
 
 
 

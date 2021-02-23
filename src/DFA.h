@@ -147,10 +147,16 @@ enum TokenType
 
     ID,
 
+
+    // TERMINALS USED FOR PARSING (Augmented grammar)
+    START_TERMINAL,
+    END_TERMINAL,
+
     // REJECT (not an actual token, produced when there is not prefix match) --------------
 
-    REJECT
+    REJECT,
 
+    COUNT // Tracks the size of the enum
 };
 
 
