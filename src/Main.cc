@@ -46,12 +46,12 @@ int main(int argc, char *argv[])
     cout << fileName << endl;
     cout << "----------------------------------------" << endl;
 
-    // ParseTreeNode *t = parse(tokens);
-    // if (!(argc > 2 && argv[2][0] == 's')){
-    //     printParseTree(t);
-    //     cout << "-----------------------------------" << endl;
-    // }
-    // assert(t != NULL);
+    ParseTreeNode *t = parse(tokens);
+    if (!(argc > 2 && argv[2][0] == 's')){
+        printParseTree(t);
+        cout << "-----------------------------------" << endl;
+    }
+    //assert(t != NULL);
 
     // weed(t, fileName);
 

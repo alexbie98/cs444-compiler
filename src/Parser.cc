@@ -67,6 +67,7 @@ ParseTreeNode* parse(const vector<Token>& input)
                 printParseTree(node);
                 delete node;
             }
+            cout << "Look Ahead: " << getSymbolName(node->symbol);
             return nullptr;
         }
         symbolStack.push_back(node);
@@ -101,9 +102,10 @@ const string NT_SYMBOL_STR [] = {
     "STATEMENT_EXPRESSION",
     "INFIX_OP",
     "PRIMARY",
+    "SELECTABLE_PRIMARY"
     "SELECTOR",
     "SELECTORS",
-    "SELECTORS_OPT"
+    "IDENTIFIER_SUFFIX"
     "ARGUMENTS_OPT",
     "ARGUMENTS",
     "BRACKETS_OPT",
@@ -119,6 +121,8 @@ const string NT_SYMBOL_STR [] = {
     "BLOCK_STATEMENT",
     "LOCAL_VARIABLE_DECLARATION_STATEMENT",
     "STATEMENT",
+    "OPEN_STATEMENT",
+    "CLOSED_STATEMENT",
     "FOR_INIT",
     "FOR_UPDATE",
     "FOR_INIT_OPT",
@@ -157,6 +161,7 @@ const string NT_SYMBOL_STR [] = {
     "CONSTRUCTOR_DECLARATOR_REST",
     "QUALIFIED_IDENTIFIER_LIST",
     "FORMAL_PARAMETERS",
+    "FORMAL_PARAMETERS_OPT",
     "FORMAL_PARAMETER_LIST",
     "FORMAL_PARAMETER",
     "METHOD_BODY",
@@ -164,7 +169,7 @@ const string NT_SYMBOL_STR [] = {
 
 
 string getSymbolName(unsigned int value){
-    return NT_SYMBOL_STR[value - START_SYMBOL];
+    return (value >= NONTERMINAL_TYPE) ? NT_SYMBOL_STR[value - START_SYMBOL] : TOKEN_TYPE_STR[value];
 }
 
 void printParseTree(ParseTreeNode *t, size_t spaces){
@@ -202,5 +207,8 @@ void printParseTree(ParseTreeNode *t){
     if (t!=NULL){
         printParseTree(t, 0);
     }
-    cout << "Tree is NULL" << endl;
+    else
+    {
+        cout << "Tree is NULL" << endl;
+    }
 };
