@@ -3,7 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <assert.h>
-// #include <stdlib.h>
+#include <filesystem>
 #include "Tokenize.h"
 #include "Parser.h"
 #include "Weeder.h"
@@ -42,17 +42,22 @@ int main(int argc, char *argv[])
         cout << "-----------------------------------" << endl;
     }
 
+    const string &fileName = filesystem::path(argv[1]).stem();
+    cout << fileName << endl;
+    cout << "----------------------------------------" << endl;
+
     ParseTreeNode *t = parse(tokens);
     if (!(argc > 2 && argv[2][0] == 's')){
         printParseTree(t);
         cout << "-----------------------------------" << endl;
     }
+    // assert(t != NULL);
 
-    assert(t != NULL);
-    weed(t);
-    if (!(argc > 2 && argv[2][0] == 's')){
-        printParseTree(t);
-    }
+    // weed(t, fileName);
+
+    // if (!(argc > 2 && argv[2][0] == 's')){
+    //     printParseTree(t);
+    // }
 }
 
 void test_preprocess(){
