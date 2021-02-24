@@ -2,6 +2,7 @@
 /joosc
 /test
 /lex_test
+/parseTable
 *.d
 *.o
 *.swp
