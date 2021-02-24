@@ -6,9 +6,6 @@
 
 using namespace std;
 
-void weed(ParseTreeNode *t, const string& fileName){
-
-}
 
 vector<TokenType> getModifiers(ParseTreeNode *modifiers){
     assert(modifiers->symbol == MODIFIERS);
@@ -59,21 +56,23 @@ void checkClassBody(ParseTreeNode * cBody){
  *  1. ID matches filename
  *  3. contains a constructor
  */
-void checkClassDeclaration(ParseTreeNode * cDecl, const string& fileName){
+void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
 
     assert(cDecl->symbol == CLASS_DECLARATION);
     assert(cDecl->children.size() >= 3);
     for (auto* child: cDecl->children){
         if (child->symbol == ID){
             assert(child->token != NULL);
-            if (fileName != child->token->second){
-                cout << "filename: " << fileName << " does not match classname: " << child->token->second;
+            if (context["fileName"] != child->token->second)
+            {
+                cout << "filename: " << context["fileName"] << " does not match classname: " << child->token->second;
                 exit(42);
             }
         }
-        if (child->symbol == CLASS_BODY){
-            checkClassBody(child);
-        }
+        weed(child, context);
+        // if (child->symbol == CLASS_BODY){
+        //     checkClassBody(child);
+        // }
     }
 
 }
@@ -91,7 +90,7 @@ void checkInterfaceBody(ParseTreeNode * iBody){
  *  1. ID matches filename
  *  3. contains a constructor
  */
-void checkInterfaceDeclaration(ParseTreeNode * iDecl, const string& fileName){
+void checkInterfaceDeclaration(ParseTreeNode * iDecl, map<string,string>& context){
 
     assert(iDecl->symbol == INTERFACE_DECLARATION);
     assert(iDecl->children.size() >= 3);
@@ -99,16 +98,18 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, const string& fileName){
     for (auto* child: iDecl->children){
         if (child->symbol == ID){
             assert(child->token != NULL);
-            if (fileName != child->token->second){
-                cout << "filename: " << fileName << " does not match interfacename: " << child->token->second;
+            if (context["fileName"] != child->token->second){
+                cout << "filename: " << context["fileName"] << " does not match interfacename: " << child->token->second;
                 exit(42);
             }
         }
-        if (child->symbol == INTERFACE_BODY){
-            checkInterfaceBody(child);
+        else{
+            weed(child, context);
         }
-    }
-    string iName;
+        //if (child->symbol == INTERFACE_BODY){
+        //   checkInterfaceBody(child);
+        //`}
+    }    
 
 }
 
@@ -116,7 +117,7 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, const string& fileName){
  * checks validity of class/interface declaration
  * 
  */
-void checkClassOrInterfaceDeclaration(ParseTreeNode* t, const string& fileName){
+void checkClassOrInterfaceDeclaration(ParseTreeNode* t, map<string,string>& context){
     assert(t->symbol == CLASS_OR_INTERFACE_DECLARATION);
     assert(t->children.size() == 2);
     vector<TokenType> modifiers;
@@ -143,11 +144,65 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, const string& fileName){
                 cout << "class declaration contains both abstract and final" << endl;
                 exit(42);
             }
-            checkClassDeclaration(declaration, fileName);
+            checkClassDeclaration(declaration, context);
         }
         else if (declaration->symbol == INTERFACE_DECLARATION) {
-            checkInterfaceDeclaration(declaration, fileName);
+            checkInterfaceDeclaration(declaration, context);
 
+        }
+    }
+}
+
+
+// void checkExpression3(ParseTreeNode * expression3){
+//     assert(expression3->symbol == EXPRESSION3);
+//     for (auto *child : expression3->children)
+//     {
+//         if (child->symbol == EXPRESSION2)
+//         {
+//             checkExpression2(child);
+//         }
+//     }
+
+// }
+
+void checkExpression2(ParseTreeNode * expression2, map<string,string>& context, bool has_minus = false){
+    assert(expression2->symbol == EXPRESSION2);
+    //cout << has_minus << endl;
+    if (expression2->children.size() == 2)
+    {
+        checkExpression2(expression2->children[1], context, true);
+    }
+    else if (expression2->children.size()== 1){
+        ParseTreeNode *expression3 = expression2->children[0];
+        if (expression3->children[0]->symbol == PRIMARY &&
+            expression3->children[0]->children[0]->symbol == SELECTABLE_PRIMARY &&
+            expression3->children[0]->children[0]->children[0]->symbol == LITERAL &&
+            expression3->children[0]->children[0]->children[0]->children[0]->symbol == INT_LIT &&
+            expression3->children[0]->children[0]->children[0]->children[0]->token->second == "2147483648" &&
+            !has_minus
+            ){
+            cout << "non-negative 214738368 literal" << endl;
+            exit(42);
+        }
+        else{
+            weed(expression3, context);
+        }
+    }
+}
+
+
+void weed(ParseTreeNode *t, map<string,string>& context){
+
+    for (ParseTreeNode * child: t->children){
+        if(child->symbol == EXPRESSION2){
+            checkExpression2(child, context);
+        }
+        else if (child->symbol == CLASS_OR_INTERFACE_DECLARATION){
+            checkClassOrInterfaceDeclaration(child, context);
+        }
+        else{
+            weed(child, context);
         }
     }
 }

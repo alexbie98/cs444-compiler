@@ -1,4 +1,5 @@
 #include <iostream>
+#include <map>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -43,17 +44,21 @@ int main(int argc, char *argv[])
     }
 
     const string &fileName = filesystem::path(argv[1]).stem().string();
-    cout << fileName << endl;
-    cout << "----------------------------------------" << endl;
-
     ParseTreeNode *t = parse(tokens);
+
     if (!(argc > 2 && argv[2][0] == 's')){
         printParseTree(t);
         cout << "-----------------------------------" << endl;
     }
-    //assert(t != NULL);
+    
+    if (t == NULL){
+        exit(42);
+    }
 
-    // weed(t, fileName);
+    map<string,string> context;
+    context["fileName"] = fileName;
+
+    weed(t, context);
 
     // if (!(argc > 2 && argv[2][0] == 's')){
     //     printParseTree(t);
