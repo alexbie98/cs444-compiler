@@ -125,6 +125,11 @@ const string TOKEN_TYPE_STR[] = {
     "UNSIGNED_RSHIFT_ASSIGN", // unsupported
     // IDENTIFIER ------------
     "ID",
+
+    // SPECIAL TERMINALS FOR PARSER
+    "START_TERMINAL",
+    "END_TERMINAL",
+
     // REJECT (not an actual token, produced when there is not prefix match) --------------
     "REJECT"
 };
