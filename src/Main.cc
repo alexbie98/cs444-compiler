@@ -5,6 +5,7 @@
 #include <assert.h>
 // #include <stdlib.h>
 #include "Tokenize.h"
+#include "Parser.h"
 
 using namespace std;
 
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
         for (const auto & t: tokens) {
             printToken(t);
         }
-    cout << "-----------------------------------" << endl;
+        cout << "-----------------------------------" << endl;
     }
 
     postprocess(tokens);
@@ -37,7 +38,10 @@ int main(int argc, char *argv[])
         for (const auto & t: tokens) {
             printToken(t);
         }
+        cout << "-----------------------------------" << endl;
     }
+
+    ParseTreeNode *n = parse(tokens);
 
 }
 
