@@ -170,13 +170,25 @@ void printParseTree(ParseTreeNode *t, size_t spaces){
     SymbolType type = getSymbolType(t->symbol);
     if (type == TERMINAL_TYPE){
         for (size_t i = 0; i < spaces;i++){
-            cout << "  ";
+            cout << " ";
         }
-        printToken(*t->token);
+        if (t->token != NULL){
+            printToken(*t->token);
+        }
+        else{
+            switch (t->symbol){
+                case START_TERMINAL: 
+                    cout << "START_TERMINAL" << endl;
+                    break;
+                case END_TERMINAL: 
+                    cout << "END_TERMINAL" << endl;
+                    break;
+                }
+        }
     }
     else{
         for (size_t i = 0; i < spaces;i++){
-            cout << "  ";
+            cout << " ";
         }
         cout << getSymbolName(t->symbol) << endl;
         for (ParseTreeNode* child: t->children){
