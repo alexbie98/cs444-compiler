@@ -68,7 +68,7 @@ void checkClassDeclaration(ParseTreeNode * cDecl, const string& fileName){
             assert(child->token != NULL);
             if (fileName != child->token->second){
                 cout << "filename: " << fileName << " does not match classname: " << child->token->second;
-                throw 42;
+                exit(42);
             }
         }
         if (child->symbol == CLASS_BODY){
@@ -101,7 +101,7 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, const string& fileName){
             assert(child->token != NULL);
             if (fileName != child->token->second){
                 cout << "filename: " << fileName << " does not match interfacename: " << child->token->second;
-                throw 42;
+                exit(42);
             }
         }
         if (child->symbol == INTERFACE_BODY){
@@ -139,7 +139,7 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, const string& fileName){
             find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end()){
 
             cout << "class declaration contains both abstract and final" << endl;
-            throw 42;
+            exit(42);
         }
         checkClassDeclaration(declaration, fileName);
     }

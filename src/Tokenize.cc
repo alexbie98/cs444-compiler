@@ -23,7 +23,7 @@ vector<Token> munch(const string &s) {
 
         if (match.first == REJECT) {
             cout << s.substr(i) << endl;
-            throw 42; // no prefix recognized by DFA
+            exit(42); // no prefix recognized by DFA
         }
         else {
             tokens.push_back({match.first, s.substr(i, match.second - i)});
@@ -38,7 +38,10 @@ void preprocess(string &s){
 
     size_t i = 0;
     while (i < s.length()){
-        assert(s[i] >= '\0' && s[i] <= '\177');
+        if(!(s[i] >= '\0' && s[i] <= '\177')){
+            cout << "non-ascii program text" << endl;
+            exit(42);
+        }
         if (s[i] == '\r' && i + 1 < s.length() && s[i + 1] == '\n'){
             s.erase(i, 1);
         }
@@ -86,7 +89,7 @@ void printToken(const Token& t){
 
 string parseHex(string& s){
     // HEX is unsupported
-    throw 42;
+    exit(42);
 
     transform(s.begin(), s.end(), s.begin(),
               [](char c) { return tolower(c); });
@@ -96,7 +99,7 @@ string parseHex(string& s){
         val = 16 * val + (('0' <= c && c <= '9') ? (c - '0') : (c - 'a' + 10));
         if (val > LONG_UINT_MAX){
             cout << "Parse hex int exceeds bounds: " << s << endl;
-            throw 42;
+            exit(42);
         }
     }
     return to_string((int) val);
@@ -105,14 +108,14 @@ string parseHex(string& s){
 string parseOct(const string& s){
 
     // OCT is unsupported
-    throw 42;
+    exit(42);
 
     unsigned long val = 0;
     for (char c: s){
         val = 8 * val + (c - '0');
         if (val>LONG_UINT_MAX){
             cout << "Parse oct int exceeds bounds: " << s << endl;
-            throw 42;
+            exit(42);
         }
     }
     return to_string((int) val);
@@ -124,7 +127,7 @@ string parseDec(const string& s){
         val = 10 * val + (c - '0');
         if (val>LONG_INT_MAX+1){ //  2147483648 could have a preceding -, in which case it is actually
             cout << "Parse decimal int exceeds bounds: " << s << endl;
-            throw 42;
+            exit(42);
         }
     }
     return to_string(val);
@@ -159,7 +162,7 @@ void postprocess(vector<Token>& tokens){
         if(isUnsupported(t.first)){
             cout << "unsupported token ";
             printToken(t);
-            throw 42;
+            exit(42);
         }
     }
 

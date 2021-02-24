@@ -10,6 +10,7 @@ bool runIOTest(const string& filePath, const string& name, int expect){
 
     string command = "./joosc " + filePath + " s";
     int result = system(command.c_str());
+    result = WEXITSTATUS(result);
 
     bool passed = result == expect;
 
