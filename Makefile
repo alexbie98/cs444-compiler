@@ -57,10 +57,11 @@ lex_test: lex ${LEX_TEST_OBJECTS}
 
 -include ${DEPENDS}
 
-.PHONY: clean 
+.PHONY: clean zip
 
 clean:
 	rm -r ${BUILDDIR} joosc lex test parseTable
 
-
+zip:
+	zip -r ../submit.zip src Makefile scanner.lex
 
