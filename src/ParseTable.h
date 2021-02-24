@@ -17,7 +17,6 @@ enum SymbolType
 enum NonterminalSymbols
 {
     START_SYMBOL = SymbolType::NONTERMINAL_TYPE,
-    IDENTIFIER,
     LONG_IDENTIFIER,
     QUALIFIED_IDENTIFIER,
     LITERAL,

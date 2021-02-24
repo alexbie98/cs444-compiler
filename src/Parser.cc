@@ -84,7 +84,6 @@ ParseTreeNode* parse(const vector<Token>& input)
 
 const string NT_SYMBOL_STR [] = {
     "START_SYMBOL",
-    "IDENTIFIER",
     "LONG_IDENTIFIER",
     "QUALIFIED_IDENTIFIER",
     "LITERAL",
@@ -102,10 +101,10 @@ const string NT_SYMBOL_STR [] = {
     "STATEMENT_EXPRESSION",
     "INFIX_OP",
     "PRIMARY",
-    "SELECTABLE_PRIMARY"
+    "SELECTABLE_PRIMARY",
     "SELECTOR",
     "SELECTORS",
-    "IDENTIFIER_SUFFIX"
+    "IDENTIFIER_SUFFIX",
     "ARGUMENTS_OPT",
     "ARGUMENTS",
     "BRACKETS_OPT",
