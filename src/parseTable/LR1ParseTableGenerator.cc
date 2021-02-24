@@ -116,12 +116,13 @@ void outputParseTable(const LR1ParseTable& parseTable, ostream& output)
     // We'll make the assumption that the .h files are already populated with the terminals and non-terminals
 
     // Populate with rules
-    output << "#include <utility>" << endl << endl;
+    output << "#include <utility>" << endl;
+    output << "#include <vector>" << endl << endl;
 
     output << "const Production PRODUCTIONS[] = {" << endl;
     for (ProductionRule rule : parseTable.productions)
     {
-        output << "\tstd::make_pair(" << rule.lhs << ", {";
+        output << "\tstd::make_pair(" << rule.lhs << ", std::vector<unsigned int>{";
         for (vector<string>::iterator it = rule.rhs.begin(); it != rule.rhs.end(); it++)
         {
             if (it != rule.rhs.begin())
