@@ -31,6 +31,7 @@ enum TokenType {
     INTERFACE,
     THIS,
     INSTANCEOF,
+    NEW,
     // modifier
     STATIC,
     PUBLIC,
@@ -70,7 +71,6 @@ enum TokenType {
     THROWS,
     TRY,
     // class
-    NEW,
     SUPER,
     // control flow
     BREAK,

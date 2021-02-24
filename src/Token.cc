@@ -30,6 +30,7 @@ const string TOKEN_TYPE_STR[] = {
     "INTERFACE",
     "THIS",
     "INSTANCEOF",
+    "NEW",
     // modifier
     "STATIC",
     "PUBLIC",
@@ -69,8 +70,7 @@ const string TOKEN_TYPE_STR[] = {
     "THROWS",
     "TRY",
     // class
-    "NEW",
-    "SUPER",
+     "SUPER",
     // control flow
     "BREAK",
     "CASE",
@@ -147,7 +147,6 @@ const std::set<TokenType> UNSUPPORTED_TOKEN_TYPE = {
     THROWS,
     TRY,
     // class
-    //NEW,
     SUPER,
     // control flow
     BREAK,
@@ -158,29 +157,28 @@ const std::set<TokenType> UNSUPPORTED_TOKEN_TYPE = {
     GOTO,
     SWITCH,
     // LITERAL ---------------
-    BITWISE_NOT, // unsupported
-    TERNARY_IF, // unsupported
-    TERNARY_ELSE, // unsupported
-    INCR, // unsupported
-    DECR, // unsupported
-    LSHIFT, // unsupported
-    RSHIFT, // unsupported
-    UNSIGNED_RSHIFT, // unsupported
-    PLUS_ASSIGN, // unsupported
-    MINUS_ASSIGN, // unsupported
-    MULT_ASSIGN, // unsupported
-    DIV_ASSIGN, // unsupported
-    BITWISE_AND_ASSIGN, // unsupported
-    BITWISE_OR_ASSIGN, // unsupported
-    BITWISE_XOR_ASSIGN, // unsupported
-    REMAINDER_ASSIGN, // unsupported
-    LSHIFT_ASSIGN, // unsupported
-    RSHIFT_ASSIGN, // unsupported
-    UNSIGNED_RSHIFT_ASSIGN, // unsupported
+    BITWISE_NOT, 
+    TERNARY_IF, 
+    TERNARY_ELSE,
+    INCR, 
+    DECR,
+    LSHIFT,
+    RSHIFT,
+    UNSIGNED_RSHIFT,
+    PLUS_ASSIGN,
+    MINUS_ASSIGN, 
+    MULT_ASSIGN, 
+    DIV_ASSIGN, 
+    BITWISE_AND_ASSIGN,
+    BITWISE_OR_ASSIGN,
+    BITWISE_XOR_ASSIGN,
+    REMAINDER_ASSIGN,
+    LSHIFT_ASSIGN, 
+    RSHIFT_ASSIGN,
+    UNSIGNED_RSHIFT_ASSIGN,
     REJECT
 };
 
 bool isUnsupported(const TokenType& type){
-
     return UNSUPPORTED_TOKEN_TYPE.find(type) != UNSUPPORTED_TOKEN_TYPE.end();
 }
