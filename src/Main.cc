@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         cout << "-----------------------------------" << endl;
     }
 
-    const string &fileName = filesystem::path(argv[1]).stem();
+    const string &fileName = filesystem::path(argv[1]).stem().string();
     cout << fileName << endl;
     cout << "----------------------------------------" << endl;
 

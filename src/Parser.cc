@@ -90,6 +90,7 @@ const string NT_SYMBOL_STR [] = {
     "EXPRESSION",
     "EXPRESSION1",
     "EXPRESSION2",
+    "EXPRESSION3",
     "EXPRESSION1_REST",
     "EXPRESSION_INFIX",
     "EXPRESSION_LIST",
@@ -100,9 +101,9 @@ const string NT_SYMBOL_STR [] = {
     "STATEMENT_EXPRESSION",
     "INFIX_OP",
     "PRIMARY",
-    "PREFIX_OP",
     "SELECTOR",
     "SELECTORS",
+    "SELECTORS_OPT"
     "ARGUMENTS_OPT",
     "ARGUMENTS",
     "BRACKETS_OPT",

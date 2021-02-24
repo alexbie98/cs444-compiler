@@ -9,7 +9,7 @@ struct ParseTreeNode
 {
     ~ParseTreeNode();
 
-    unsigned int symbol;
+    unsigned int symbol = 0;
     const Token* token = nullptr; // Terminals will have a corresponding token from the input
 
     std::vector<ParseTreeNode*> children;

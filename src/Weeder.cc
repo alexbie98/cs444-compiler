@@ -120,7 +120,7 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, const string& fileName){
     assert(t->symbol == CLASS_OR_INTERFACE_DECLARATION);
     assert(t->children.size() == 2);
     vector<TokenType> modifiers;
-    ParseTreeNode* declaration;
+    ParseTreeNode* declaration = nullptr;
     for (auto *child : t->children)
     {
         if (child->symbol == MODIFIERS_OPT)
@@ -133,18 +133,21 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, const string& fileName){
         }
     }
 
-    if (declaration->symbol == CLASS_DECLARATION){
-        // cant be abstract final
-        if (find(modifiers.begin(), modifiers.end(), ABSTRACT) != modifiers.end() &&
-            find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end()){
+    if (declaration)
+    {
+        if (declaration->symbol == CLASS_DECLARATION) {
+            // cant be abstract final
+            if (find(modifiers.begin(), modifiers.end(), ABSTRACT) != modifiers.end() &&
+                find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end()) {
 
-            cout << "class declaration contains both abstract and final" << endl;
-            exit(42);
+                cout << "class declaration contains both abstract and final" << endl;
+                exit(42);
+            }
+            checkClassDeclaration(declaration, fileName);
         }
-        checkClassDeclaration(declaration, fileName);
-    }
-    else if (declaration->symbol == INTERFACE_DECLARATION){
-        checkInterfaceDeclaration(declaration, fileName);
+        else if (declaration->symbol == INTERFACE_DECLARATION) {
+            checkInterfaceDeclaration(declaration, fileName);
 
+        }
     }
 }
