@@ -33,7 +33,7 @@ void runMarmosetTests(const string& path){
 
 		fileName = fileName.substr(0, fileName.length()-5);
 
-		int expect = fileName[index - 1] == 'e' ? 6 : 0;
+		int expect = fileName[index - 1] == 'e' ? 34304 : 0;
 
 		auto passed = runIOTest(f, fileName, expect);
 

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "Tokenize.h"
 #include <cctype>
+#include <cassert>
 #include "DFA.h"
 
 using namespace std;

@@ -1,5 +1,7 @@
 #include "Weeder.h"
+#include <algorithm>
 #include <vector>
+#include <cassert>
 #include <iostream>
 
 using namespace std;

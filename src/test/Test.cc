@@ -30,7 +30,6 @@ void printTestMsg(const string& name, bool passed, const string& result, const s
         cout << " " << CHECKMARK << endl;
     }
     else{
-        cout << " " << XMARK << endl;
-        // cout << "| got \'" << result << "\', expected \'" << expect << "\'"<< endl;
+        cout << " " << XMARK  << " got \'" << result << "\', expected \'" << expect << "\'"<< endl;
     }
 }
