@@ -16,3 +16,9 @@ struct ParseTreeNode
 };
 
 ParseTreeNode* parse(const std::vector<Token>& input);
+
+void printParseTree(ParseTreeNode *t);
+
+extern const std::string NT_SYMBOL_STR[];
+
+std::string getSymbolName(unsigned int value);

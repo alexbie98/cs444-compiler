@@ -6,6 +6,7 @@
 // #include <stdlib.h>
 #include "Tokenize.h"
 #include "Parser.h"
+#include "Weeder.h"
 
 using namespace std;
 
@@ -16,9 +17,9 @@ int main(int argc, char *argv[])
 {
     // cout << "Running joosc ..." << endl;
 
-    ifstream t(argv[1]);
+    ifstream ts(argv[1]);
     stringstream buffer;
-    buffer << t.rdbuf();
+    buffer << ts.rdbuf();
     string text = buffer.str();
 
     //test_preprocess();
@@ -41,8 +42,17 @@ int main(int argc, char *argv[])
         cout << "-----------------------------------" << endl;
     }
 
-    ParseTreeNode *n = parse(tokens);
+    ParseTreeNode *t = parse(tokens);
+    if (!(argc > 2 && argv[2][0] == 's')){
+        printParseTree(t);
+        cout << "-----------------------------------" << endl;
+    }
 
+    assert(t != NULL);
+    weed(t);
+    if (!(argc > 2 && argv[2][0] == 's')){
+        printParseTree(t);
+    }
 }
 
 void test_preprocess(){

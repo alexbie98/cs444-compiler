@@ -100,5 +100,7 @@ constexpr SymbolType getSymbolType(unsigned int value)
     return (value > NONTERMINAL_TYPE) ? NONTERMINAL_TYPE : TERMINAL_TYPE;
 }
 
+
+
 int stateShift(int currState, int symbol);
 int stateReduce(int currState, int symbol);

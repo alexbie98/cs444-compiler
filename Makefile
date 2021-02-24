@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -MMD -g
 BUILDDIR = build
 SRCDIR = src
 
-OBJECTS = ${addprefix ${BUILDDIR}/,  module/Module.o Tokenize.o Token.o Parser.o}
+OBJECTS = ${addprefix ${BUILDDIR}/,  module/Module.o Tokenize.o Token.o Parser.o Weeder.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
 LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o lex/FA.o}
