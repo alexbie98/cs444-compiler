@@ -3,7 +3,8 @@
 #include <string>
 #include <set>
 
-enum TokenType {
+enum TokenType
+{
     // WHITESPACE ------------------
     WS,
     // COMMENT ---------------------
@@ -91,8 +92,8 @@ enum TokenType {
     GT,
     LT,
     NOT,
-    BITWISE_NOT, // unsupported
-    TERNARY_IF, // unsupported
+    BITWISE_NOT,  // unsupported
+    TERNARY_IF,   // unsupported
     TERNARY_ELSE, // unsupported
     EQ,
     LEQ,
@@ -110,26 +111,30 @@ enum TokenType {
     EAGER_OR,
     XOR,
     REMAINDER,
-    LSHIFT, // unsupported
-    RSHIFT, // unsupported
-    UNSIGNED_RSHIFT, // unsupported
-    PLUS_ASSIGN, // unsupported
-    MINUS_ASSIGN, // unsupported
-    MULT_ASSIGN, // unsupported
-    DIV_ASSIGN, // unsupported
-    BITWISE_AND_ASSIGN, // unsupported
-    BITWISE_OR_ASSIGN, // unsupported
-    BITWISE_XOR_ASSIGN, // unsupported
-    REMAINDER_ASSIGN, // unsupported
-    LSHIFT_ASSIGN, // unsupported
-    RSHIFT_ASSIGN, // unsupported
+    LSHIFT,                 // unsupported
+    RSHIFT,                 // unsupported
+    UNSIGNED_RSHIFT,        // unsupported
+    PLUS_ASSIGN,            // unsupported
+    MINUS_ASSIGN,           // unsupported
+    MULT_ASSIGN,            // unsupported
+    DIV_ASSIGN,             // unsupported
+    BITWISE_AND_ASSIGN,     // unsupported
+    BITWISE_OR_ASSIGN,      // unsupported
+    BITWISE_XOR_ASSIGN,     // unsupported
+    REMAINDER_ASSIGN,       // unsupported
+    LSHIFT_ASSIGN,          // unsupported
+    RSHIFT_ASSIGN,          // unsupported
     UNSIGNED_RSHIFT_ASSIGN, // unsupported
     // IDENTIFIER ------------
     ID,
+    // TERMINALS USED FOR PARSING
+    START_TERMINAL,
+    END_TERMINAL,
     // REJECT (not an actual token, produced when there is not prefix match) --------------
-    REJECT
-};
+    REJECT,
 
+    COUNT // keep track of enum size
+};
 // A Token is a (TokenType, Lexeme) pair
 typedef std::pair<TokenType, std::string> Token;
 
