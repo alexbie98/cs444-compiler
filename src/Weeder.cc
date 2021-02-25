@@ -60,12 +60,19 @@ void checkMethodValidModifiers(const vector<TokenType>& modifiers){
     }
 
     if (find(modifiers.begin(), modifiers.end(), NATIVE) != modifiers.end() &&
-        !(find(modifiers.begin(), modifiers.end(), STATIC) != modifiers.end())){
+        (find(modifiers.begin(), modifiers.end(), STATIC) == modifiers.end())){
         
-        cout << "static can't be final" << endl;
+        cout << "native must be static" << endl;
         exit(42);
     }
 
+    if (find(modifiers.begin(), modifiers.end(), PUBLIC) == modifiers.end() &&
+        find(modifiers.begin(), modifiers.end(), PRIVATE) == modifiers.end() &&
+        find(modifiers.begin(), modifiers.end(), PROTECTED) == modifiers.end() ){
+
+        cout << "method declaration can't be package private" << endl;
+        exit(42);
+    }
 }
 
 void checkMethodDeclaratorRest(ParseTreeNode * methodRest, const vector<TokenType>& modifiers, map<string,string>& context){
@@ -141,6 +148,13 @@ void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& co
                 cout << "fields cannot be final";
                 exit(42);
             }
+            if (find(modifiers.begin(), modifiers.end(), PUBLIC) == modifiers.end() &&
+                find(modifiers.begin(), modifiers.end(), PRIVATE) == modifiers.end() &&
+                find(modifiers.begin(), modifiers.end(), PROTECTED) == modifiers.end() ){
+
+                cout << "fields declaration can't be package private" << endl;
+                exit(42);
+            }
         }
 
     }
@@ -176,6 +190,28 @@ bool bodyDeclarationsHasConstructor(ParseTreeNode* cBodyDecls){
     }
 }
 
+bool typeIsBasicOrArrayType(ParseTreeNode*type, map<string,string>& context){
+    assert(type->symbol == TYPE);
+    if (type->children[0]->symbol == BASIC_TYPE||
+        (type->children.size()==2 && type->children[1]->symbol == ARRAY)){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+bool typeListHasBasicOrArrayType(ParseTreeNode* typeList, map<string,string>& context){
+    assert(typeList->symbol == TYPE_LIST);
+
+    if (typeList->children.size() == 1){
+        return typeIsBasicOrArrayType(typeList->children[0], context);
+    }
+    else{
+        assert(typeList->children.size() == 3);
+        return typeIsBasicOrArrayType(typeList->children[0], context) || typeListHasBasicOrArrayType(typeList->children[2], context);
+    }
+}
+
 /**
  *  1. ID matches filename
  *  3. contains a constructor
@@ -205,7 +241,13 @@ void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
         }
         weed(child, context);
     }
-
+    if (cDecl->children[2]->symbol == IMPLEMENTS){
+        assert(cDecl->children[3]->symbol == TYPE_LIST);
+        if (typeListHasBasicOrArrayType(cDecl->children[3], context)){
+            cout << "cannot IMPLEMENT an array or primitive type" << endl;
+            exit(42);
+        }
+    }
 }
 
 
@@ -265,10 +307,25 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, map<string,string>& cont
                 cout << "class declaration contains both abstract and final" << endl;
                 exit(42);
             }
+            if (find(modifiers.begin(), modifiers.end(), PUBLIC) == modifiers.end() ||
+                find(modifiers.begin(), modifiers.end(), PRIVATE) != modifiers.end() ||
+                find(modifiers.begin(), modifiers.end(), PROTECTED) != modifiers.end() ){
+
+                cout << "class declaration must be public" << endl;
+                exit(42);
+            }
             checkClassDeclaration(declaration, context);
         }
         else if (declaration->symbol == INTERFACE_DECLARATION) {
             checkInterfaceDeclaration(declaration, context);
+
+            if (find(modifiers.begin(), modifiers.end(), PUBLIC) == modifiers.end() ||
+                find(modifiers.begin(), modifiers.end(), PRIVATE) != modifiers.end() ||
+                find(modifiers.begin(), modifiers.end(), PROTECTED) != modifiers.end() ){
+
+                cout << "interface declaration must be public" << endl;
+                exit(42);
+            }
 
         }
     }
