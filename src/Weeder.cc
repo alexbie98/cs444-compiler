@@ -408,28 +408,29 @@ void checkForInitUpdate(ParseTreeNode *t, map<string,string>& context){
 
 void weed(ParseTreeNode *t, map<string,string>& context){
 
-    for (ParseTreeNode * child: t->children){
-        if(child->symbol == EXPRESSION2){
-            checkExpression2(child, context);
-        }
-        else if (child->symbol == CLASS_OR_INTERFACE_DECLARATION){
-            checkClassOrInterfaceDeclaration(child, context);
-        }
-        else if (child->symbol == INTERFACE_BODY_DECLARATION){
-            checkInterfaceBodyDeclaration(child, context);
-        }
-        else if (child->symbol == CLASS_BODY_DECLARATION){
-            checkClassBodyDeclaration(child, context);
-        }
-        else if (child->symbol == EXPRESSION1_REST){
-            checkExpression1Rest(child, context);
-        }
-        else if(child->symbol == FOR_INIT || child->symbol == FOR_UPDATE){
-            checkForInitUpdate(t, context);
-        }
-        else if (child->symbol == EXPRESSION3) {
-            checkExpression3(child, context);
-        }
+    if(t->symbol == EXPRESSION2){
+        checkExpression2(t, context);
+    }
+    else if (t->symbol == CLASS_OR_INTERFACE_DECLARATION){
+        checkClassOrInterfaceDeclaration(t, context);
+    }
+    else if (t->symbol == INTERFACE_BODY_DECLARATION){
+        checkInterfaceBodyDeclaration(t, context);
+    }
+    else if (t->symbol == CLASS_BODY_DECLARATION){
+        checkClassBodyDeclaration(t, context);
+    }
+    else if (t->symbol == EXPRESSION1_REST){
+        checkExpression1Rest(t, context);
+    }
+    // else if((t->symbol == FOR_INIT || t->symbol == FOR_UPDATE)){
+    //     checkForInitUpdate(t, context);
+    // }
+    else if (t->symbol == EXPRESSION3) {
+        checkExpression3(t, context);
+    }
+
+    for (auto* child: t->children){
         weed(child, context);
     }
 }
