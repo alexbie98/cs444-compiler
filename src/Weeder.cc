@@ -371,6 +371,20 @@ void checkExpression3(ParseTreeNode* expr3, map<string, string>& context)
             exit(42);
         }
     }
+    // Expression Casting
+    else if (expr3->children.size() == 4 && expr3->children[0]->symbol == LPAREN && expr3->children[1]->symbol == EXPRESSION)
+    {
+        ParseTreeNode* expr2 = expr3->children[1];
+        if (!(expr2->children[0]->symbol == EXPRESSION1 &&
+            expr2->children[0]->children[0]->symbol == EXPRESSION2 &&
+            expr2->children[0]->children[0]->children[0]->symbol == EXPRESSION3 &&
+            expr2->children[0]->children[0]->children[0]->children[0]->symbol == PRIMARY &&
+            expr2->children[0]->children[0]->children[0]->children[0]->children[0]->symbol == LONG_IDENTIFIER))
+        {
+            cout << "Cannot cast to an expression, only a type name (LONG_IDENTIFIER)" << endl;
+            exit(42);
+        }
+    }
 }
 
 void checkExpression1Rest(ParseTreeNode* expr1Rest, map<string,string>& context){
@@ -406,6 +420,21 @@ void checkForInitUpdate(ParseTreeNode *t, map<string,string>& context){
 
 }
 
+void checkExpression(ParseTreeNode* expr, map<string, string>& context) {
+    assert(expr->symbol == EXPRESSION);
+    if (expr->children.size() == 3 && expr->children[1]->symbol == ASSIGN_OP) {
+        if (expr->children[0]->symbol == EXPRESSION1 &&
+            expr->children[0]->children[0]->symbol == EXPRESSION2 &&
+            expr->children[0]->children[0]->children[0]->symbol == EXPRESSION3 &&
+            expr->children[0]->children[0]->children[0]->children.size() >= 4 &&
+            expr->children[0]->children[0]->children[0]->children[0]->symbol == LPAREN)
+        {
+            cout << "can't cast on lhs of assignment" << endl;
+            exit(42);
+        }
+    }
+}
+
 void weed(ParseTreeNode *t, map<string,string>& context){
 
     if(t->symbol == EXPRESSION2){
@@ -428,6 +457,9 @@ void weed(ParseTreeNode *t, map<string,string>& context){
     // }
     else if (t->symbol == EXPRESSION3) {
         checkExpression3(t, context);
+    }
+    else if (t->symbol == EXPRESSION) {
+        checkExpression(t, context);
     }
 
     for (auto* child: t->children){
