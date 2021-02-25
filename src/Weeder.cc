@@ -381,6 +381,29 @@ void checkExpression1Rest(ParseTreeNode* expr1Rest, map<string,string>& context)
     }
 }
 
+bool hasIdentifiers(ParseTreeNode *t){
+    if (t->symbol == ID){
+        return true;
+    }
+    else{
+        for (auto* child: t->children){
+            if (hasIdentifiers(child)){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void checkForInitUpdate(ParseTreeNode *t, map<string,string>& context){
+    assert(t->symbol == FOR_INIT || t->symbol == FOR_UPDATE);
+    if (!hasIdentifiers(t->children[0])){
+        cout << "primaryexp in for update or init";
+        exit(42);
+    }
+
+}
+
 void weed(ParseTreeNode *t, map<string,string>& context){
 
     for (ParseTreeNode * child: t->children){
@@ -398,6 +421,9 @@ void weed(ParseTreeNode *t, map<string,string>& context){
         }
         else if (child->symbol == EXPRESSION1_REST){
             checkExpression1Rest(child, context);
+        }
+        else if(child->symbol == FOR_INIT || child->symbol == FOR_UPDATE){
+            checkForInitUpdate(t, context);
         }
         else{
             weed(child, context);
