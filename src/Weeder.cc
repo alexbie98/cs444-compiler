@@ -301,6 +301,18 @@ void checkExpression2(ParseTreeNode * expression2, map<string,string>& context, 
     }
 }
 
+void checkExpression1Rest(ParseTreeNode* expr1Rest, map<string,string>& context){
+    assert(expr1Rest->symbol == EXPRESSION1_REST);
+    if (expr1Rest->children[0]->symbol == INSTANCEOF &&
+        expr1Rest->children[1]->children[0]->symbol == BASIC_TYPE){
+        
+        cout << "can't instanceof basic type" << endl;
+        exit(42);
+    }
+    for (auto* child: expr1Rest->children){
+        weed(child, context);
+    }
+}
 
 void weed(ParseTreeNode *t, map<string,string>& context){
 
@@ -316,6 +328,9 @@ void weed(ParseTreeNode *t, map<string,string>& context){
         }
         else if (child->symbol == CLASS_BODY_DECLARATION){
             checkClassBodyDeclaration(child, context);
+        }
+        else if (child->symbol == EXPRESSION1_REST){
+            checkExpression1Rest(child, context);
         }
         else{
             weed(child, context);
