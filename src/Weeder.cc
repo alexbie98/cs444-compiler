@@ -42,7 +42,109 @@ vector<TokenType> getModifiersFromModifiersOpt(ParseTreeNode *modifiersOpt){
     return getModifiers(modifiersOpt->children[0]);
 }
 
+void checkMethodValidModifiers(const vector<TokenType>& modifiers){
 
+    if (find(modifiers.begin(), modifiers.end(), ABSTRACT) != modifiers.end() &&
+        (find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end() ||
+         find(modifiers.begin(), modifiers.end(), STATIC) != modifiers.end())){
+        
+        cout << "abstract can't be final/static" << endl;
+        exit(42);
+    }
+
+    if (find(modifiers.begin(), modifiers.end(), STATIC) != modifiers.end() &&
+        find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end()){
+        
+        cout << "static can't be final" << endl;
+        exit(42);
+    }
+
+    if (find(modifiers.begin(), modifiers.end(), NATIVE) != modifiers.end() &&
+        !(find(modifiers.begin(), modifiers.end(), STATIC) != modifiers.end())){
+        
+        cout << "static can't be final" << endl;
+        exit(42);
+    }
+
+}
+
+void checkMethodDeclaratorRest(ParseTreeNode * methodRest, const vector<TokenType>& modifiers, map<string,string>& context){
+    assert(methodRest->symbol == METHOD_DECLARATOR_REST);
+    if ((methodRest->children[1]->symbol == METHOD_BODY && (find(modifiers.begin(), modifiers.end(), ABSTRACT)!=modifiers.end() || find(modifiers.begin(), modifiers.end(), NATIVE)!=modifiers.end())) ||
+        (methodRest->children[1]->symbol == SEMICOLON && find(modifiers.begin(), modifiers.end(), ABSTRACT)==modifiers.end() && find(modifiers.begin(), modifiers.end(), NATIVE)==modifiers.end())){
+        
+
+        cout << "no body iff abstract or native" << endl;
+        exit(42);
+    }
+    for (auto* child: methodRest->children){
+        weed(child, context);
+    }
+}
+
+void checkInterfaceMethodDeclaratorRest(ParseTreeNode * iMethodRest, const vector<TokenType>& modifiers, map<string,string>& context){
+    assert(iMethodRest->symbol == INTERFACE_METHOD_DECLARATOR_REST);
+
+}
+
+void checkInterfaceBodyDeclaration(ParseTreeNode * iBodyDecl, map<string,string>& context){
+    assert(iBodyDecl->symbol == INTERFACE_BODY_DECLARATION);
+
+    if (iBodyDecl->children.size() == 2){
+        assert(iBodyDecl->children[0]->symbol == MODIFIERS_OPT);
+        auto modifiers = getModifiersFromModifiersOpt(iBodyDecl->children[0]);
+
+        checkMethodValidModifiers(modifiers);
+        if (find(modifiers.begin(), modifiers.end(), STATIC) != modifiers.end() ||
+            find(modifiers.begin(), modifiers.end(), FINAL) != modifiers.end() ||
+            find(modifiers.begin(), modifiers.end(), NATIVE) != modifiers.end()){
+
+            cout << "invalid interface member modifiers" << endl;
+            exit(42);
+        }
+        weed(iBodyDecl->children[1], context);
+    }
+    else{
+        weed(iBodyDecl->children[1], context);
+    }
+}
+
+
+void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& context){
+    assert(cBodyDecl->symbol == CLASS_BODY_DECLARATION);
+
+    if (cBodyDecl->children.size() == 2){
+        assert(cBodyDecl->children[0]->symbol == MODIFIERS_OPT);
+        auto modifiers = getModifiersFromModifiersOpt(cBodyDecl->children[0]);
+
+        if (cBodyDecl->children[1]->children[0]->symbol == VOID ||
+            (cBodyDecl->children[1]->children[0]->symbol == METHOD_OR_FIELD_DECLARATION &&
+             cBodyDecl->children[1]->children[0]->children[2]->children[0]->symbol == METHOD_DECLARATOR_REST)){
+             
+            checkMethodValidModifiers(modifiers);
+            
+            if(cBodyDecl->children[1]->children[0]->symbol == VOID){
+                checkMethodDeclaratorRest(cBodyDecl->children[1]->children[2], modifiers, context);
+            }
+            else{
+                checkMethodDeclaratorRest(cBodyDecl->children[1]->children[0]->children[2]->children[0], modifiers, context);
+            }
+        }
+        else{
+            weed(cBodyDecl->children[1], context);
+        }
+
+        if (cBodyDecl->children[1]->children[0]->symbol == METHOD_OR_FIELD_DECLARATION &&
+            cBodyDecl->children[1]->children[0]->children[2]->children[0]->symbol == VARIABLE_DECLARATOR_REST){
+
+            if (find(modifiers.begin(), modifiers.end(), FINAL)!=modifiers.end()){
+                cout << "fields cannot be final";
+                exit(42);
+            }
+        }
+
+    }
+}
 
 /**
  * check for a constructor
@@ -50,6 +152,28 @@ vector<TokenType> getModifiersFromModifiersOpt(ParseTreeNode *modifiersOpt){
 void checkClassBody(ParseTreeNode * cBody){
     assert(cBody->symbol == CLASS_BODY);
 
+}
+
+
+bool bodyDeclarationIsConstructor(ParseTreeNode* cBodyDecl){
+    assert(cBodyDecl->symbol == CLASS_BODY_DECLARATION);
+    if(cBodyDecl->children.size() == 2 &&
+       cBodyDecl->children[1]->children[0]->symbol == ID){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+bool bodyDeclarationsHasConstructor(ParseTreeNode* cBodyDecls){
+    assert(cBodyDecls->symbol == CLASS_BODY_DECLARATIONS);
+    if(cBodyDecls->children.size() == 2){
+        return bodyDeclarationIsConstructor(cBodyDecls->children[1]) || bodyDeclarationsHasConstructor(cBodyDecls->children[0]);
+    }
+    else{
+        return bodyDeclarationIsConstructor(cBodyDecls->children[0]);
+    }
 }
 
 /**
@@ -69,22 +193,21 @@ void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
                 exit(42);
             }
         }
+
+        //check class body for a contructor
+        if (child->symbol == CLASS_BODY){
+            if (child->children.size() < 3 ||
+                !bodyDeclarationsHasConstructor(child->children[1])){
+
+                cout << "class no constructor" << endl;
+                exit(42);
+            }
+        }
         weed(child, context);
-        // if (child->symbol == CLASS_BODY){
-        //     checkClassBody(child);
-        // }
     }
 
 }
 
-/**
- * 
- * 
- * 
- */
-void checkInterfaceBody(ParseTreeNode * iBody){
-    assert(iBody->symbol == INTERFACE_BODY);
-}
 
 /**
  *  1. ID matches filename
@@ -103,9 +226,7 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, map<string,string>& contex
                 exit(42);
             }
         }
-        else{
-            weed(child, context);
-        }
+        weed(child, context);
         //if (child->symbol == INTERFACE_BODY){
         //   checkInterfaceBody(child);
         //`}
@@ -154,17 +275,6 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, map<string,string>& cont
 }
 
 
-// void checkExpression3(ParseTreeNode * expression3){
-//     assert(expression3->symbol == EXPRESSION3);
-//     for (auto *child : expression3->children)
-//     {
-//         if (child->symbol == EXPRESSION2)
-//         {
-//             checkExpression2(child);
-//         }
-//     }
-
-// }
 
 void checkExpression2(ParseTreeNode * expression2, map<string,string>& context, bool has_minus = false){
     assert(expression2->symbol == EXPRESSION2);
@@ -200,6 +310,12 @@ void weed(ParseTreeNode *t, map<string,string>& context){
         }
         else if (child->symbol == CLASS_OR_INTERFACE_DECLARATION){
             checkClassOrInterfaceDeclaration(child, context);
+        }
+        else if (child->symbol == INTERFACE_BODY_DECLARATION){
+            checkInterfaceBodyDeclaration(child, context);
+        }
+        else if (child->symbol == CLASS_BODY_DECLARATION){
+            checkClassBodyDeclaration(child, context);
         }
         else{
             weed(child, context);
