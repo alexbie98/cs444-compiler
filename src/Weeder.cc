@@ -248,6 +248,16 @@ void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
             exit(42);
         }
     }
+
+    if (cDecl->children[2]->symbol == EXTENDS){
+        assert(cDecl->children[3]->symbol == TYPE);
+        if (typeIsBasicOrArrayType(cDecl->children[3], context)){
+            cout << "cannot extend an array or primitive type" << endl;
+            exit(42);
+        }
+    }
+
+
 }
 
 
