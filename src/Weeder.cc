@@ -84,9 +84,6 @@ void checkMethodDeclaratorRest(ParseTreeNode * methodRest, const vector<TokenTyp
         cout << "no body iff abstract or native" << endl;
         exit(42);
     }
-    for (auto* child: methodRest->children){
-        weed(child, context);
-    }
 }
 
 void checkInterfaceMethodDeclaratorRest(ParseTreeNode * iMethodRest, const vector<TokenType>& modifiers, map<string,string>& context){
@@ -109,10 +106,6 @@ void checkInterfaceBodyDeclaration(ParseTreeNode * iBodyDecl, map<string,string>
             cout << "invalid interface member modifiers" << endl;
             exit(42);
         }
-        weed(iBodyDecl->children[1], context);
-    }
-    else{
-        weed(iBodyDecl->children[1], context);
     }
 }
 
@@ -136,9 +129,6 @@ void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& co
             else{
                 checkMethodDeclaratorRest(cBodyDecl->children[1]->children[0]->children[2]->children[0], modifiers, context);
             }
-        }
-        else{
-            weed(cBodyDecl->children[1], context);
         }
 
         if (cBodyDecl->children[1]->children[0]->symbol == METHOD_OR_FIELD_DECLARATION &&
@@ -239,7 +229,6 @@ void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
                 exit(42);
             }
         }
-        weed(child, context);
     }
     if (cDecl->children[2]->symbol == IMPLEMENTS){
         assert(cDecl->children[3]->symbol == TYPE_LIST);
@@ -278,7 +267,6 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, map<string,string>& contex
                 exit(42);
             }
         }
-        weed(child, context);
         //if (child->symbol == INTERFACE_BODY){
         //   checkInterfaceBody(child);
         //`}
@@ -336,7 +324,6 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, map<string,string>& cont
                 cout << "interface declaration must be public" << endl;
                 exit(42);
             }
-
         }
     }
 }
@@ -362,8 +349,29 @@ void checkExpression2(ParseTreeNode * expression2, map<string,string>& context, 
             cout << "non-negative 214738368 literal" << endl;
             exit(42);
         }
-        else{
-            weed(expression3, context);
+    }
+}
+
+void checkExpression3(ParseTreeNode* expr3, map<string, string>& context)
+{
+    assert(expr3->symbol == EXPRESSION3);
+    if(expr3->children[0]->symbol == SELECTABLE_PRIMARY &&
+        expr3->children[0]->children[0]->symbol == NEW &&
+        expr3->children[0]->children[1]->symbol == CREATOR &&
+        expr3->children[0]->children[1]->children[1]->symbol == ARRAY_CREATOR_REST &&
+        expr3->children[1]->symbol == SELECTORS)
+    {
+        ParseTreeNode* selector = expr3->children[1];
+        while (selector->symbol == SELECTORS)
+        {
+            selector = selector->children[0];
+        }
+        assert(selector->symbol == SELECTOR);
+
+        if (selector->children[0]->symbol == LBRACKET)
+        {
+            cout << "Trying to use[expr] after new type[], can't create multi-array" << endl;
+            exit(42);
         }
     }
 }
@@ -375,9 +383,6 @@ void checkExpression1Rest(ParseTreeNode* expr1Rest, map<string,string>& context)
         
         cout << "can't instanceof basic type" << endl;
         exit(42);
-    }
-    for (auto* child: expr1Rest->children){
-        weed(child, context);
     }
 }
 
@@ -425,8 +430,9 @@ void weed(ParseTreeNode *t, map<string,string>& context){
         else if(child->symbol == FOR_INIT || child->symbol == FOR_UPDATE){
             checkForInitUpdate(t, context);
         }
-        else{
-            weed(child, context);
+        else if (child->symbol == EXPRESSION3) {
+            checkExpression3(child, context);
         }
+        weed(child, context);
     }
 }
