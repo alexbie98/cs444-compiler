@@ -48,6 +48,7 @@ ParseTreeNode* parse(const vector<Token>& input)
             for (size_t i = 0; i < rule.second.size(); i++)
             {
                 node->children[rule.second.size() - 1 - i] = symbolStack.back();
+                symbolStack.back()->parent = node;
                 symbolStack.pop_back();
                 stateStack.pop_back();
             }

@@ -13,6 +13,7 @@ struct ParseTreeNode
     const Token* token = nullptr; // Terminals will have a corresponding token from the input
 
     std::vector<ParseTreeNode*> children;
+    ParseTreeNode* parent = nullptr;
 };
 
 ParseTreeNode* parse(const std::vector<Token>& input);

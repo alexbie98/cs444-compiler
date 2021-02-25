@@ -330,22 +330,19 @@ void checkClassOrInterfaceDeclaration(ParseTreeNode* t, map<string,string>& cont
 
 
 
-void checkExpression2(ParseTreeNode * expression2, map<string,string>& context, bool has_minus = false){
+void checkExpression2(ParseTreeNode * expression2, map<string,string>& context){
     assert(expression2->symbol == EXPRESSION2);
-    //cout << has_minus << endl;
-    if (expression2->children.size() == 2)
-    {
-        checkExpression2(expression2->children[1], context, true);
-    }
-    else if (expression2->children.size()== 1){
+    if (expression2->children.size()== 1){
         ParseTreeNode *expression3 = expression2->children[0];
+        ParseTreeNode* parent = expression2->parent;
         if (expression3->children[0]->symbol == PRIMARY &&
             expression3->children[0]->children[0]->symbol == SELECTABLE_PRIMARY &&
             expression3->children[0]->children[0]->children[0]->symbol == LITERAL &&
             expression3->children[0]->children[0]->children[0]->children[0]->symbol == INT_LIT &&
             expression3->children[0]->children[0]->children[0]->children[0]->token->second == "2147483648" &&
-            !has_minus
-            ){
+            !(parent->symbol == EXPRESSION2 && parent->children[0]->symbol == MINUS)
+            )
+        {
             cout << "non-negative 214738368 literal" << endl;
             exit(42);
         }
