@@ -8,6 +8,7 @@
 #include "Tokenize.h"
 #include "Parser.h"
 #include "Weeder.h"
+#include "ASTBuilder.h"
 
 using namespace std;
 
@@ -60,9 +61,13 @@ int main(int argc, char *argv[])
 
     weed(t, context);
 
+    ASTNode* ast = buildAST(t);
+
     // if (!(argc > 2 && argv[2][0] == 's')){
     //     printParseTree(t);
     // }
+
+    return 0;
 }
 
 void test_preprocess(){

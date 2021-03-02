@@ -46,6 +46,32 @@ struct QualifiedName : public Name
     SimpleName* simpleName;
 };
 
+struct PrimitiveType : public Type
+{
+    enum BasicType
+    {
+        BYTE,
+        SHORT,
+        INT,
+        CHAR,
+        BOOLEAN,
+        VOID
+    };
+
+    BasicType type;
+};
+
+struct QualifiedType : public Type
+{
+    Name* name;
+};
+
+struct ArrayType : public Type
+{
+    Type* elementType;
+};
+
+
 struct IntLiteral : public Expression
 {
     int value;
@@ -138,7 +164,7 @@ struct ClassInstanceCreator : public Expression
 struct ArrayCreator : public Expression
 {
     ArrayType* type;
-    Expression argument;
+    Expression* argument;
 };
 
 struct ChainableExpression : public Expression
@@ -221,31 +247,6 @@ struct Block : public Statement
     ASTNodeList<Statement>* statements;
 };
 
-struct PrimitiveType : public Type
-{
-    enum BasicType
-    {
-        BYTE,
-        SHORT,
-        INT,
-        CHAR,
-        BOOLEAN,
-        VOID
-    };
-
-    BasicType type;
-};
-
-struct QualifiedType : public Type
-{
-    Name* name;
-};
-
-struct ArrayType : public Type
-{
-    Type* elementType;
-};
-
 struct PackageDeclaration : public ASTNode
 {
     Name* name;
@@ -273,12 +274,12 @@ struct Modifier : public ASTNode
 
 struct TypeDeclaration : public ASTNode
 {
-
+    ASTNodeList<Modifier>* modifiers;
 };
 
 struct MemberDeclaration : public ASTNode
 {
-
+    ASTNodeList<Modifier>* modifiers;
 };
 
 struct ClassDeclaration : public TypeDeclaration
@@ -318,7 +319,14 @@ struct FieldDeclaration : public MemberDeclaration
 struct MethodDeclaration : public MemberDeclaration
 {
     Type* type;
-    Name* id;
+    Name* name;
     ASTNodeList<FormalParameter>* parameters;
     Block* body;
+};
+
+struct CompilerUnit : public ASTNode
+{
+    PackageDeclaration* packageDecl;
+    ASTNodeList<ImportDeclaration>* importDecls;
+    TypeDeclaration* typeDecl;
 };
