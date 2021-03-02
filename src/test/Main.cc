@@ -45,6 +45,7 @@ void runMarmosetTests(const string& path){
 	cout << "Tests complete: " << numPassedTests << "/" << numTests << " passed" << endl;
 }
 
+// TODO Add multi assignment check
 int main() {
 
 	auto paths = ls("assignment_testcases");
