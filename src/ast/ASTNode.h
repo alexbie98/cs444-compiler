@@ -115,6 +115,7 @@ struct ASTNode
 {
     virtual ~ASTNode() = default;
     virtual void accept(ASTNodeVisitor& v) = 0;
+    virtual void visitAll(ASTNodeVisitor& v) = 0;
 };
 
 template<typename T>
@@ -122,29 +123,34 @@ struct ASTNodeList : public ASTNode
 {
     std::vector<T*> elements;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { for(T* e: elements) e->accept(v); }
 };
 
 struct Expression : public ASTNode
 {
     virtual ~Expression() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct Statement : public ASTNode
 {
     virtual ~Statement() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct Type : public ASTNode
 {
     virtual ~Type() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct Name : public Expression
 {
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct SimpleName : public Name
@@ -152,6 +158,7 @@ struct SimpleName : public Name
     virtual ~SimpleName() = default;
     std::string id;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct QualifiedName : public Name
@@ -160,6 +167,7 @@ struct QualifiedName : public Name
     Name* name;
     SimpleName* simpleName;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); simpleName->visitAll(v); }
 };
 
 struct PrimitiveType : public Type
@@ -176,18 +184,21 @@ struct PrimitiveType : public Type
 
     BasicType type;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct QualifiedType : public Type
 {
     Name* name;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); }
 };
 
 struct ArrayType : public Type
 {
     Type* elementType;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { elementType->visitAll(v); }
 };
 
 
@@ -195,29 +206,34 @@ struct IntLiteral : public Expression
 {
     int value;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct CharLiteral : public Expression
 {
     char value;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct StringLiteral : public Expression
 {
     std::string value;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct BooleanLiteral : public Expression
 {
     bool value;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct NullLiteral : public Expression
 {
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct BinaryOperation : public Expression
@@ -248,6 +264,7 @@ struct BinaryOperation : public Expression
     Expression* rhs;
     OperatorType op;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { lhs->visitAll(v); rhs->visitAll(v); }
 };
 
 struct PrefixOperation : public Expression
@@ -262,6 +279,7 @@ struct PrefixOperation : public Expression
     OperatorType op;
     Expression* operand;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { operand->visitAll(v); }
 };
 
 struct CastExpression : public Expression
@@ -269,6 +287,7 @@ struct CastExpression : public Expression
     Type* castType;
     Expression* expression;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { castType->visitAll(v); expression->visitAll(v); }
 };
 
 struct AssignmentExpression : public Expression
@@ -276,12 +295,14 @@ struct AssignmentExpression : public Expression
     Expression* lhs;
     Expression* rhs;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { lhs->visitAll(v); rhs->visitAll(v); }
 };
 
 struct ParenthesizedExpression : public Expression
 {
     Expression* expr;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { expr->visitAll(v); }
 };
 
 struct ClassInstanceCreator : public Expression
@@ -289,6 +310,7 @@ struct ClassInstanceCreator : public Expression
     Type* type;
     ASTNodeList<Expression>* arguments;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { type->visitAll(v); arguments->visitAll(v); }
 };
 
 struct ArrayCreator : public Expression
@@ -296,12 +318,14 @@ struct ArrayCreator : public Expression
     ArrayType* type;
     Expression* argument;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { type->visitAll(v); argument->visitAll(v); }
 };
 
 struct ChainableExpression : public Expression
 {
     Expression* prevExpr;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { prevExpr->visitAll(v); }
 };
 
 struct MethodCall : public ChainableExpression
@@ -309,24 +333,28 @@ struct MethodCall : public ChainableExpression
     SimpleName* name;
     ASTNodeList<Expression>* arguments;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); arguments->visitAll(v); }
 };
 
 struct FieldAccess : public ChainableExpression
 {
     SimpleName* name;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); }
 };
 
 struct ArrayAccess : public ChainableExpression
 {
     Expression* indexExpr;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { indexExpr->visitAll(v); }
 };
 
 struct ThisExpression : public ChainableExpression
 {
     Expression* expression;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { expression->visitAll(v); }
 };
 
 struct VariableDeclarationExpression : public Expression
@@ -335,6 +363,7 @@ struct VariableDeclarationExpression : public Expression
     SimpleName* name;
     Expression* initializer;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { type->visitAll(v); name->visitAll(v); initializer->visitAll(v); }
 };
 
 struct InstanceOfExpression : public Expression
@@ -342,23 +371,27 @@ struct InstanceOfExpression : public Expression
     Expression* expression;
     Type* type;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { expression->visitAll(v); type->visitAll(v); }
 };
 
 struct ExpressionStatement : public Statement
 {
     Expression* expression;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { expression->visitAll(v); }
 };
 
 struct EmptyStatement : public Statement
 {
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct ReturnStatement : public Statement
 {
     Expression* expression;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { expression->visitAll(v); }
 };
 
 struct IfStatement : public Statement
@@ -367,6 +400,7 @@ struct IfStatement : public Statement
     Statement* ifBody;
     Statement* elseBody;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { ifCondition->visitAll(v); ifBody->visitAll(v); elseBody->visitAll(v); }
 };
 
 struct ForStatement : public Statement
@@ -377,6 +411,7 @@ struct ForStatement : public Statement
 
     Statement* body;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { forInit->visitAll(v); forCheck->visitAll(v); forUpdate->visitAll(v); body->visitAll(v); }
 };
 
 struct WhileStatement : public Statement
@@ -384,18 +419,21 @@ struct WhileStatement : public Statement
     Expression* condition;
     Statement* body;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { condition->visitAll(v); body->visitAll(v); }
 };
 
 struct Block : public Statement
 {
     ASTNodeList<Statement>* statements;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { statements->visitAll(v); }
 };
 
 struct PackageDeclaration : public ASTNode
 {
     Name* name;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); }
 };
 
 struct ImportDeclaration : public ASTNode
@@ -403,6 +441,7 @@ struct ImportDeclaration : public ASTNode
     Name* name;
     bool declareAll;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); }
 };
 
 struct Modifier : public ASTNode
@@ -418,18 +457,21 @@ struct Modifier : public ASTNode
     };
     ModifierType type;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) {};
 };
 
 struct TypeDeclaration : public ASTNode
 {
     ASTNodeList<Modifier>* modifiers;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { modifiers->visitAll(v); }
 };
 
 struct MemberDeclaration : public ASTNode
 {
     ASTNodeList<Modifier>* modifiers;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { modifiers->visitAll(v); }
 };
 
 struct ClassDeclaration : public TypeDeclaration
@@ -440,6 +482,7 @@ struct ClassDeclaration : public TypeDeclaration
 
     ASTNodeList<MemberDeclaration>* classBody;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); baseType->visitAll(v); interfaces->visitAll(v); classBody->visitAll(v); }
 };
 
 struct InterfaceDeclaration : public TypeDeclaration
@@ -449,6 +492,7 @@ struct InterfaceDeclaration : public TypeDeclaration
 
     ASTNodeList<MemberDeclaration>* interfaceBody;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { name->visitAll(v); extends->visitAll(v); interfaceBody->visitAll(v); }
 };
 
 struct FormalParameter : public ASTNode
@@ -456,6 +500,7 @@ struct FormalParameter : public ASTNode
     Type* type;
     Name* id;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { type->visitAll(v); id->visitAll(v); }
 };
 
 struct ConstructorDeclaration : public MemberDeclaration
@@ -463,12 +508,14 @@ struct ConstructorDeclaration : public MemberDeclaration
     ASTNodeList<FormalParameter>* parameters;
     Block* body;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { parameters->visitAll(v); body->visitAll(v);}
 };
 
 struct FieldDeclaration : public MemberDeclaration
 {
     VariableDeclarationExpression* declaration;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { declaration->visitAll(v); }
 };
 
 struct MethodDeclaration : public MemberDeclaration
@@ -478,6 +525,7 @@ struct MethodDeclaration : public MemberDeclaration
     ASTNodeList<FormalParameter>* parameters;
     Block* body;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { type->visitAll(v); name->visitAll(v); parameters->visitAll(v); body->visitAll(v);}
 };
 
 struct CompilerUnit : public ASTNode
@@ -486,4 +534,5 @@ struct CompilerUnit : public ASTNode
     ASTNodeList<ImportDeclaration>* importDecls;
     TypeDeclaration* typeDecl;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void visitAll(ASTNodeVisitor& v) { packageDecl->visitAll(v); importDecls->visitAll(v); typeDecl->visitAll(v); }
 };
