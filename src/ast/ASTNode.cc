@@ -30,6 +30,8 @@ void QualifiedName::visitAll(ASTNodeVisitor& v)
     {
         simpleName->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 QualifiedType::~QualifiedType()
@@ -48,6 +50,8 @@ void QualifiedType::visitAll(ASTNodeVisitor& v)
     {
         name->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ArrayType::~ArrayType()
@@ -66,6 +70,8 @@ void ArrayType::visitAll(ASTNodeVisitor& v)
     {
         elementType->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 BinaryOperation::~BinaryOperation()
@@ -94,6 +100,8 @@ void BinaryOperation::visitAll(ASTNodeVisitor& v)
     {
         rhs->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 PrefixOperation::~PrefixOperation()
@@ -112,6 +120,8 @@ void PrefixOperation::visitAll(ASTNodeVisitor& v)
     {
         operand->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 CastExpression::~CastExpression()
@@ -140,6 +150,8 @@ void CastExpression::visitAll(ASTNodeVisitor& v)
     {
         expression->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 AssignmentExpression::~AssignmentExpression()
@@ -168,6 +180,8 @@ void AssignmentExpression::visitAll(ASTNodeVisitor& v)
     {
         rhs->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ParenthesizedExpression::~ParenthesizedExpression()
@@ -186,6 +200,8 @@ void ParenthesizedExpression::visitAll(ASTNodeVisitor& v)
     {
         expr->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ClassInstanceCreator::~ClassInstanceCreator()
@@ -214,6 +230,8 @@ void ClassInstanceCreator::visitAll(ASTNodeVisitor& v)
     {
         arguments->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ArrayCreator::~ArrayCreator()
@@ -242,6 +260,8 @@ void ArrayCreator::visitAll(ASTNodeVisitor& v)
     {
         argument->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ChainableExpression::~ChainableExpression()
@@ -288,6 +308,8 @@ void MethodCall::visitAll(ASTNodeVisitor& v)
     {
         arguments->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 FieldAccess::~FieldAccess()
@@ -306,6 +328,8 @@ void FieldAccess::visitAll(ASTNodeVisitor& v)
     {
         name->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ArrayAccess::~ArrayAccess()
@@ -324,6 +348,8 @@ void ArrayAccess::visitAll(ASTNodeVisitor& v)
     {
         indexExpr->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ThisExpression::~ThisExpression()
@@ -342,6 +368,8 @@ void ThisExpression::visitAll(ASTNodeVisitor& v)
     {
         expression->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 VariableDeclarationExpression::~VariableDeclarationExpression()
@@ -380,6 +408,8 @@ void VariableDeclarationExpression::visitAll(ASTNodeVisitor& v)
     {
         initializer->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 InstanceOfExpression::~InstanceOfExpression()
@@ -408,6 +438,8 @@ void InstanceOfExpression::visitAll(ASTNodeVisitor& v)
     {
         type->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ExpressionStatement::~ExpressionStatement()
@@ -426,6 +458,8 @@ void ExpressionStatement::visitAll(ASTNodeVisitor& v)
     {
         expression->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ReturnStatement::~ReturnStatement()
@@ -444,6 +478,8 @@ void ReturnStatement::visitAll(ASTNodeVisitor& v)
     {
         expression->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 IfStatement::~IfStatement()
@@ -482,6 +518,8 @@ void IfStatement::visitAll(ASTNodeVisitor& v)
     {
         elseBody->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ForStatement::~ForStatement()
@@ -530,6 +568,8 @@ void ForStatement::visitAll(ASTNodeVisitor& v)
     {
         body->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 WhileStatement::~WhileStatement()
@@ -558,6 +598,8 @@ void WhileStatement::visitAll(ASTNodeVisitor& v)
     {
         body->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 Block::~Block()
@@ -576,6 +618,8 @@ void Block::visitAll(ASTNodeVisitor& v)
     {
         statements->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 PackageDeclaration::~PackageDeclaration()
@@ -594,6 +638,8 @@ void PackageDeclaration::visitAll(ASTNodeVisitor& v)
     {
         name->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ImportDeclaration::~ImportDeclaration()
@@ -612,6 +658,8 @@ void ImportDeclaration::visitAll(ASTNodeVisitor& v)
     {
         name->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 TypeDeclaration::~TypeDeclaration()
@@ -734,6 +782,8 @@ void InterfaceDeclaration::visitAll(ASTNodeVisitor& v)
     {
         interfaceBody->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 FormalParameter::~FormalParameter()
@@ -762,6 +812,8 @@ void FormalParameter::visitAll(ASTNodeVisitor& v)
     {
         id->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 ConstructorDeclaration::~ConstructorDeclaration()
@@ -790,6 +842,8 @@ void ConstructorDeclaration::visitAll(ASTNodeVisitor& v)
     {
         body->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 FieldDeclaration::~FieldDeclaration()
@@ -808,6 +862,8 @@ void FieldDeclaration::visitAll(ASTNodeVisitor& v)
     {
         declaration->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 MethodDeclaration::~MethodDeclaration()
@@ -856,6 +912,8 @@ void MethodDeclaration::visitAll(ASTNodeVisitor& v)
     {
         body->visitAll(v);
     }
+
+    v.leave(*this);
 }
 
 CompilerUnit::~CompilerUnit()
@@ -894,4 +952,6 @@ void CompilerUnit::visitAll(ASTNodeVisitor& v)
     {
         typeDecl->visitAll(v);
     }
+
+    v.leave(*this);
 }

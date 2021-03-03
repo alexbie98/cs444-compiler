@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 template<typename T> struct ASTNodeList;
 struct Expression; // abstract
@@ -102,6 +103,65 @@ struct ASTNodeVisitor
     virtual void visit(FieldDeclaration& node) {};
     virtual void visit(MethodDeclaration& node) {};
     virtual void visit(CompilerUnit& node) {};
+
+    virtual void leave(ASTNodeList<Type>& node) {};
+    virtual void leave(ASTNodeList<Modifier>& node) {};
+    virtual void leave(ASTNodeList<Statement>& node) {};
+    virtual void leave(ASTNodeList<Expression>& node) {};
+    virtual void leave(ASTNodeList<FormalParameter>& node) {};
+    virtual void leave(ASTNodeList<ImportDeclaration>& node) {};
+    virtual void leave(ASTNodeList<MemberDeclaration>& node) {};
+
+    virtual void leave(SimpleName& node) {};
+    virtual void leave(QualifiedName& node) {};
+    virtual void leave(PrimitiveType& node) {};
+    virtual void leave(QualifiedType& node) {};
+    virtual void leave(ArrayType& node) {};
+    virtual void leave(IntLiteral& node) {};
+    virtual void leave(CharLiteral& node) {};
+    virtual void leave(StringLiteral& node) {};
+    virtual void leave(BooleanLiteral& node) {};
+    virtual void leave(NullLiteral& node) {};
+    virtual void leave(BinaryOperation& node) {};
+    virtual void leave(PrefixOperation& node) {};
+    virtual void leave(CastExpression& node) {};
+    virtual void leave(AssignmentExpression& node) {};
+    virtual void leave(ParenthesizedExpression& node) {};
+    virtual void leave(ClassInstanceCreator& node) {};
+    virtual void leave(ArrayCreator& node) {};
+    virtual void leave(MethodCall& node) {};
+    virtual void leave(FieldAccess& node) {};
+    virtual void leave(ArrayAccess& node) {};
+    virtual void leave(ThisExpression& node) {};
+    virtual void leave(VariableDeclarationExpression& node) {};
+    virtual void leave(InstanceOfExpression& node) {};
+    virtual void leave(ExpressionStatement& node) {};
+    virtual void leave(EmptyStatement& node) {};
+    virtual void leave(ReturnStatement& node) {};
+    virtual void leave(IfStatement& node) {};
+    virtual void leave(ForStatement& node) {};
+    virtual void leave(WhileStatement& node) {};
+    virtual void leave(Block& node) {};
+    virtual void leave(PackageDeclaration& node) {};
+    virtual void leave(ImportDeclaration& node) {};
+    virtual void leave(Modifier& node) {};
+    virtual void leave(ClassDeclaration& node) {};
+    virtual void leave(InterfaceDeclaration& node) {};
+    virtual void leave(FormalParameter& node) {};
+    virtual void leave(ConstructorDeclaration& node) {};
+    virtual void leave(FieldDeclaration& node) {};
+    virtual void leave(MethodDeclaration& node) {};
+    virtual void leave(CompilerUnit& node) {};
+};
+
+struct Environment
+{
+    std::unordered_map<std::string, ClassDeclaration*> classes;
+    std::unordered_map<std::string, InterfaceDeclaration*> interfaces;
+    std::unordered_map<std::string, FieldDeclaration*> fields;
+    std::unordered_map<std::string, MethodDeclaration*> methods;
+    std::unordered_map<std::string, FormalParameter*> formal_params;
+    std::unordered_map<std::string, VariableDeclarationExpression*> variables;
 };
 
 struct ASTNode // Abstract
@@ -109,6 +169,8 @@ struct ASTNode // Abstract
     virtual ~ASTNode() = default;
     virtual void accept(ASTNodeVisitor& v) = 0;
     virtual void visitAll(ASTNodeVisitor& v);
+
+    virtual Environment* getEnvironment() { return nullptr; }
 };
 
 template<typename T>
@@ -128,6 +190,7 @@ struct ASTNodeList : public ASTNode
     {
         accept(v);
         for(T* e: elements) e->accept(v); 
+        v.leave(*this);
     }
 };
 
@@ -149,6 +212,7 @@ struct Type : public ASTNode // abstract
 struct Name : public Expression // abstract
 {
     virtual ~Name() = default;
+    virtual const std::string& getString() = 0;
 };
 
 struct SimpleName : public Name
@@ -157,6 +221,7 @@ struct SimpleName : public Name
 
     virtual ~SimpleName() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual const std::string& getString() { return id; }
 };
 
 struct QualifiedName : public Name
@@ -167,6 +232,7 @@ struct QualifiedName : public Name
     virtual ~QualifiedName();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void visitAll(ASTNodeVisitor& v) override;
+    virtual const std::string& getString() { return name->getString(); }
 };
 
 struct PrimitiveType : public Type
@@ -463,11 +529,14 @@ struct WhileStatement : public Statement
 
 struct Block : public Statement
 {
+    Environment environment;
+
     ASTNodeList<Statement>* statements;
 
     virtual ~Block();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void visitAll(ASTNodeVisitor& v) override;
+    Environment* getEnvironment() override { return &environment; }
 };
 
 struct PackageDeclaration : public ASTNode
@@ -524,6 +593,8 @@ struct MemberDeclaration : public ASTNode // abstract
 
 struct ClassDeclaration : public TypeDeclaration
 {
+    Environment environment;
+
     SimpleName* name;
     Type* baseType;
     ASTNodeList<Type>* interfaces;
@@ -532,10 +603,13 @@ struct ClassDeclaration : public TypeDeclaration
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void visitAll(ASTNodeVisitor& v) override;
+    Environment* getEnvironment() override { return &environment; }
 };
 
 struct InterfaceDeclaration : public TypeDeclaration
 {
+    Environment environment;
+
     SimpleName* name;
     ASTNodeList<Type>* extends;
     ASTNodeList<MemberDeclaration>* interfaceBody;
@@ -543,6 +617,7 @@ struct InterfaceDeclaration : public TypeDeclaration
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void visitAll(ASTNodeVisitor& v) override;
+    Environment* getEnvironment() override { return &environment; }
 };
 
 struct FormalParameter : public ASTNode
@@ -576,6 +651,8 @@ struct FieldDeclaration : public MemberDeclaration
 
 struct MethodDeclaration : public MemberDeclaration
 {
+    Environment environment;
+
     Type* type;
     Name* name;
     ASTNodeList<FormalParameter>* parameters;
@@ -584,6 +661,7 @@ struct MethodDeclaration : public MemberDeclaration
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void visitAll(ASTNodeVisitor& v) override;
+    Environment* getEnvironment() override { return &environment; }
 };
 
 struct CompilerUnit : public ASTNode
