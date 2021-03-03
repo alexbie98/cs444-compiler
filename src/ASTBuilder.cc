@@ -588,11 +588,26 @@ ASTNode* buildAST(ParseTreeNode* node)
             if (node->children.size() == 1)
             {
                 statements = new ASTNodeList<Statement>();
+
+                if (dynamic_cast<Statement*>(buildAST(node->children[0])) == nullptr)
+                {
+                    ASTNode* ast = buildAST(node->children[0]);
+                    return statements;
+                }
+
                 statements->elements.push_back(dynamic_cast<Statement*>(buildAST(node->children[0])));
             }
             else
             {
                 statements = dynamic_cast<ASTNodeList<Statement>*>(buildAST(node->children[0]));
+
+                if (dynamic_cast<Statement*>(buildAST(node->children[1])) == nullptr)
+                {
+                    ASTNode* ast = buildAST(node->children[1]);
+
+                    return statements;
+                }
+
                 statements->elements.push_back(dynamic_cast<Statement*>(buildAST(node->children[1])));
             }
             return statements;
@@ -601,7 +616,11 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             VariableDeclarationExpression* varDeclStatement = dynamic_cast<VariableDeclarationExpression*>(buildAST(node->children[1]));
             varDeclStatement->type = dynamic_cast<Type*>(buildAST(node->children[0]));
-            return varDeclStatement;
+
+            ExpressionStatement* expression = new ExpressionStatement;
+            expression->expression = varDeclStatement;
+
+            return expression;
         }
         case OPEN_STATEMENT:
         {
@@ -635,6 +654,7 @@ ASTNode* buildAST(ParseTreeNode* node)
                     return forStatement;
                 }
             }
+            return new EmptyStatement();
         }
         case CLOSED_STATEMENT:
         {
