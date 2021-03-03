@@ -14,7 +14,7 @@
 - `make test`
 - `./test` to test the latest assignment
 - `./test a2` to test a2
-- `./test a3r` to test a4, running regression on a1...a3
+- `./test a4r` to test a4, running regression on a1...a3
 
 ### Notes
 - If you add a new `.cc` file, add it to line 7 `OBJECTS = ...` of the `Makefile` (line 10 `TEST_OBJECTS = ...` for test files)
