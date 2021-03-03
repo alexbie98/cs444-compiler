@@ -85,7 +85,7 @@ ASTNode* buildAST(ParseTreeNode* node)
         case INT_LIT:
         {
             IntLiteral* lit = new IntLiteral();
-            lit->value = std::stoi(node->token->second);
+            lit->value = std::stoll(node->token->second);
             return lit;
         }
         case BOOLEAN_LIT:
@@ -538,6 +538,12 @@ ASTNode* buildAST(ParseTreeNode* node)
 
             return classCreator;
         }
+        case VARIABLE_INITIALIZER:
+        {
+            VariableDeclarationExpression* varDecl = new VariableDeclarationExpression();
+            varDecl->initializer = dynamic_cast<Expression*>(buildAST(node->children[0]));
+            return varDecl;
+        }
         case PAR_EXPRESSION:
         {
             return buildAST(node->children[1]);
@@ -711,16 +717,15 @@ ASTNode* buildAST(ParseTreeNode* node)
         }
         case VARIABLE_DECLARATOR:
         {
-            VariableDeclarationExpression* variableDeclaration = new VariableDeclarationExpression();
+            VariableDeclarationExpression* variableDeclaration = dynamic_cast<VariableDeclarationExpression*>(buildAST(node->children[1]));
             variableDeclaration->name = dynamic_cast<SimpleName*>(buildAST(node->children[0]));
-            variableDeclaration->initializer = dynamic_cast<Expression*>(buildAST(node->children[1]));
             return variableDeclaration;
         }
         case VARIABLE_DECLARATOR_REST:
         {
             if (node->children.size() == 0)
             {
-                return nullptr;
+                return new VariableDeclarationExpression();
             }
             return buildAST(node->children[1]);
         }

@@ -207,7 +207,7 @@ struct ArrayType : public Type
 
 struct IntLiteral : public Expression
 {
-    int value;
+    long long int value;
 
     virtual ~IntLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
