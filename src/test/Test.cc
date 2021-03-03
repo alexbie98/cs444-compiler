@@ -6,7 +6,7 @@ using namespace std;
 const string CHECKMARK = "\u2714";
 const string XMARK = "\u2718";
 
-bool runIOTest(const string& filePath, const string& name, int expect){
+bool runIOTest(const string& filePath, const string& name, int expect, bool regress){
 
     string command = "./joosc " + filePath + " s";
     int result = system(command.c_str());
@@ -14,13 +14,10 @@ bool runIOTest(const string& filePath, const string& name, int expect){
 
     bool passed = result == expect;
 
-    // MAKE SURE WE ARENT REJECTING ANYTHING THAT SHOULD BE VALID
-    // if (expect == 0 && result == 6){
-    //     printTestMsg(name, passed, to_string(result), to_string(expect));
-    // }
-
-    printTestMsg(name, passed, to_string(result), to_string(expect));
-    cout << "----------------------------------------------------" << endl;
+    if (!regress || !passed){
+        printTestMsg(name, passed, to_string(result), to_string(expect));
+        cout << "----------------------------------------------------" << endl;
+    }
 
     return passed;
 }
