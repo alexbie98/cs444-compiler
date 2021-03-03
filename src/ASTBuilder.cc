@@ -1,4 +1,24 @@
 #include "ASTBuilder.h"
+#include <assert.h>
+#include <iostream>
+
+void ParentVisitor::visit(ASTNode& node)
+{
+    node.parent = parents.top();
+    parents.push(&node);
+}
+
+void ParentVisitor::leave(ASTNode& node)
+{
+    assert(parents.top() == &node); // TODO This assertion fails
+    parents.pop();
+}
+
+void setParents(ASTNode* ast)
+{
+    ParentVisitor visitor;
+    ast->visitAll(visitor);
+}
 
 ASTNode* buildAST(ParseTreeNode* node)
 {

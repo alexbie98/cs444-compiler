@@ -187,6 +187,8 @@ struct Environment
 
 struct ASTNode // Abstract
 {
+    ASTNode* parent;
+
     virtual ~ASTNode() = default;
     virtual void accept(ASTNodeVisitor& v) = 0;
     virtual void visitAll(ASTNodeVisitor& v);
