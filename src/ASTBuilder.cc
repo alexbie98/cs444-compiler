@@ -922,7 +922,7 @@ ASTNode* buildAST(ParseTreeNode* node)
             if (MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(memberDecl))
             {
                 method->type = dynamic_cast<Type*>(buildAST(node->children[0]));
-                method->name = dynamic_cast<SimpleName*>(buildAST(node->children[0]));
+                method->name = dynamic_cast<SimpleName*>(buildAST(node->children[1]));
             }
 
             return memberDecl;
