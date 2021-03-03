@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
         weed(t, context);
 
         asts.push_back(buildAST(t));
+        setParents(asts.back());
     }
 
     resolveNames(asts);
