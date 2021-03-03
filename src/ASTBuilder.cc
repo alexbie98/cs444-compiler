@@ -215,82 +215,82 @@ ASTNode* buildAST(ParseTreeNode* node)
             {
                 case EAGER_OR:
                 {
-                    binaryOp->op == BinaryOperation::EAGER_OR;
+                    binaryOp->op = BinaryOperation::EAGER_OR;
                     break;
                 }
                 case EAGER_AND:
                 {
-                    binaryOp->op == BinaryOperation::EAGER_AND;
+                    binaryOp->op = BinaryOperation::EAGER_AND;
                     break;
                 }
                 case OR:
                 {
-                    binaryOp->op == BinaryOperation::OR;
+                    binaryOp->op = BinaryOperation::OR;
                     break;
                 }
                 case AND:
                 {
-                    binaryOp->op == BinaryOperation::AND;
+                    binaryOp->op = BinaryOperation::AND;
                     break;
                 }
                 case XOR:
                 {
-                    binaryOp->op == BinaryOperation::XOR;
+                    binaryOp->op = BinaryOperation::XOR;
                     break;
                 }
                 case EQ:
                 {
-                    binaryOp->op == BinaryOperation::EQ;
+                    binaryOp->op = BinaryOperation::EQ;
                     break;
                 }
                 case NEQ:
                 {
-                    binaryOp->op == BinaryOperation::NEQ;
+                    binaryOp->op = BinaryOperation::NEQ;
                     break;
                 }
                 case LEQ:
                 {
-                    binaryOp->op == BinaryOperation::LEQ;
+                    binaryOp->op = BinaryOperation::LEQ;
                     break;
                 }
                 case GEQ:
                 {
-                    binaryOp->op == BinaryOperation::GEQ;
+                    binaryOp->op = BinaryOperation::GEQ;
                     break;
                 }
                 case GT:
                 {
-                    binaryOp->op == BinaryOperation::GT;
+                    binaryOp->op = BinaryOperation::GT;
                     break;
                 }
                 case LT:
                 {
-                    binaryOp->op == BinaryOperation::LT;
+                    binaryOp->op = BinaryOperation::LT;
                     break;
                 }
                 case PLUS:
                 {
-                    binaryOp->op == BinaryOperation::PLUS;
+                    binaryOp->op = BinaryOperation::PLUS;
                     break;
                 }
                 case MINUS:
                 {
-                    binaryOp->op == BinaryOperation::MINUS;
+                    binaryOp->op = BinaryOperation::MINUS;
                     break;
                 }
                 case MULT:
                 {
-                    binaryOp->op == BinaryOperation::TIMES;
+                    binaryOp->op = BinaryOperation::TIMES;
                     break;
                 }
                 case DIV:
                 {
-                    binaryOp->op == BinaryOperation::DIVIDE;
+                    binaryOp->op = BinaryOperation::DIVIDE;
                     break;
                 }
                 case REMAINDER:
                 {
-                    binaryOp->op == BinaryOperation::REMAINDER;
+                    binaryOp->op = BinaryOperation::REMAINDER;
                     break;
                 }
             }
@@ -302,7 +302,7 @@ ASTNode* buildAST(ParseTreeNode* node)
             if (node->children.size() == 2)
             {
                 PrefixOperation* prefix = new PrefixOperation();
-                prefix->op == PrefixOperation::MINUS;
+                prefix->op = PrefixOperation::MINUS;
                 prefix->operand = dynamic_cast<Expression*>(buildAST(node->children[1]));
                 return prefix;
             }
@@ -313,7 +313,7 @@ ASTNode* buildAST(ParseTreeNode* node)
             if (node->children[0]->symbol == NOT)
             {
                 PrefixOperation* prefix = new PrefixOperation();
-                prefix->op == PrefixOperation::NOT;
+                prefix->op = PrefixOperation::NOT;
                 prefix->operand = dynamic_cast<Expression*>(buildAST(node->children[1]));
                 return prefix;
             }
