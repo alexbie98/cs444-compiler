@@ -8,7 +8,8 @@
 class EnvironmentVisitor: public ASTNodeVisitor
 {
 public:
-    Environment global;
+    // TODO Create new program ASTNode to connect all ASTs?
+    Environment global; 
     std::stack<Environment*> environments;
     std::string package = UNNAMED_PACKAGE;
 

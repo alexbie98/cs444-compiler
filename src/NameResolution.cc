@@ -81,6 +81,9 @@ void EnvironmentVisitor::visit(CompilerUnit& node)
     {
         package = UNNAMED_PACKAGE;
     }
+
+    environments = std::stack<Environment*>();
+    environments.push(&global);
 }
 
 void EnvironmentVisitor::leave(ClassDeclaration& node) { environments.pop(); }
