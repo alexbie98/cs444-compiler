@@ -17,26 +17,49 @@ vector<string> ls(const string& path){
 	return paths;
 }
 
+vector<string> getSourceFiles(const string& path){
+	vector<string> sourceFiles;
 
-pair<int,int> runMarmosetTests(const string& path, bool regress = false){
+	if (filesystem::is_directory(path)){
+		auto children = ls(path);
+		for (const string& c: children){
+			auto childSourceFiles = getSourceFiles(c);
+			sourceFiles.insert(sourceFiles.end(), childSourceFiles.begin(), childSourceFiles.end());
+		}
+	}
+	else{
+		if (path.substr(path.length()-5, 5) == ".java"){
+			sourceFiles.push_back(path);
+		}
+	}
+	return sourceFiles;
+}
+
+
+pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool regress = false){
 	cout << "| Running marmoset tests at: " << "\'" << path << "\'" << endl;
 
-	auto filePaths = ls(path);
-	auto numTests = filePaths.size();
+	vector<string> libSourceFiles;
+	if (libPath != "")
+	{
+		cout << "| Using stdlib at: " << "\'" << libPath << "\'" << endl;
+		libSourceFiles = getSourceFiles(libPath);
+	}
+	else{
+		cout << "| Not using any stdlib" << endl;
+	}
 
+	auto testPaths = ls(path);
+	auto numTests = testPaths.size();
 	cout <<"| "<< numTests << " tests(s) in total:" << endl;
-
+	
 	int numPassedTests = 0;
+	for (const string &t : testPaths){
+		auto testName = t.substr(t.rfind("/") + 1);
+		size_t index = testName.find("_");
+		int expect = testName[index - 1] == 'e' ? 42 : 0;
 
-	for (const string &f : filePaths){
-		auto fileName = f.substr(f.rfind("/") + 1);
-		size_t index = fileName.find("_");
-
-		fileName = fileName.substr(0, fileName.length()-5);
-
-		int expect = fileName[index - 1] == 'e' ? 42 : 0;
-
-		auto passed = runIOTest(f, fileName, expect, regress);
+		auto passed = runIOTest(testName, getSourceFiles(t), libSourceFiles, expect, regress);
 
 		if (passed){
 			numPassedTests++;
@@ -47,15 +70,22 @@ pair<int,int> runMarmosetTests(const string& path, bool regress = false){
 
 }
 
+
 // TODO Add multi assignment check
 int main(int argc, char *argv[]){
 
 	auto paths = ls("assignment_testcases");
-
 	cout << "| Marmoset test cases found at: "<< endl;
 	for (const string& path: paths){
 		cout << "| " << path << endl;
 	}
+
+	auto libPaths = ls("stdlib");
+	cout << "| Java Standard Library found at: "<< endl;
+	for (const string& path: libPaths){
+		cout << "| " << path << endl;
+	}
+	libPaths.insert(libPaths.begin(), "");
 
 	assert(argc <= 2);
 	size_t current = 1;
@@ -76,10 +106,10 @@ int main(int argc, char *argv[]){
 	{
 		for (size_t i = 0; i < current; i++)
 		{
-			regRes.push_back(runMarmosetTests(paths[i], true));
+			regRes.push_back(runMarmosetTests(paths[i], libPaths[i], true));
 		}
 	}
-	auto res = runMarmosetTests(paths[current]);
+	auto res = runMarmosetTests(paths[current], libPaths[current]);
 
 	for (int i = 0; i <regRes.size(); i++){
 		cout << "| " << paths[i] <<" tests complete: " << regRes[i].first << "/" << regRes[i].second << " passed" << endl;

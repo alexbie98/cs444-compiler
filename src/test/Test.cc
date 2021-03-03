@@ -6,16 +6,30 @@ using namespace std;
 const string CHECKMARK = "\u2714";
 const string XMARK = "\u2718";
 
-bool runIOTest(const string& filePath, const string& name, int expect, bool regress){
+bool runIOTest(const string& testName,
+               const vector<string>& testSourceFiles, 
+               const vector<string>& libSourceFiles,
+               int expect, bool regress){
 
-    string command = "./joosc " + filePath + " s";
+    // build the command
+    string command = "./joosc ";
+    for (const string& s: testSourceFiles){
+        command += s + " ";
+    }
+    for (const string& s: libSourceFiles){
+        command += s + " ";
+    }
+    command += "s";
+
+
     int result = system(command.c_str());
     result = WEXITSTATUS(result);
 
     bool passed = result == expect;
 
     if (!regress || !passed){
-        printTestMsg(name, passed, to_string(result), to_string(expect));
+        cout << command << endl; // COMMENT THIS LINE TO STOP PRINTING THE FULL TEST COMMAND
+        printTestMsg(testName, passed, to_string(result), to_string(expect));
         cout << "----------------------------------------------------" << endl;
     }
 

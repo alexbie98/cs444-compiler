@@ -72,10 +72,6 @@ int main(int argc, char *argv[])
         weed(t, context);
 
         ast_trees.push_back(buildAST(t));
-
-        // if (!supress){
-        //     printParseTree(t);
-        // }
     }
 
     return 0;

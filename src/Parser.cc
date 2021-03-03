@@ -68,7 +68,7 @@ ParseTreeNode* parse(const vector<Token>& input)
                 //printParseTree(node);
                 delete node;
             }
-            cout << "Look Ahead: " << getSymbolName(node->symbol);
+            cout << "Look Ahead: " << getSymbolName(node->symbol) << endl;
             return nullptr;
         }
         symbolStack.push_back(node);

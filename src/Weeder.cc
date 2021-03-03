@@ -135,7 +135,7 @@ void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& co
             cBodyDecl->children[1]->children[0]->children[2]->children[0]->symbol == VARIABLE_DECLARATOR_REST){
 
             if (find(modifiers.begin(), modifiers.end(), FINAL)!=modifiers.end()){
-                cout << "fields cannot be final";
+                cout << "fields cannot be final" << endl;
                 exit(42);
             }
             if (find(modifiers.begin(), modifiers.end(), PUBLIC) == modifiers.end() &&
@@ -215,7 +215,7 @@ void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
             assert(child->token != NULL);
             if (context["fileName"] != child->token->second)
             {
-                cout << "filename: " << context["fileName"] << " does not match classname: " << child->token->second;
+                cout << "filename: " << context["fileName"] << " does not match classname: " << child->token->second << endl;
                 exit(42);
             }
         }
@@ -263,7 +263,7 @@ void checkInterfaceDeclaration(ParseTreeNode * iDecl, map<string,string>& contex
         if (child->symbol == ID){
             assert(child->token != NULL);
             if (context["fileName"] != child->token->second){
-                cout << "filename: " << context["fileName"] << " does not match interfacename: " << child->token->second;
+                cout << "filename: " << context["fileName"] << " does not match interfacename: " << child->token->second << endl;
                 exit(42);
             }
         }
@@ -414,7 +414,7 @@ bool hasIdentifiers(ParseTreeNode *t){
 void checkForInitUpdate(ParseTreeNode *t, map<string,string>& context){
     assert(t->symbol == FOR_INIT || t->symbol == FOR_UPDATE);
     if (!hasIdentifiers(t->children[0])){
-        cout << "primaryexp in for update or init";
+        cout << "primaryexp in for update or init" << endl;
         exit(42);
     }
 
