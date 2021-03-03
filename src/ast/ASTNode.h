@@ -194,6 +194,7 @@ struct ASTNode // Abstract
     void visitAll(ASTNodeVisitor& v);
 
     virtual Environment* getEnvironment() { return nullptr; }
+    virtual std::string toString() { return "ASTNode"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v);
@@ -212,34 +213,39 @@ struct ASTNodeList : public ASTNode
         }
     }
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "ASTNodeList"; }
 
 protected:
-    virtual void visitAllInner(ASTNodeVisitor& v) 
+    virtual void visitAllInner(ASTNodeVisitor& v)
     {
         ASTNode::visitAllInner(v);
-        for(T* e: elements) e->visitAll(v); 
+        for (T* e : elements) e->visitAll(v);
     }
 };
 
 struct Expression : public ASTNode //abstract
 {
     virtual ~Expression() = default;
+    virtual std::string toString(){ return "Expression"; }
 };
 
 struct Statement : public ASTNode // abstract
 {
     virtual ~Statement() = default;
+    virtual std::string toString(){ return "Statement"; }
 };
 
 struct Type : public ASTNode // abstract
 {
     virtual ~Type() = default;
+    virtual std::string toString(){ return "Type"; }
 };
 
 struct Name : public Expression // abstract
 {
     virtual ~Name() = default;
     virtual const std::string& getString() = 0;
+    virtual std::string toString(){ return "Name"; }
 };
 
 struct SimpleName : public Name
@@ -249,6 +255,7 @@ struct SimpleName : public Name
     virtual ~SimpleName() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual const std::string& getString() { return id; }
+    virtual std::string toString(){ return "SimpleName"; }
 };
 
 struct QualifiedName : public Name
@@ -259,6 +266,7 @@ struct QualifiedName : public Name
     virtual ~QualifiedName();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual const std::string& getString() { return name->getString(); }
+    virtual std::string toString() { return "QualifiedName"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -280,6 +288,7 @@ struct PrimitiveType : public Type
 
     virtual ~PrimitiveType() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "PrimitiveType"; }
 };
 
 struct QualifiedType : public Type
@@ -288,8 +297,11 @@ struct QualifiedType : public Type
 
     virtual ~QualifiedType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "QualifiedType"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
+
 };
 
 struct ArrayType : public Type
@@ -298,6 +310,8 @@ struct ArrayType : public Type
 
     virtual ~ArrayType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ArrayType"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -308,6 +322,7 @@ struct IntLiteral : public Expression
 
     virtual ~IntLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "IntLiteral"; }
 };
 
 struct CharLiteral : public Expression
@@ -316,6 +331,7 @@ struct CharLiteral : public Expression
 
     virtual ~CharLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "CharLiteral"; }
 };
 
 struct StringLiteral : public Expression
@@ -324,6 +340,7 @@ struct StringLiteral : public Expression
 
     virtual ~StringLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "StringLiteral"; }
 };
 
 struct BooleanLiteral : public Expression
@@ -332,12 +349,14 @@ struct BooleanLiteral : public Expression
 
     virtual ~BooleanLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "BooleanLiteral"; }
 };
 
 struct NullLiteral : public Expression
 {
     virtual ~NullLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "NullLiteral"; }
 };
 
 struct BinaryOperation : public Expression
@@ -368,6 +387,8 @@ struct BinaryOperation : public Expression
 
     virtual ~BinaryOperation();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "BinaryOperation"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -384,6 +405,8 @@ struct PrefixOperation : public Expression
 
     virtual ~PrefixOperation();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "PrefixOperation"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -395,6 +418,8 @@ struct CastExpression : public Expression
 
     virtual ~CastExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "CastExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -406,6 +431,8 @@ struct AssignmentExpression : public Expression
 
     virtual ~AssignmentExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "AssignmentExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -416,6 +443,8 @@ struct ParenthesizedExpression : public Expression
 
     virtual ~ParenthesizedExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ParenthesizedExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -427,6 +456,8 @@ struct ClassInstanceCreator : public Expression
 
     virtual ~ClassInstanceCreator();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ClassInstanceCreator"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -438,6 +469,8 @@ struct ArrayCreator : public Expression
 
     virtual ~ArrayCreator();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ArrayCreator"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -447,6 +480,8 @@ struct ChainableExpression : public Expression // abstract
     Expression* prevExpr = nullptr;
 
     virtual ~ChainableExpression();
+    virtual std::string toString() { return "ChainableExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -458,6 +493,8 @@ struct MethodCall : public ChainableExpression
 
     virtual ~MethodCall();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "MethodCall"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -468,6 +505,8 @@ struct FieldAccess : public ChainableExpression
 
     virtual ~FieldAccess();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "FieldAccess"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -478,6 +517,9 @@ struct ArrayAccess : public ChainableExpression
 
     virtual ~ArrayAccess();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ArrayAccess"; }
+
+protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
 
@@ -487,6 +529,8 @@ struct ThisExpression : public ChainableExpression
 
     virtual ~ThisExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ThisExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -499,6 +543,8 @@ struct VariableDeclarationExpression : public Expression
 
     virtual ~VariableDeclarationExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "VariableDeclarationExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -510,6 +556,8 @@ struct InstanceOfExpression : public Expression
 
     virtual ~InstanceOfExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "InstanceOfExpression"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -520,6 +568,8 @@ struct ExpressionStatement : public Statement
 
     virtual ~ExpressionStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ExpressionStatement"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -528,6 +578,7 @@ struct EmptyStatement : public Statement
 {
     virtual ~EmptyStatement() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "EmptyStatement"; }
 };
 
 struct ReturnStatement : public Statement
@@ -536,6 +587,8 @@ struct ReturnStatement : public Statement
 
     virtual ~ReturnStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ReturnStatement"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -548,6 +601,8 @@ struct IfStatement : public Statement
 
     virtual ~IfStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "IfStatement"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -561,6 +616,8 @@ struct ForStatement : public Statement
 
     virtual ~ForStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ForStatement"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -572,6 +629,8 @@ struct WhileStatement : public Statement
 
     virtual ~WhileStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "WhileStatement"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -585,6 +644,7 @@ struct Block : public Statement
     virtual ~Block();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    virtual std::string toString() { return "Block"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -596,6 +656,8 @@ struct PackageDeclaration : public ASTNode
 
     virtual ~PackageDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "PackageDeclaration"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -607,6 +669,8 @@ struct ImportDeclaration : public ASTNode
 
     virtual ~ImportDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ImportDeclaration"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -626,6 +690,7 @@ struct Modifier : public ASTNode
 
     virtual ~Modifier() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString(){ return "Modifier"; }
 };
 
 struct TypeDeclaration : public ASTNode // abstract
@@ -633,6 +698,8 @@ struct TypeDeclaration : public ASTNode // abstract
     ASTNodeList<Modifier>* modifiers = nullptr;
 
     virtual ~TypeDeclaration();
+    virtual std::string toString() { return "TypeDeclaration"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -642,6 +709,8 @@ struct MemberDeclaration : public ASTNode // abstract
     ASTNodeList<Modifier>* modifiers = nullptr;
 
     virtual ~MemberDeclaration();
+    virtual std::string toString() { return "MemberDeclaration"; }
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -658,6 +727,7 @@ struct ClassDeclaration : public TypeDeclaration
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    virtual std::string toString() { return "ClassDeclaration"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -674,6 +744,7 @@ struct InterfaceDeclaration : public TypeDeclaration
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    virtual std::string toString() { return "InterfaceDeclaration"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -686,6 +757,7 @@ struct FormalParameter : public ASTNode
 
     virtual ~FormalParameter();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "FormalParameter"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -698,6 +770,7 @@ struct ConstructorDeclaration : public MemberDeclaration
 
     virtual ~ConstructorDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "ConstructorDeclaration"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -709,6 +782,7 @@ struct FieldDeclaration : public MemberDeclaration
 
     virtual ~FieldDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "FieldDeclaration"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -726,6 +800,7 @@ struct MethodDeclaration : public MemberDeclaration
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    virtual std::string toString() { return "MethodDeclaration"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -739,6 +814,7 @@ struct CompilerUnit : public ASTNode
 
     virtual ~CompilerUnit();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual std::string toString() { return "CompilerUnit"; }
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
