@@ -1,5 +1,121 @@
 #include "ASTNode.h"
 
+void ASTNodeVisitor::visit(ASTNode& node){}
+void ASTNodeVisitor::visit(Expression& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(Statement& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(Type& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(Name& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(ChainableExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(TypeDeclaration& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(MemberDeclaration& node){ visit(dynamic_cast<ASTNode&>(node)); }
+
+void ASTNodeVisitor::visit(ASTNodeList<Type>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<Modifier>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<Statement>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<Expression>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<FormalParameter>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<ImportDeclaration>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ASTNodeList<MemberDeclaration>& node){ visit(dynamic_cast<ASTNode&>(node)); }
+
+void ASTNodeVisitor::visit(SimpleName& node){ visit(dynamic_cast<Name&>(node)); }
+void ASTNodeVisitor::visit(QualifiedName& node){ visit(dynamic_cast<Name&>(node)); }
+void ASTNodeVisitor::visit(PrimitiveType& node){ visit(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::visit(QualifiedType& node){ visit(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::visit(ArrayType& node){ visit(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::visit(IntLiteral& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(CharLiteral& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(StringLiteral& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(BooleanLiteral& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(NullLiteral& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(BinaryOperation& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(PrefixOperation& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(CastExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(AssignmentExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(ParenthesizedExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(ClassInstanceCreator& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(ArrayCreator& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(MethodCall& node){ visit(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::visit(FieldAccess& node){ visit(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::visit(ArrayAccess& node){ visit(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::visit(ThisExpression& node){ visit(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::visit(VariableDeclarationExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(InstanceOfExpression& node){ visit(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::visit(ExpressionStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(EmptyStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(ReturnStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(IfStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(ForStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(WhileStatement& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(Block& node){ visit(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::visit(PackageDeclaration& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ImportDeclaration& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(Modifier& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ClassDeclaration& node){ visit(dynamic_cast<TypeDeclaration&>(node)); }
+void ASTNodeVisitor::visit(InterfaceDeclaration& node){ visit(dynamic_cast<TypeDeclaration&>(node)); }
+void ASTNodeVisitor::visit(FormalParameter& node){ visit(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::visit(ConstructorDeclaration& node){ visit(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::visit(FieldDeclaration& node){ visit(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::visit(MethodDeclaration& node){ visit(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::visit(CompilerUnit& node){ visit(dynamic_cast<ASTNode&>(node)); }
+
+void ASTNodeVisitor::leave(ASTNode& node){}
+void ASTNodeVisitor::leave(Expression& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(Statement& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(Type& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(Name& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(ChainableExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(TypeDeclaration& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(MemberDeclaration& node){ leave(dynamic_cast<ASTNode&>(node)); }
+
+void ASTNodeVisitor::leave(ASTNodeList<Type>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<Modifier>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<Statement>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<Expression>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<FormalParameter>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<ImportDeclaration>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ASTNodeList<MemberDeclaration>& node){ leave(dynamic_cast<ASTNode&>(node)); }
+
+void ASTNodeVisitor::leave(SimpleName& node){ leave(dynamic_cast<Name&>(node)); }
+void ASTNodeVisitor::leave(QualifiedName& node){ leave(dynamic_cast<Name&>(node)); }
+void ASTNodeVisitor::leave(PrimitiveType& node){ leave(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::leave(QualifiedType& node){ leave(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::leave(ArrayType& node){ leave(dynamic_cast<Type&>(node)); }
+void ASTNodeVisitor::leave(IntLiteral& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(CharLiteral& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(StringLiteral& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(BooleanLiteral& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(NullLiteral& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(BinaryOperation& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(PrefixOperation& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(CastExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(AssignmentExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(ParenthesizedExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(ClassInstanceCreator& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(ArrayCreator& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(MethodCall& node){ leave(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::leave(FieldAccess& node){ leave(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::leave(ArrayAccess& node){ leave(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::leave(ThisExpression& node){ leave(dynamic_cast<ChainableExpression&>(node)); }
+void ASTNodeVisitor::leave(VariableDeclarationExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(InstanceOfExpression& node){ leave(dynamic_cast<Expression&>(node)); }
+void ASTNodeVisitor::leave(ExpressionStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(EmptyStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(ReturnStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(IfStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(ForStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(WhileStatement& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(Block& node){ leave(dynamic_cast<Statement&>(node)); }
+void ASTNodeVisitor::leave(PackageDeclaration& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ImportDeclaration& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(Modifier& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ClassDeclaration& node){ leave(dynamic_cast<TypeDeclaration&>(node)); }
+void ASTNodeVisitor::leave(InterfaceDeclaration& node){ leave(dynamic_cast<TypeDeclaration&>(node)); }
+void ASTNodeVisitor::leave(FormalParameter& node){ leave(dynamic_cast<ASTNode&>(node)); }
+void ASTNodeVisitor::leave(ConstructorDeclaration& node){ leave(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::leave(FieldDeclaration& node){ leave(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::leave(MethodDeclaration& node){ leave(dynamic_cast<MemberDeclaration&>(node)); }
+void ASTNodeVisitor::leave(CompilerUnit& node){ leave(dynamic_cast<ASTNode&>(node)); }
+
 void ASTNode::visitAll(ASTNodeVisitor& v)
 {
     accept(v);
