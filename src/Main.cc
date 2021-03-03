@@ -9,6 +9,7 @@
 #include "Parser.h"
 #include "Weeder.h"
 #include "ASTBuilder.h"
+#include "NameResolution.h"
 
 using namespace std;
 
@@ -23,7 +24,7 @@ int main(int argc, char *argv[])
     bool supress = argc > 2 && std::string(argv[argc-1]) == std::string("s");
     if(supress) argc--;
 
-    std::vector<ASTNode*> ast_trees;
+    std::vector<ASTNode*> asts;
 
     for(size_t i = 1; i < argc; i++)
     {
@@ -71,12 +72,14 @@ int main(int argc, char *argv[])
 
         weed(t, context);
 
-        ast_trees.push_back(buildAST(t));
+        asts.push_back(buildAST(t));
 
         // if (!supress){
         //     printParseTree(t);
         // }
     }
+
+    resolveNames(asts);
 
     return 0;
 }
