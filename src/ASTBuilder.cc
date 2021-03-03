@@ -4,6 +4,7 @@
 
 void ParentVisitor::visit(ASTNode& node)
 {
+    // std::cout << node.toString() << std::endl;
     node.parent = parents.top();
     parents.push(&node);
 }
