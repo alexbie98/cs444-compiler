@@ -198,7 +198,7 @@ bool typeListHasBasicOrArrayType(ParseTreeNode* typeList, map<string,string>& co
     }
     else{
         assert(typeList->children.size() == 3);
-        return typeIsBasicOrArrayType(typeList->children[0], context) || typeListHasBasicOrArrayType(typeList->children[2], context);
+        return typeListHasBasicOrArrayType(typeList->children[0], context) || typeIsBasicOrArrayType(typeList->children[2], context);
     }
 }
 

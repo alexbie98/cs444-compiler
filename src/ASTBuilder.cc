@@ -807,7 +807,7 @@ ASTNode* buildAST(ParseTreeNode* node)
             else
             {
                 imports = dynamic_cast<ASTNodeList<ImportDeclaration>*>(buildAST(node->children[0]));
-                imports->elements.push_back(dynamic_cast<ImportDeclaration*>(buildAST(node->children[2])));
+                imports->elements.push_back(dynamic_cast<ImportDeclaration*>(buildAST(node->children[1])));
             }
             return imports;
         }
