@@ -247,8 +247,8 @@ struct SimpleName : public Name
 
 struct QualifiedName : public Name
 {
-    Name* name;
-    SimpleName* simpleName;
+    Name* name = nullptr;
+    SimpleName* simpleName = nullptr;
 
     virtual ~QualifiedName();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -276,7 +276,7 @@ struct PrimitiveType : public Type
 
 struct QualifiedType : public Type
 {
-    Name* name;
+    Name* name = nullptr;
 
     virtual ~QualifiedType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -285,7 +285,7 @@ struct QualifiedType : public Type
 
 struct ArrayType : public Type
 {
-    Type* elementType;
+    Type* elementType = nullptr;
 
     virtual ~ArrayType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -352,8 +352,8 @@ struct BinaryOperation : public Expression
         GT
     };
 
-    Expression* lhs;
-    Expression* rhs;
+    Expression* lhs = nullptr;
+    Expression* rhs = nullptr;
     OperatorType op;
 
     virtual ~BinaryOperation();
@@ -369,7 +369,7 @@ struct PrefixOperation : public Expression
         NOT
     };
     OperatorType op;
-    Expression* operand;
+    Expression* operand = nullptr;
 
     virtual ~PrefixOperation();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -378,8 +378,8 @@ struct PrefixOperation : public Expression
 
 struct CastExpression : public Expression
 {
-    Type* castType;
-    Expression* expression;
+    Type* castType = nullptr;
+    Expression* expression = nullptr;
 
     virtual ~CastExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -388,8 +388,8 @@ struct CastExpression : public Expression
 
 struct AssignmentExpression : public Expression
 {
-    Expression* lhs;
-    Expression* rhs;
+    Expression* lhs = nullptr;
+    Expression* rhs = nullptr;
 
     virtual ~AssignmentExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -398,7 +398,7 @@ struct AssignmentExpression : public Expression
 
 struct ParenthesizedExpression : public Expression
 {
-    Expression* expr;
+    Expression* expr = nullptr;
 
     virtual ~ParenthesizedExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -407,8 +407,8 @@ struct ParenthesizedExpression : public Expression
 
 struct ClassInstanceCreator : public Expression
 {
-    Type* type;
-    ASTNodeList<Expression>* arguments;
+    Type* type = nullptr;
+    ASTNodeList<Expression>* arguments = nullptr;
 
     virtual ~ClassInstanceCreator();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -417,8 +417,8 @@ struct ClassInstanceCreator : public Expression
 
 struct ArrayCreator : public Expression
 {
-    ArrayType* type;
-    Expression* argument;
+    ArrayType* type = nullptr;
+    Expression* argument = nullptr;
 
     virtual ~ArrayCreator();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -427,7 +427,7 @@ struct ArrayCreator : public Expression
 
 struct ChainableExpression : public Expression // abstract
 {
-    Expression* prevExpr;
+    Expression* prevExpr = nullptr;
 
     virtual ~ChainableExpression();
     virtual void visitAll(ASTNodeVisitor& v) override;
@@ -435,8 +435,8 @@ struct ChainableExpression : public Expression // abstract
 
 struct MethodCall : public ChainableExpression
 {
-    SimpleName* name;
-    ASTNodeList<Expression>* arguments;
+    SimpleName* name = nullptr;
+    ASTNodeList<Expression>* arguments = nullptr;
 
     virtual ~MethodCall();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -445,7 +445,7 @@ struct MethodCall : public ChainableExpression
 
 struct FieldAccess : public ChainableExpression
 {
-    SimpleName* name;
+    SimpleName* name = nullptr;
 
     virtual ~FieldAccess();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -454,7 +454,7 @@ struct FieldAccess : public ChainableExpression
 
 struct ArrayAccess : public ChainableExpression
 {
-    Expression* indexExpr;
+    Expression* indexExpr = nullptr;
 
     virtual ~ArrayAccess();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -463,7 +463,7 @@ struct ArrayAccess : public ChainableExpression
 
 struct ThisExpression : public ChainableExpression
 {
-    Expression* expression;
+    Expression* expression = nullptr;
 
     virtual ~ThisExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -472,9 +472,9 @@ struct ThisExpression : public ChainableExpression
 
 struct VariableDeclarationExpression : public Expression
 {
-    Type* type;
-    SimpleName* name;
-    Expression* initializer;
+    Type* type = nullptr;
+    SimpleName* name = nullptr;
+    Expression* initializer = nullptr;
 
     virtual ~VariableDeclarationExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -483,8 +483,8 @@ struct VariableDeclarationExpression : public Expression
 
 struct InstanceOfExpression : public Expression
 {
-    Expression* expression;
-    Type* type;
+    Expression* expression = nullptr;
+    Type* type = nullptr;
 
     virtual ~InstanceOfExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -493,7 +493,7 @@ struct InstanceOfExpression : public Expression
 
 struct ExpressionStatement : public Statement
 {
-    Expression* expression;
+    Expression* expression = nullptr;
 
     virtual ~ExpressionStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -508,7 +508,7 @@ struct EmptyStatement : public Statement
 
 struct ReturnStatement : public Statement
 {
-    Expression* expression;
+    Expression* expression = nullptr;
 
     virtual ~ReturnStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -517,9 +517,9 @@ struct ReturnStatement : public Statement
 
 struct IfStatement : public Statement
 {
-    Expression* ifCondition;
-    Statement* ifBody;
-    Statement* elseBody;
+    Expression* ifCondition = nullptr;
+    Statement* ifBody = nullptr;
+    Statement* elseBody = nullptr;
 
     virtual ~IfStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -528,10 +528,10 @@ struct IfStatement : public Statement
 
 struct ForStatement : public Statement
 {
-    Expression* forInit;
-    Expression* forCheck;
-    Expression* forUpdate;
-    Statement* body;
+    Expression* forInit = nullptr;
+    Expression* forCheck = nullptr;
+    Expression* forUpdate = nullptr;
+    Statement* body = nullptr;
 
     virtual ~ForStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -540,8 +540,8 @@ struct ForStatement : public Statement
 
 struct WhileStatement : public Statement
 {
-    Expression* condition;
-    Statement* body;
+    Expression* condition = nullptr;
+    Statement* body = nullptr;
 
     virtual ~WhileStatement();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -552,7 +552,7 @@ struct Block : public Statement
 {
     Environment environment;
 
-    ASTNodeList<Statement>* statements;
+    ASTNodeList<Statement>* statements = nullptr;
 
     virtual ~Block();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -562,7 +562,7 @@ struct Block : public Statement
 
 struct PackageDeclaration : public ASTNode
 {
-    Name* name;
+    Name* name = nullptr;
 
     virtual ~PackageDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -571,7 +571,7 @@ struct PackageDeclaration : public ASTNode
 
 struct ImportDeclaration : public ASTNode
 {
-    Name* name;
+    Name* name = nullptr;
     bool declareAll;
 
     virtual ~ImportDeclaration();
@@ -598,7 +598,7 @@ struct Modifier : public ASTNode
 
 struct TypeDeclaration : public ASTNode // abstract
 {
-    ASTNodeList<Modifier>* modifiers;
+    ASTNodeList<Modifier>* modifiers = nullptr;
 
     virtual ~TypeDeclaration();
     virtual void visitAll(ASTNodeVisitor& v) override;
@@ -606,7 +606,7 @@ struct TypeDeclaration : public ASTNode // abstract
 
 struct MemberDeclaration : public ASTNode // abstract
 {
-    ASTNodeList<Modifier>* modifiers;
+    ASTNodeList<Modifier>* modifiers = nullptr;
 
     virtual ~MemberDeclaration();
     virtual void visitAll(ASTNodeVisitor& v) override;
@@ -616,10 +616,10 @@ struct ClassDeclaration : public TypeDeclaration
 {
     Environment environment;
 
-    SimpleName* name;
-    Type* baseType;
-    ASTNodeList<Type>* interfaces;
-    ASTNodeList<MemberDeclaration>* classBody;
+    SimpleName* name = nullptr;
+    Type* baseType = nullptr;
+    ASTNodeList<Type>* interfaces = nullptr;
+    ASTNodeList<MemberDeclaration>* classBody = nullptr;
 
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -631,9 +631,9 @@ struct InterfaceDeclaration : public TypeDeclaration
 {
     Environment environment;
 
-    SimpleName* name;
-    ASTNodeList<Type>* extends;
-    ASTNodeList<MemberDeclaration>* interfaceBody;
+    SimpleName* name = nullptr;
+    ASTNodeList<Type>* extends = nullptr;
+    ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -643,8 +643,8 @@ struct InterfaceDeclaration : public TypeDeclaration
 
 struct FormalParameter : public ASTNode
 {
-    Type* type;
-    Name* id;
+    Type* type = nullptr;
+    Name* id = nullptr;
 
     virtual ~FormalParameter();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -653,8 +653,8 @@ struct FormalParameter : public ASTNode
 
 struct ConstructorDeclaration : public MemberDeclaration
 {
-    ASTNodeList<FormalParameter>* parameters;
-    Block* body;
+    ASTNodeList<FormalParameter>* parameters = nullptr;
+    Block* body = nullptr;
 
     virtual ~ConstructorDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -663,7 +663,7 @@ struct ConstructorDeclaration : public MemberDeclaration
 
 struct FieldDeclaration : public MemberDeclaration
 {
-    VariableDeclarationExpression* declaration;
+    VariableDeclarationExpression* declaration = nullptr;
 
     virtual ~FieldDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -674,10 +674,10 @@ struct MethodDeclaration : public MemberDeclaration
 {
     Environment environment;
 
-    Type* type;
-    Name* name;
-    ASTNodeList<FormalParameter>* parameters;
-    Block* body;
+    Type* type = nullptr;
+    Name* name = nullptr;
+    ASTNodeList<FormalParameter>* parameters = nullptr;
+    Block* body = nullptr;
 
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -687,9 +687,9 @@ struct MethodDeclaration : public MemberDeclaration
 
 struct CompilerUnit : public ASTNode
 {
-    PackageDeclaration* packageDecl;
-    ASTNodeList<ImportDeclaration>* importDecls;
-    TypeDeclaration* typeDecl;
+    PackageDeclaration* packageDecl = nullptr;
+    ASTNodeList<ImportDeclaration>* importDecls = nullptr;
+    TypeDeclaration* typeDecl = nullptr;
 
     virtual ~CompilerUnit();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
