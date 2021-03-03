@@ -19,53 +19,64 @@ int main(int argc, char *argv[])
 {
     // cout << "Running joosc ..." << endl;
 
-    ifstream ts(argv[1]);
-    stringstream buffer;
-    buffer << ts.rdbuf();
-    string text = buffer.str();
+    // If last argument is "s", supress outputs for testing
+    bool supress = argc > 2 && std::string(argv[argc-1]) == std::string("s");
+    if(supress) argc--;
 
-    //test_preprocess();
+    std::vector<ASTNode*> ast_trees;
 
-    preprocess(text);
-    vector<Token> tokens = munch(text);
+    for(size_t i = 1; i < argc; i++)
+    {
+        char* filename = argv[i];
 
-    if (!(argc > 2 && argv[2][0] == 's')){
-        for (const auto & t: tokens) {
-            printToken(t);
+        ifstream ts(filename);
+        stringstream buffer;
+        buffer << ts.rdbuf();
+        string text = buffer.str();
+
+        //test_preprocess();
+
+        preprocess(text);
+        vector<Token> tokens = munch(text);
+
+        if (!supress){
+            for (const auto & t: tokens) {
+                printToken(t);
+            }
+            cout << "-----------------------------------" << endl;
         }
-        cout << "-----------------------------------" << endl;
-    }
 
-    postprocess(tokens);
-    if (!(argc > 2 && argv[2][0] == 's')){
-        for (const auto & t: tokens) {
-            printToken(t);
+        postprocess(tokens);
+        if (!supress){
+            for (const auto & t: tokens) {
+                printToken(t);
+            }
+            cout << "-----------------------------------" << endl;
         }
-        cout << "-----------------------------------" << endl;
+
+        const string &fileName = filesystem::path(filename).stem().string();
+        ParseTreeNode *t = parse(tokens);
+
+        if (!supress){
+            printParseTree(t);
+            cout << "-----------------------------------" << endl;
+        }
+        
+        if (t == NULL){
+            exit(42);
+        }
+
+        map<string,string> context;
+        context["fileName"] = fileName;
+
+        weed(t, context);
+
+        ast_trees.push_back(buildAST(t));
+
+        // if (!supress){
+        //     printParseTree(t);
+        // }
     }
-
-    const string &fileName = filesystem::path(argv[1]).stem().string();
-    ParseTreeNode *t = parse(tokens);
-
-    if (!(argc > 2 && argv[2][0] == 's')){
-        printParseTree(t);
-        cout << "-----------------------------------" << endl;
-    }
-    
-    if (t == NULL){
-        exit(42);
-    }
-
-    map<string,string> context;
-    context["fileName"] = fileName;
-
-    weed(t, context);
-
-    ASTNode* ast = buildAST(t);
-
-    // if (!(argc > 2 && argv[2][0] == 's')){
-    //     printParseTree(t);
-    // }
 
     return 0;
 }
