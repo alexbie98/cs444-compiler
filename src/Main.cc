@@ -10,6 +10,7 @@
 #include "Weeder.h"
 #include "ASTBuilder.h"
 #include "NameResolution.h"
+#include "HierarchyCheck.h"
 
 using namespace std;
 
@@ -76,7 +77,8 @@ int main(int argc, char *argv[])
         setParents(asts.back());
     }
     
-    resolveNames(asts);
+    Environment globalEnv = resolveNames(asts);
+    CheckEnvironmentHierarchy(globalEnv);
 
     return 0;
 }
