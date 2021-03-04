@@ -195,7 +195,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                                 const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                                 // If package name matches and the type is in the package
-                                if(cunit->packageDecl->name->toString() == package_name && 
+                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name && 
                                    cunit->typeDecl &&
                                    cunit->typeDecl->getName()->getString() == single_type_name)
                                 {
@@ -246,7 +246,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                                 const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                                 // If package name matches and the type is in the package
-                                if(cunit->packageDecl->name->toString() == package_name && 
+                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name && 
                                    cunit->typeDecl &&
                                    cunit->typeDecl->getName()->getString() == node.name->getString())
                                 {
@@ -266,8 +266,6 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         std::cout << "Type name " << node.name->getString() << " does not exist" << std::endl;
         exit(42);
     }
-
-    
 }
 
 void checkTypeLinking(std::vector<ASTNode*> asts)
@@ -323,7 +321,7 @@ void checkTypeLinking(std::vector<ASTNode*> asts)
                             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                             // If package name matches, add type decl to simple types
-                            if(cunit->packageDecl->name->toString() == package_name)
+                            if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name)
                             {
                                 if(simple_types.find(cunit->typeDecl->getName()->getString()) != simple_types.end())
                                 {
