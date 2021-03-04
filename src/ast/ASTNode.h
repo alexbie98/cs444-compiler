@@ -267,7 +267,7 @@ struct QualifiedName : public Name
 
     virtual ~QualifiedName();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
-    virtual const std::string& getString() { return name->getString(); }
+    virtual const std::string& getString() { return name->getString() + "." + simpleName->getString(); }
     virtual std::string toString() { return "QualifiedName"; }
 
 protected:
