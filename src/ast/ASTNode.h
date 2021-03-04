@@ -246,7 +246,7 @@ struct Name : public Expression // abstract
     ASTNode* refers_to;
 
     virtual ~Name() = default;
-    virtual const std::string& getString() = 0;
+    virtual std::string getString() const = 0;
     virtual std::string toString(){ return "Name"; }
 };
 
@@ -256,7 +256,7 @@ struct SimpleName : public Name
 
     virtual ~SimpleName() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
-    virtual const std::string& getString() { return id; }
+    virtual std::string getString() const override { return id; }
     virtual std::string toString(){ return "SimpleName"; }
 };
 
@@ -267,7 +267,7 @@ struct QualifiedName : public Name
 
     virtual ~QualifiedName();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
-    virtual const std::string& getString() { return name->getString() + "." + simpleName->getString(); }
+    virtual std::string getString() const override { return name->getString() + "." + simpleName->getString(); }
     virtual std::string toString() { return "QualifiedName"; }
 
 protected:
