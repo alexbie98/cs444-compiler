@@ -177,12 +177,26 @@ struct ASTNodeVisitor
 
 struct Environment
 {
+    Environment* parent = nullptr;
+    ASTNode* node = nullptr;
+
     std::unordered_map<std::string, ClassDeclaration*> classes;
     std::unordered_map<std::string, InterfaceDeclaration*> interfaces;
     std::unordered_map<std::string, FieldDeclaration*> fields;
     std::unordered_map<std::string, MethodDeclaration*> methods;
     std::unordered_map<std::string, FormalParameter*> formal_params;
     std::unordered_map<std::string, VariableDeclarationExpression*> variables;
+
+    // TODO Maybe make environment single map to tuples
+    bool contains(const std::string& name)
+    {
+        return classes.find(name) != classes.end() ||
+               interfaces.find(name) != interfaces.end() ||
+               fields.find(name) != fields.end() ||
+               methods.find(name) != methods.end() ||
+               formal_params.find(name) != formal_params.end() ||
+               variables.find(name) != variables.end();
+    }
 };
 
 struct ASTNode // Abstract

@@ -7,6 +7,8 @@
 
 class EnvironmentVisitor: public ASTNodeVisitor
 {
+    void initEnvironment(ASTNode* node);
+
 public:
     // TODO Create new program ASTNode to connect all ASTs?
     Environment global; 

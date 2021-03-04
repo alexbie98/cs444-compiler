@@ -5,6 +5,15 @@
 
 using namespace std;
 
+void EnvironmentVisitor::initEnvironment(ASTNode* node)
+{
+    assert(node->getEnvironment());
+
+    node->getEnvironment()->parent = environments.top();
+    node->getEnvironment()->node = node;
+    environments.push(node->getEnvironment()); 
+}
+
 void EnvironmentVisitor::visit(ClassDeclaration& node) 
 {
     assert(environments.size() == 1);
@@ -21,9 +30,10 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
         environments.top()->classes[class_name] = &node;
         node.fullyQualifiedName = class_name;
     }
-    environments.push(&node.environment); 
+    initEnvironment(&node);
 }
 
+// TODO Combine as TypeDecleration
 void EnvironmentVisitor::visit(InterfaceDeclaration& node) 
 { 
     assert(environments.size() == 1);
@@ -40,18 +50,18 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
         environments.top()->interfaces[interface_name] = &node;
         node.fullyQualifiedName = interface_name;
     }
-    environments.push(&node.environment); 
+    initEnvironment(&node);
 }
 
 void EnvironmentVisitor::visit(MethodDeclaration& node) 
 {
     environments.top()->methods[node.name->getString()] = &node;
-    environments.push(&node.environment); 
+    initEnvironment(&node);
 }
 
 void EnvironmentVisitor::visit(Block& node) 
 { 
-    environments.push(&node.environment); 
+    initEnvironment(&node);
 }
 
 void EnvironmentVisitor::visit(FormalParameter& node) 
@@ -62,21 +72,46 @@ void EnvironmentVisitor::visit(FormalParameter& node)
 void EnvironmentVisitor::visit(VariableDeclarationExpression& node) 
 {  
     const std::string& name = node.name->getString();
-    if(environments.top()->classes.find(name) != environments.top()->classes.end())
+
+    Environment* env = environments.top();
+
+    while(env && !dynamic_cast<TypeDeclaration*>(env->node))
     {
-        cout << "Redefinition of local variable " << name << endl;
-        exit(42);
+        
+        if(env->contains(name))
+        {
+            ASTNode* scanner = &node;
+            while(scanner)
+            {
+                std::cout << scanner->toString() << std::endl;
+                scanner =scanner->parent;
+            }
+
+            std::cout << "------------------" << std::endl;
+
+            Environment* scanner2 = environments.top();
+            while(scanner2)
+            {
+                std::cout << scanner2->node->toString() << std::endl;
+                // if(dynamic_cast<ClassDeclaration*>(scanner2->node))
+                //     std::cout << dynamic_cast<ClassDeclaration*>(scanner2->node)->name->getString() << std::endl;
+                scanner2 =scanner2->parent;
+            }
+
+            cout << "Redefinition of local variable " << name << endl;
+            exit(42);
+        }
+
+        env = env->parent;
     }
-    else
-    {
-        environments.top()->variables[name] = &node;
-    }
+    
+    environments.top()->variables[name] = &node;
 }
 
 void EnvironmentVisitor::visit(FieldDeclaration& node) 
 {  
     const std::string& name = node.declaration->name->id;
-    if(environments.top()->classes.find(name) != environments.top()->classes.end())
+    if(environments.top()->fields.find(name) != environments.top()->fields.end())
     {
         cout << "Redefinition of field " << name << endl;
         exit(42);
