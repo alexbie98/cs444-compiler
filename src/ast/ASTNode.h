@@ -243,6 +243,8 @@ struct Type : public ASTNode // abstract
 
 struct Name : public Expression // abstract
 {
+    ASTNode* refers_to;
+
     virtual ~Name() = default;
     virtual const std::string& getString() = 0;
     virtual std::string toString(){ return "Name"; }
@@ -698,6 +700,7 @@ struct TypeDeclaration : public ASTNode // abstract
     ASTNodeList<Modifier>* modifiers = nullptr;
 
     virtual ~TypeDeclaration();
+    virtual Name* getName() = 0;
     virtual std::string toString() { return "TypeDeclaration"; }
 
 protected:
@@ -727,6 +730,7 @@ struct ClassDeclaration : public TypeDeclaration
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    Name* getName() override { return name; }
     virtual std::string toString() { return "ClassDeclaration"; }
 
 protected:
@@ -744,6 +748,7 @@ struct InterfaceDeclaration : public TypeDeclaration
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
+    Name* getName() override { return name; }
     virtual std::string toString() { return "InterfaceDeclaration"; }
 
 protected:

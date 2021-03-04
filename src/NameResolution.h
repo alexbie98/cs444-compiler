@@ -31,5 +31,15 @@ public:
     virtual void leave(Block& node);
 };
 
+class TypeLinkingVisitor: public ASTNodeVisitor
+{
+    Environment* global;
+    const std::vector<ASTNode*>& asts;
+
+public: 
+    TypeLinkingVisitor(Environment* global, const std::vector<ASTNode*>& asts): global{global}, asts{asts} {}
+    virtual void visit(QualifiedType& node);
+};
+
 // Returns global environment
 Environment resolveNames(std::vector<ASTNode*> asts);
