@@ -126,7 +126,7 @@ void EnvironmentVisitor::visit(VariableDeclarationExpression& node)
         
         if(env->contains(name))
         {
-            printCurrentTraversalState(node);
+            printCurrentTraversalState(node, environments);
 
             cout << "Redefinition of local variable " << name << endl;
             exit(42);
