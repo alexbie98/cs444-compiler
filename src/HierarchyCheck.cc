@@ -10,67 +10,85 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
     if (classDecl->baseType != nullptr)
     {
         QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->baseType);
-        assert(baseClassType != nullptr);
-        string baseClassName = baseClassType->name->getString();
-
-        if (env.interfaces.find(baseClassName) != env.interfaces.cend())
+        
+        assert(baseClassType != nullptr);        
+        assert(baseClassType->name->refers_to != nullptr);
+        
+        const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
+        if (baseClass == nullptr)
         {
-            cout << "Class cannot extend an interface" << endl;
+            cout << "Class can only extend a class" << endl;
             exit(42);
         }
 
-        unordered_map<string, ClassDeclaration*>::const_iterator it = env.classes.find(baseClassName);
-        if (it != env.classes.cend())
+        if (baseClass->modifiers != nullptr)
         {
-            if (it->second->modifiers != nullptr)
+            for (const Modifier* mod : baseClass->modifiers->elements)
             {
-                for (const Modifier* mod : it->second->modifiers->elements)
+                if (mod->type == Modifier::FINAL)
                 {
-                    if (mod->type == Modifier::FINAL)
-                    {
-                        cout << "Cannot extend a final class" << endl;
-                        exit(42);
-                    }
+                    cout << "Cannot extend a final class" << endl;
+                    exit(42);
                 }
             }
-        }
-        else
-        {
-            cout << "Class extends something that is not a class" << endl;
-            exit(42);
         }
     }
 
     if (classDecl->interfaces != nullptr)
     {
-        unordered_set<string> implemented;
+        unordered_set<const InterfaceDeclaration*> implemented;
 
         for (const Type* type: classDecl->interfaces->elements)
         {
-            const QualifiedType* interfaceType = dynamic_cast<const QualifiedType*>(type);
-            assert(interfaceType != nullptr);
-            string interfaceName = interfaceType->name->toString();
-
-            if (env.classes.find(interfaceName) != env.classes.cend())
+            const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
+            assert(implementsType != nullptr);
+            assert(implementsType->name->refers_to != nullptr);
+            
+            const InterfaceDeclaration* interface = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
+            if (interface == nullptr)
             {
-                cout << "Class cannot implement a class" << endl;
+                cout << "Class cannot implement a class, must implement interface" << endl;
                 exit(42);
             }
 
-            if (implemented.find(interfaceName) != implemented.cend())
+            if (implemented.find(interface) != implemented.cend())
             {
                 cout << "Class cannot implement the same interface twice" << endl;
                 exit(42);
             }
 
-            implemented.insert(interfaceName);
+            implemented.insert(interface);
         }
     }
 }
 
 void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Environment& env)
 {
+    if (interfaceDecl->extends)
+    {
+        unordered_set<const InterfaceDeclaration*> implemented;
+        for (const Type* type : interfaceDecl->extends->elements)
+        {
+            const QualifiedType* extendsType = dynamic_cast<const QualifiedType*>(type);
+            assert(extendsType != nullptr);
+            assert(extendsType->name->refers_to != nullptr);
 
+            const InterfaceDeclaration* interface = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
+            if (interface == nullptr)
+            {
+                cout << "Interface cannot extend a class, must extend interface" << endl;
+                exit(42);
+            }
+
+            if (implemented.find(interface) != implemented.cend())
+            {
+                cout << "Interface cannot extend the same interface twice" << endl;
+                exit(42);
+            }
+
+            implemented.insert(interface);
+        }
+    }
 }
 
 void CheckEnvironmentHierarchy(const Environment& env)
