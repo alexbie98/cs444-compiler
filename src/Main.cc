@@ -75,7 +75,10 @@ int main(int argc, char *argv[])
 
         asts.push_back(buildAST(t));
 
-        printAST(asts.back());
+        if (!supress)
+        {
+            printAST(asts.back());
+        }
         setParents(asts.back());
     }
 
