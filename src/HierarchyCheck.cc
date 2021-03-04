@@ -115,6 +115,23 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
         }
     }
 
+    if (classDecl->classBody != nullptr)
+    {
+        unordered_set<string> constructors;
+        for (const MemberDeclaration* member : classDecl->classBody->elements)
+        {
+            if (const ConstructorDeclaration * constructor = dynamic_cast<const ConstructorDeclaration*>(member))
+            {
+                if (constructors.find(constructor->getSignature()) != constructors.cend())
+                {
+                    cout << "Cannot define multiple constructors with the same signature" << endl;
+                    exit(42);
+                }
+                constructors.insert(constructor->getSignature());
+            }
+        }
+    }
+
     CheckCycles(classDecl, unordered_set<const TypeDeclaration*>());
 }
 
