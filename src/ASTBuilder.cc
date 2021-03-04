@@ -823,7 +823,22 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             ImportDeclaration* importDecl = new ImportDeclaration();
             importDecl->name = dynamic_cast<Name*>(buildAST(node->children[1]));
-            importDecl->declareAll = (node->children.size() == 5);
+
+            if (node->children.size() == 5)
+            {
+                importDecl->declareAll = true;
+
+                QualifiedName* newName = new QualifiedName();
+                newName->simpleName = new SimpleName();
+                newName->simpleName->id = "*";
+                newName->name = importDecl->name;
+                importDecl->name = newName;
+            }
+            else
+            {
+                importDecl->declareAll = false;
+            }
+
             return importDecl;
         }
         case CLASS_OR_INTERFACE_DECLARATION:

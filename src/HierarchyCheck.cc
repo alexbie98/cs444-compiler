@@ -12,7 +12,6 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
         QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->baseType);
         assert(baseClassType != nullptr);
         string baseClassName = baseClassType->name->getString();
-        baseClassName = baseClassName.substr(baseClassName.find_last_of("."));
 
         if (env.interfaces.find(baseClassName) != env.interfaces.cend())
         {
@@ -51,7 +50,6 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
             const QualifiedType* interfaceType = dynamic_cast<const QualifiedType*>(type);
             assert(interfaceType != nullptr);
             string interfaceName = interfaceType->name->toString();
-            interfaceName = interfaceName.substr(interfaceName.find_last_of("."));
 
             if (env.classes.find(interfaceName) != env.classes.cend())
             {
