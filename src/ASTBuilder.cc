@@ -790,11 +790,35 @@ ASTNode* buildAST(ParseTreeNode* node)
         }
         case IMPORT_DECLARATIONS_OPT:
         {
+            ASTNodeList<ImportDeclaration>* imports;
             if (node->children.size() == 0)
             {
-                return new ASTNodeList<ImportDeclaration>();
+                imports = new ASTNodeList<ImportDeclaration>();
             }
-            return buildAST(node->children[0]);
+            else 
+            {
+                imports = dynamic_cast<ASTNodeList<ImportDeclaration>*>(buildAST(node->children[0]));
+            }
+
+            ImportDeclaration* implicit = new ImportDeclaration();
+            implicit->declareAll = true;
+
+            SimpleName* java = new SimpleName();
+            java->id = "java";
+            QualifiedName* javalang = new QualifiedName();
+            javalang->name = java;
+            javalang->simpleName = new SimpleName();
+            javalang->simpleName->id = "lang";
+
+            QualifiedName* all = new QualifiedName();
+            all->name = javalang;
+            all->simpleName = new SimpleName();
+            all->simpleName->id = "*";
+            
+            implicit->name = all;
+
+            imports->elements.push_back(implicit);
+            return imports;
         }
         case IMPORT_DECLARATIONS:
         {
