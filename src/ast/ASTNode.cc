@@ -978,7 +978,7 @@ MethodDeclaration::~MethodDeclaration()
 
 std::string MethodDeclaration::getSignature() const
 {
-    std::string ret = type->getTypeName() + " " + name->getString() + "(";
+    std::string ret = name->getString() + "(";
     for (FormalParameter* param : parameters->elements)
     {
         ret += param->type->getTypeName() + " ";
