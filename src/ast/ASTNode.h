@@ -239,6 +239,7 @@ struct Type : public ASTNode // abstract
 {
     virtual ~Type() = default;
     virtual std::string toString(){ return "Type"; }
+    virtual std::string getTypeName() const = 0;
 };
 
 struct Name : public Expression // abstract
@@ -291,6 +292,7 @@ struct PrimitiveType : public Type
     virtual ~PrimitiveType() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual std::string toString(){ return "PrimitiveType"; }
+    virtual std::string getTypeName() const override;
 };
 
 struct QualifiedType : public Type
@@ -300,6 +302,7 @@ struct QualifiedType : public Type
     virtual ~QualifiedType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual std::string toString() { return "QualifiedType"; }
+    virtual std::string getTypeName() const override;
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -313,6 +316,7 @@ struct ArrayType : public Type
     virtual ~ArrayType();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual std::string toString() { return "ArrayType"; }
+    virtual std::string getTypeName() const override;
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
@@ -777,6 +781,8 @@ struct ConstructorDeclaration : public MemberDeclaration
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual std::string toString() { return "ConstructorDeclaration"; }
 
+    std::string getSignature() const;
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -806,6 +812,8 @@ struct MethodDeclaration : public MemberDeclaration
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     Environment* getEnvironment() override { return &environment; }
     virtual std::string toString() { return "MethodDeclaration"; }
+
+    std::string getSignature() const;
 
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;

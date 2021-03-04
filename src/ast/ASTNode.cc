@@ -162,6 +162,11 @@ QualifiedType::~QualifiedType()
     }
 }
 
+std::string QualifiedType::getTypeName() const
+{
+    return name->getString();
+}
+
 void QualifiedType::visitAllInner(ASTNodeVisitor& v)
 {
     Type::visitAllInner(v);
@@ -178,6 +183,11 @@ ArrayType::~ArrayType()
     {
         delete elementType;
     }
+}
+
+std::string ArrayType::getTypeName() const
+{
+    return elementType->getTypeName() + "[]";
 }
 
 void ArrayType::visitAllInner(ASTNodeVisitor& v)
@@ -899,6 +909,17 @@ ConstructorDeclaration::~ConstructorDeclaration()
     }
 }
 
+std::string ConstructorDeclaration::getSignature() const
+{
+    std::string ret = "(";
+    for (FormalParameter* param : parameters->elements)
+    {
+        ret += param->type->getTypeName() + " ";
+    }
+    ret += ")";
+    return ret;
+}
+
 void ConstructorDeclaration::visitAllInner(ASTNodeVisitor& v)
 {
     MemberDeclaration::visitAllInner(v);
@@ -953,6 +974,17 @@ MethodDeclaration::~MethodDeclaration()
     {
         delete body;
     }
+}
+
+std::string MethodDeclaration::getSignature() const
+{
+    std::string ret = type->getTypeName() + " " + name->getString() + "(";
+    for (FormalParameter* param : parameters->elements)
+    {
+        ret += param->type->getTypeName() + " ";
+    }
+    ret += ")";
+    return ret;
 }
 
 void MethodDeclaration::visitAllInner(ASTNodeVisitor& v)
@@ -1016,4 +1048,18 @@ void CompilerUnit::visitAllInner(ASTNodeVisitor& v)
     {
         typeDecl->visitAll(v);
     }
+}
+
+std::string PrimitiveType::getTypeName() const
+{
+    switch (type)
+    {
+    case BYTE: return "byte";
+    case SHORT: return "shrrt";
+    case INT: return "int";
+    case CHAR: return "char";
+    case BOOLEAN: return "boolean";
+    case VOID: return "void";
+    }
+    return "";
 }
