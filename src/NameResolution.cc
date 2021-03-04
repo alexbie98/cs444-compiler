@@ -129,19 +129,34 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
             exit(42);
         }
 
-        // TODO Confused as to what this actually means
-        
         // When a fully qualified name resolves to a type, no strict prefix of the fully qualified name can resolve to a type in the same environment.
         // Iterate over every prefix
-        // std::string prefix = type_name;
-        // size_t last_period = type_name.find_last_of('.');
-        // while(type_name.substr(0, last_period) != std::string::npos)
-        // {
-        //     prefix = prefix.substr(0, last_period);
-        //     if(global->classes.find(prefix) != global->classes.end() ||
-        //        global->interfaces.find(prefix) != global->interfaces.end())
-        // }
-        // Prefix has no '.' now
+
+        // Get current environment
+        ASTNode* parent = node.parent;
+        Environment* current_env;
+        while(!parent->getEnvironment())
+        {
+            parent = parent->parent;
+        }
+        current_env = parent->getEnvironment();
+        assert(current_env);
+
+        std::string prefix = type_name;
+        size_t last_period = type_name.find_last_of('.');
+        while(last_period != std::string::npos)
+        {
+            prefix = prefix.substr(0, last_period);
+            last_period = prefix.find_last_of('.');
+
+            if(current_env->classes.find(prefix) != current_env->classes.end() ||
+               current_env->interfaces.find(prefix) != current_env->interfaces.end())
+               {
+                    std::cout << "Strict prefix of fully qualified name " << type_name 
+                    << " collides with type defined in the same scope" <<  std::endl;
+                    exit(42);
+               }
+        }
     }
     else
     {
@@ -240,19 +255,32 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                         {
                             std::string package_name = import->name->getString().substr(0, last_delimiter);
 
+                            bool package_found = false;
+
                             // Search all packages with packge_name for the type
                             for(const ASTNode* ast: asts)
                             {
                                 const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                                 // If package name matches and the type is in the package
-                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name && 
-                                   cunit->typeDecl &&
-                                   cunit->typeDecl->getName()->getString() == node.name->getString())
+                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name)
                                 {
-                                    node.name->refers_to = cunit->typeDecl;
-                                    return;
+                                    package_found = true;
+                                    
+                                    if(cunit->typeDecl &&
+                                       cunit->typeDecl->getName()->getString() == node.name->getString())
+                                    {
+                                        node.name->refers_to = cunit->typeDecl;
+                                        return;
+                                    }
                                 }
+                            }
+
+                            // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
+                            if(!package_found)
+                            {
+                                std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
+                                exit(42);
                             }
                         }
                     }
@@ -268,7 +296,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
     }
 }
 
-void checkTypeLinking(std::vector<ASTNode*> asts)
+void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
 {
     for(ASTNode* file_ast: asts)
     {
@@ -276,6 +304,13 @@ void checkTypeLinking(std::vector<ASTNode*> asts)
 
         ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(file_ast)->importDecls;
         TypeDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(file_ast)->typeDecl;
+        PackageDeclaration* package_decl = dynamic_cast<CompilerUnit*>(file_ast)->packageDecl;
+
+        std::vector<std::string> used_package_names;
+        if(package_decl)
+        {
+            used_package_names.push_back(package_decl->name->getString());
+        }
         
         if(imports)
         {
@@ -287,6 +322,11 @@ void checkTypeLinking(std::vector<ASTNode*> asts)
             {
                 size_t last_delimiter = import->name->getString().find_last_of('.');
                 std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+
+                if(last_delimiter != std::string::npos)
+                {
+                    used_package_names.push_back(import->name->getString().substr(0, last_delimiter));
+                }
 
                 // No single-type-import declaration clashes with the class or interface declared in the same file.
                 if(single_type_name == current_package_decl->getName()->getString())
@@ -336,17 +376,27 @@ void checkTypeLinking(std::vector<ASTNode*> asts)
 
                 single_type_imports.insert(single_type_name);
                 simple_types.insert(single_type_name);
+            }
+        }
 
-                
+        //No package names or prefixes of package names of declared packages, single-type-import declarations or 
+        //import-on-demand declarations that are used may resolve to types, except for types in the default package.
+        // TODO Check
+        for(std::string package_name: used_package_names)
+        {
+            std::string prefix = package_name;
+            size_t last_period = package_name.find_last_of('.');
+            while(last_period != std::string::npos)
+            {
+                prefix = prefix.substr(0, last_period);
+                last_period = prefix.find_last_of('.');
 
-
-                // if(last_delimiter != std::string::npos && single_type_name == type_name)
-                // {
-                //     std::string package_name = import->name->getString().substr(0, last_delimiter);
-
-                // } 
-
-                // If the import is a declareAll import
+                if(global->classes.find(prefix) != global->classes.end() ||
+                   global->interfaces.find(prefix) != global->interfaces.end())
+                {
+                        std::cout << "Prefix of " << package_name << " resolves with type" <<  std::endl;
+                        exit(42);
+                }
             }
         }
         
@@ -358,7 +408,7 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     EnvironmentVisitor env_visitor;
     for(ASTNode* ast: asts) ast->visitAll(env_visitor);
 
-    checkTypeLinking(asts);
+    checkTypeLinking(&env_visitor.global, asts);
     TypeLinkingVisitor type_visitor(&env_visitor.global, asts);
     for(ASTNode* ast: asts) ast->visitAll(type_visitor);
     return env_visitor.global;
