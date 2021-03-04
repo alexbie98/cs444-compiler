@@ -5,6 +5,60 @@
 
 using namespace std;
 
+void CheckCycles(const ClassDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
+void CheckCycles(const InterfaceDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
+
+
+void CheckCycles(const ClassDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited)
+{
+    if (visited.find(classDecl) != visited.cend())
+    {
+        cout << "Cannot have cycles in the type hierarchy" << endl;
+        exit(42);
+    }
+
+    visited.insert(classDecl);
+    if (classDecl->baseType != nullptr)
+    {
+        QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->baseType);
+        const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
+        CheckCycles(baseClass, visited);
+    }
+
+    if (classDecl->interfaces != nullptr)
+    {
+        for (const Type* type : classDecl->interfaces->elements)
+        {
+            const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
+            const InterfaceDeclaration* interfaceDecl = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
+            CheckCycles(interfaceDecl, visited);
+        }
+    }
+
+    visited.erase(classDecl);
+}
+
+void CheckCycles(const InterfaceDeclaration* const interfaceDecl, unordered_set<const TypeDeclaration*> visited)
+{
+    if (visited.find(interfaceDecl) != visited.cend())
+    {
+        cout << "Cannot have cycles in the type hierarchy" << endl;
+        exit(42);
+    }
+
+    visited.insert(interfaceDecl);
+    if (interfaceDecl->extends != nullptr)
+    {
+        for (const Type* type : interfaceDecl->extends->elements)
+        {
+            const QualifiedType* extendsType = dynamic_cast<const QualifiedType*>(type);
+            const InterfaceDeclaration* interfaceType = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
+            CheckCycles(interfaceType, visited);
+        }
+    }
+
+    visited.erase(interfaceDecl);
+}
 void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
 {
     if (classDecl->baseType != nullptr)
@@ -44,22 +98,24 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
             assert(implementsType != nullptr);
             assert(implementsType->name->refers_to != nullptr);
             
-            const InterfaceDeclaration* interface = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
-            if (interface == nullptr)
+            const InterfaceDeclaration* interfaceDecl = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
+            if (interfaceDecl == nullptr)
             {
                 cout << "Class cannot implement a class, must implement interface" << endl;
                 exit(42);
             }
 
-            if (implemented.find(interface) != implemented.cend())
+            if (implemented.find(interfaceDecl) != implemented.cend())
             {
                 cout << "Class cannot implement the same interface twice" << endl;
                 exit(42);
             }
 
-            implemented.insert(interface);
+            implemented.insert(interfaceDecl);
         }
     }
+
+    CheckCycles(classDecl, unordered_set<const TypeDeclaration*>());
 }
 
 void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Environment& env)
@@ -73,22 +129,24 @@ void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Envir
             assert(extendsType != nullptr);
             assert(extendsType->name->refers_to != nullptr);
 
-            const InterfaceDeclaration* interface = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
-            if (interface == nullptr)
+            const InterfaceDeclaration* interfaceType = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
+            if (interfaceType == nullptr)
             {
                 cout << "Interface cannot extend a class, must extend interface" << endl;
                 exit(42);
             }
 
-            if (implemented.find(interface) != implemented.cend())
+            if (implemented.find(interfaceType) != implemented.cend())
             {
                 cout << "Interface cannot extend the same interface twice" << endl;
                 exit(42);
             }
 
-            implemented.insert(interface);
+            implemented.insert(interfaceType);
         }
     }
+
+    CheckCycles(interfaceDecl, unordered_set<const TypeDeclaration*>());
 }
 
 void CheckEnvironmentHierarchy(const Environment& env)
