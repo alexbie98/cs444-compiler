@@ -3,7 +3,7 @@
 #include "ast/ASTNode.h"
 #include <stack>
 
-#define UNNAMED_PACKAGE ""
+#define UNNAMED_PACKAGE "UNNAMED():.{}"
 
 class EnvironmentVisitor: public ASTNodeVisitor
 {
