@@ -357,6 +357,8 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
             std::set<std::string> single_type_imports;
             std::set<std::string> simple_types;
 
+            simple_types.insert(current_package_decl->getName()->getString());
+
             // Scan through import statements
             for(ImportDeclaration* import: imports->elements)
             {
@@ -369,14 +371,14 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                 }
 
                 // No single-type-import declaration clashes with the class or interface declared in the same file.
-                if(single_type_name == current_package_decl->getName()->getString())
+                if(!import->declareAll && single_type_name == current_package_decl->getName()->getString())
                 {
                     std::cout << "Class/interface " << import->name->getString() << " redefined in file" <<  std::endl;
                     exit(42);
                 }
 
                 // No two single-type-import declarations clash with each other.
-                if(single_type_imports.find(single_type_name) != single_type_imports.end())
+                if(!import->declareAll && single_type_imports.find(single_type_name) != single_type_imports.end())
                 {
                     std::cout << "Single type import " << import->name->getString() << " already defined" <<  std::endl;
                     exit(42);
@@ -384,12 +386,6 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
 
                 // All simple type names must resolve to a unique class or interface.
                 {
-                    if(simple_types.find(single_type_name) != simple_types.end())
-                    {
-                        std::cout << "Simple type name " << single_type_name << " redefined" <<  std::endl;
-                        exit(42);
-                    }
-
                     // If its an import-on-demand package, add its type decl to simple types and check for clash
                     if(import->declareAll)
                     {
@@ -398,17 +394,21 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                         // Search all packages with packge_name
                         for(const ASTNode* ast: asts)
                         {
-                            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                            // If package name matches, add type decl to simple types
-                            if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
+                            // Exclude current file
+                            if(ast != file_ast)
                             {
-                                if(simple_types.find(cunit->typeDecl->getName()->getString()) != simple_types.end())
+                                const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                                // If package name matches, add type decl to simple types
+                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                                 {
-                                    std::cout << "Simple type name " << cunit->typeDecl->getName()->getString() << " redefined" <<  std::endl;
-                                    exit(42);
+                                    if(simple_types.find(cunit->typeDecl->getName()->getString()) != simple_types.end())
+                                    {
+                                        std::cout << "Simple type name " << cunit->typeDecl->getName()->getString() << " redefined" <<  std::endl;
+                                        exit(42);
+                                    }
+                                    simple_types.insert(cunit->typeDecl->getName()->getString());
                                 }
-                                simple_types.insert(cunit->typeDecl->getName()->getString());
                             }
                         }
                     }
