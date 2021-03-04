@@ -16,4 +16,5 @@ public:
 };
 
 void setParents(ASTNode* ast);
+void removeJavaLangDups(std::vector<ASTNode*> asts);
 ASTNode* buildAST(ParseTreeNode* root);

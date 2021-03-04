@@ -76,6 +76,9 @@ int main(int argc, char *argv[])
         asts.push_back(buildAST(t));
         setParents(asts.back());
     }
+
+    // Remove duplicate java.lang.*
+    removeJavaLangDups(asts);
     
     Environment globalEnv = resolveNames(asts);
     CheckEnvironmentHierarchy(globalEnv);

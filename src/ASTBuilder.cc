@@ -1,6 +1,7 @@
 #include "ASTBuilder.h"
 #include <assert.h>
 #include <iostream>
+#include <algorithm>
 
 void ParentVisitor::visit(ASTNode& node)
 {
@@ -19,6 +20,37 @@ void setParents(ASTNode* ast)
 {
     ParentVisitor visitor;
     ast->visitAll(visitor);
+}
+
+void removeJavaLangDups(std::vector<ASTNode*> asts)
+{
+    for (ASTNode *ast : asts)
+    {
+        ASTNodeList<ImportDeclaration> *imports = dynamic_cast<CompilerUnit *>(ast)->importDecls;
+        const CompilerUnit *cunit = dynamic_cast<const CompilerUnit *>(ast);
+
+        if (imports)
+        {
+            bool found_one = false;
+
+            for (ImportDeclaration *import : imports->elements)
+            {
+                if (import->name->getString() == "java.lang.*")
+                {
+                    if (!found_one)
+                    {
+                        found_one = true;
+                    }
+                    else
+                    {
+                        std::cout << "REMOVED ONEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+                        imports->elements.erase(std::remove(imports->elements.begin(), imports->elements.end(), import), imports->elements.end());
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 ASTNode* buildAST(ParseTreeNode* node)
