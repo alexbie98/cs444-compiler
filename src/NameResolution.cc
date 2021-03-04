@@ -5,6 +5,42 @@
 
 using namespace std;
 
+void printCurrentTraversalState(ASTNode& node, std::stack<Environment*> environments)
+{
+    ASTNode* scanner = &node;
+    while (scanner)
+    {
+        std::cout << scanner->toString() << std::endl;
+        scanner = scanner->parent;
+    }
+
+    std::cout << "------------------" << std::endl;
+
+    Environment* scanner2 = environments.top();
+    while (scanner2 && scanner2->node)
+    {
+        std::cout << scanner2->node->toString() << std::endl;
+
+
+        std::cout << "---" << std::endl;
+
+        ASTNode* scanner3 = scanner2->node;
+        while (scanner3)
+        {
+            std::cout << scanner3->toString() << endl;
+            scanner3 = scanner3->parent;
+        }
+
+        std::cout << "---" << std::endl;
+
+
+
+        // if(dynamic_cast<ClassDeclaration*>(scanner2->node))
+        //     std::cout << dynamic_cast<ClassDeclaration*>(scanner2->node)->name->getString() << std::endl;
+        scanner2 = scanner2->parent;
+    }
+}
+
 void EnvironmentVisitor::initEnvironment(ASTNode* node)
 {
     assert(node->getEnvironment());
@@ -16,6 +52,11 @@ void EnvironmentVisitor::initEnvironment(ASTNode* node)
 
 void EnvironmentVisitor::visit(ClassDeclaration& node) 
 {
+    if (environments.size() != 1)
+    {
+        printCurrentTraversalState(node, environments);
+    }
+
     assert(environments.size() == 1);
 
     const std::string& class_name = package + "." + node.name->getString();
@@ -35,7 +76,12 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
 
 // TODO Combine as TypeDecleration
 void EnvironmentVisitor::visit(InterfaceDeclaration& node) 
-{ 
+{
+    if (environments.size() != 1)
+    {
+        printCurrentTraversalState(node, environments);
+    }
+
     assert(environments.size() == 1);
 
     const std::string& interface_name = package + "." + node.name->getString();
@@ -80,23 +126,7 @@ void EnvironmentVisitor::visit(VariableDeclarationExpression& node)
         
         if(env->contains(name))
         {
-            ASTNode* scanner = &node;
-            while(scanner)
-            {
-                std::cout << scanner->toString() << std::endl;
-                scanner =scanner->parent;
-            }
-
-            std::cout << "------------------" << std::endl;
-
-            Environment* scanner2 = environments.top();
-            while(scanner2)
-            {
-                std::cout << scanner2->node->toString() << std::endl;
-                // if(dynamic_cast<ClassDeclaration*>(scanner2->node))
-                //     std::cout << dynamic_cast<ClassDeclaration*>(scanner2->node)->name->getString() << std::endl;
-                scanner2 =scanner2->parent;
-            }
+            printCurrentTraversalState(node);
 
             cout << "Redefinition of local variable " << name << endl;
             exit(42);

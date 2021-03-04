@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
         weed(t, context);
 
         asts.push_back(buildAST(t));
+
+        printAST(asts.back());
         setParents(asts.back());
     }
 
