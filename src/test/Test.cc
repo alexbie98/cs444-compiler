@@ -1,6 +1,8 @@
 #include <iostream>
 #include "Test.h"
 
+#define PRINT_PASSES false
+
 using namespace std;
 
 const string CHECKMARK = "\u2714";
@@ -28,9 +30,13 @@ bool runIOTest(const string& testName,
     bool passed = result == expect;
 
     if (!regress || !passed){
-        cout << command << endl; // COMMENT THIS LINE TO STOP PRINTING THE FULL TEST COMMAND
-        printTestMsg(testName, passed, to_string(result), to_string(expect));
-        cout << "----------------------------------------------------" << endl;
+
+        if(!(passed && !PRINT_PASSES))
+        {
+            cout << command << endl; // COMMENT THIS LINE TO STOP PRINTING THE FULL TEST COMMAND
+            printTestMsg(testName, passed, to_string(result), to_string(expect));
+            cout << "----------------------------------------------------" << endl;
+        }
     }
 
     return passed;
