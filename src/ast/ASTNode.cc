@@ -120,7 +120,7 @@ void ASTNode::visitAll(ASTNodeVisitor& v)
 {
     accept(v);
     visitAllInner(v);
-    v.leave(*this);
+    leave(v);
 }
 
 void ASTNode::visitAllInner(ASTNodeVisitor& v)
