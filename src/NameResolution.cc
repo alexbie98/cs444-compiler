@@ -111,7 +111,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 
     std::string type_name;
 
-    type_name = node.name->toString();
+    type_name = node.name->getString();
 
     if(dynamic_cast<QualifiedName*>(node.name))
     {
@@ -191,7 +191,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
             if(dynamic_cast<CompilerUnit*>(parent))
             {
                 ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
-                TypeDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->typeDecl;
+                // TypeDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->typeDecl;
                 
                 if(imports)
                 {
@@ -210,7 +210,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                                 const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                                 // If package name matches and the type is in the package
-                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name && 
+                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name && 
                                    cunit->typeDecl &&
                                    cunit->typeDecl->getName()->getString() == single_type_name)
                                 {
@@ -230,7 +230,45 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         }
 
         // Type in same package
-        // No different than "Enclosing class/interface" since there's only one class per package
+        parent = node.parent;
+
+        while(parent)
+        {
+            // Find compiler unit that type is in
+            if(dynamic_cast<CompilerUnit*>(parent))
+            {
+                PackageDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->packageDecl;
+
+                std::string package_name = UNNAMED_PACKAGE;
+                if(current_package_decl) package_name = current_package_decl->name->getString();
+
+                if(type_name == "A") std::cout << "Current package: " << package_name << std::endl;
+                if(type_name == "A") std::cout << "Current typename: " << type_name << std::endl;
+
+                for(const ASTNode* ast: asts)
+                {
+                    std::string other_package_name = UNNAMED_PACKAGE;
+                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                    if(cunit->packageDecl) other_package_name = cunit->packageDecl->name->getString();
+
+                    if(type_name == "A") std::cout << "Other package: " << other_package_name << std::endl;
+                    if(type_name == "A") std::cout << "Other typdef: " << cunit->typeDecl->getName()->getString() << std::endl;
+
+                    // If package name matches and the type is in the package
+                    if(package_name == other_package_name && 
+                       cunit->typeDecl && 
+                       cunit->typeDecl->getName()->getString() == type_name)
+                    {
+                        node.name->refers_to = cunit->typeDecl;
+                        return;
+                    }
+                }
+                
+            }
+            
+            parent = parent->parent;
+        }
 
         // Import-on-demand package
         // Nearly identical to "Single-type import" but kept seperate in case "Type in same package" needs additions
@@ -263,7 +301,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                                 const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                                 // If package name matches and the type is in the package
-                                if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name)
+                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                                 {
                                     package_found = true;
                                     
@@ -361,7 +399,7 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                             // If package name matches, add type decl to simple types
-                            if(cunit->packageDecl && cunit->packageDecl->name->toString() == package_name)
+                            if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                             {
                                 if(simple_types.find(cunit->typeDecl->getName()->getString()) != simple_types.end())
                                 {
