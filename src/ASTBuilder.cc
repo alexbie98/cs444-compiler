@@ -7,7 +7,14 @@ void ParentVisitor::visit(ASTNode& node)
 {
     // std::cout << node.toString() << std::endl;
     node.parent = parents.top();
+    
+    if (parents.top() == &node)
+    {
+        std::cout << "WTF" << std::endl;
+    }
     parents.push(&node);
+
+
 }
 
 void ParentVisitor::leave(ASTNode& node)
@@ -20,6 +27,25 @@ void setParents(ASTNode* ast)
 {
     ParentVisitor visitor;
     ast->visitAll(visitor);
+}
+
+
+void PrintVisitor::visit(ASTNode& node)
+{
+    std::cout << std::string(spaces * 2, ' ');
+    std::cout << node.toString() << ' ' << &node << std::endl;
+    spaces++;
+}
+
+void PrintVisitor::leave(ASTNode& node)
+{
+    spaces--;
+}
+
+void printAST(ASTNode* ast)
+{
+    PrintVisitor printer;
+    ast->visitAll(printer);
 }
 
 void removeJavaLangDups(std::vector<ASTNode*> asts)
