@@ -59,6 +59,57 @@ void CheckCycles(const InterfaceDeclaration* const interfaceDecl, unordered_set<
 
     visited.erase(interfaceDecl);
 }
+bool modifiersContains(const vector<Modifier*>& modifiers, Modifier::ModifierType modType){
+    bool containsModType = false;
+    for (const Modifier* mod: modifiers){
+        if (mod->type == modType){
+            containsModType = true;
+        }
+    }
+    return containsModType;
+}
+
+// typedef pair<string, ASTNodeList<Modifier> *> Signature;
+
+// vector<Signature> getAndReplaceSignatures(const InterfaceDeclaration* const classDecl){
+//     vector<Signature> signatures;
+
+//     return signatures;
+// }
+
+// vector<Signature> getAndReplaceSignatures(const ClassDeclaration* const classDecl){
+
+//     vector<Signature> signatures;
+
+//     if (classDecl->baseType != nullptr)
+//     {
+
+//         QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->baseType);
+//         assert(baseClassType != nullptr);        
+//         assert(baseClassType->name->refers_to != nullptr);
+//         const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
+
+//         vector<Signature> inheritedSignatures = getAndReplaceSignatures(baseClass);
+
+//     }
+
+//     if (classDecl->interfaces!= nullptr){
+
+
+//     }
+
+
+//     for (const Type* type: classDecl->interfaces->elements)
+//         {
+//             const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
+//             assert(implementsType != nullptr);
+//             assert(implementsType->name->refers_to != nullptr);
+
+// }
+
+
+
+
 void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
 {
     if (classDecl->baseType != nullptr)
@@ -133,6 +184,26 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
     }
 
     CheckCycles(classDecl, unordered_set<const TypeDeclaration*>());
+    
+    if (classDecl->classBody != nullptr){
+
+        if (classDecl->modifiers != nullptr){
+
+            if (!modifiersContains(classDecl->modifiers->elements, Modifier::ABSTRACT)){
+
+                for (const MemberDeclaration* member: classDecl->classBody->elements){
+
+                    if (modifiersContains(member->modifiers->elements, Modifier::ABSTRACT)){
+
+                        cout << "non-abstract class contains abstract members" << endl;
+                        exit(42);
+                    }
+
+                }
+            }
+        }
+    }
+
 }
 
 void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Environment& env)
@@ -166,6 +237,7 @@ void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Envir
     CheckCycles(interfaceDecl, unordered_set<const TypeDeclaration*>());
 }
 
+
 void CheckEnvironmentHierarchy(const Environment& env)
 {
     for (const pair<string, ClassDeclaration*>& entry : env.classes)
@@ -177,4 +249,18 @@ void CheckEnvironmentHierarchy(const Environment& env)
     {
         CheckInterface(entry.second, env);
     }
+}
+
+
+void printEnvironment(const Environment &env){
+    cout << "classes " << env.classes.size() << " entries: " << endl;
+    printASTNodeMap(env.classes);
+    cout << "interfaces " << env.interfaces.size() << " entries: " << endl;
+    printASTNodeMap(env.interfaces);
+    cout << "methods " << env.methods.size() << " entries: " << endl;
+    printASTNodeMap(env.methods);
+    cout << "formal_params " << env.formal_params.size() << " entries: " << endl;
+    printASTNodeMap(env.formal_params);
+    cout << "variables " << env.variables.size() << " entries: " << endl;
+    printASTNodeMap(env.variables);
 }

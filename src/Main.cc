@@ -81,6 +81,13 @@ int main(int argc, char *argv[])
     removeJavaLangDups(asts);
     
     Environment globalEnv = resolveNames(asts);
+
+    if (!supress){
+
+        printEnvironment(globalEnv);
+        cout << "---------------------------------------" << endl;
+    }
+
     CheckEnvironmentHierarchy(globalEnv);
 
     return 0;
