@@ -242,8 +242,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                 std::string package_name = UNNAMED_PACKAGE;
                 if(current_package_decl) package_name = current_package_decl->name->getString();
 
-                if(type_name == "A") std::cout << "Current package: " << package_name << std::endl;
-                if(type_name == "A") std::cout << "Current typename: " << type_name << std::endl;
+                // if(type_name == "A") std::cout << "Current package: " << package_name << std::endl;
+                // if(type_name == "A") std::cout << "Current typename: " << type_name << std::endl;
 
                 for(const ASTNode* ast: asts)
                 {
@@ -252,8 +252,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 
                     if(cunit->packageDecl) other_package_name = cunit->packageDecl->name->getString();
 
-                    if(type_name == "A") std::cout << "Other package: " << other_package_name << std::endl;
-                    if(type_name == "A") std::cout << "Other typdef: " << cunit->typeDecl->getName()->getString() << std::endl;
+                    // if(type_name == "A") std::cout << "Other package: " << other_package_name << std::endl;
+                    // if(type_name == "A") std::cout << "Other typdef: " << cunit->typeDecl->getName()->getString() << std::endl;
 
                     // If package name matches and the type is in the package
                     if(package_name == other_package_name && 
