@@ -707,6 +707,8 @@ struct TypeDeclaration : public ASTNode // abstract
     virtual Name* getName() = 0;
     virtual std::string toString() { return "TypeDeclaration"; }
 
+    std::string fullyQualifiedName;
+
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };

@@ -19,6 +19,7 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
     else
     {
         environments.top()->classes[class_name] = &node;
+        node.fullyQualifiedName = class_name;
     }
     environments.push(&node.environment); 
 }
@@ -37,6 +38,7 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
     else
     {
         environments.top()->interfaces[interface_name] = &node;
+        node.fullyQualifiedName = interface_name;
     }
     environments.push(&node.environment); 
 }

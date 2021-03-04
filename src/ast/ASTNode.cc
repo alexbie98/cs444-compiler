@@ -164,7 +164,7 @@ QualifiedType::~QualifiedType()
 
 std::string QualifiedType::getTypeName() const
 {
-    return name->getString();
+    return dynamic_cast<const TypeDeclaration*>(name->refers_to)->fullyQualifiedName;
 }
 
 void QualifiedType::visitAllInner(ASTNodeVisitor& v)
