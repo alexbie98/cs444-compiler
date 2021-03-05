@@ -174,7 +174,7 @@ bool bodyDeclarationsHasConstructor(ParseTreeNode* cBodyDecls){
     assert(cBodyDecls->symbol == CLASS_BODY_DECLARATIONS);
     if(cBodyDecls->children.size() == 2)
     {
-        return bodyDeclarationIsConstructor(cBodyDecls->children[0]) || bodyDeclarationsHasConstructor(cBodyDecls->children[1]);
+        return bodyDeclarationsHasConstructor(cBodyDecls->children[0]) || bodyDeclarationIsConstructor(cBodyDecls->children[1]);
     }
     else
     {
