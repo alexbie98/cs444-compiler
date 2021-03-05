@@ -61,7 +61,7 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
     assert(environments.size() == 1);
 
     const std::string& class_name = package + "." + node.name->getString();
-    if(environments.top()->classes.find(class_name) != environments.top()->classes.end() &&
+    if(environments.top()->classes.find(class_name) != environments.top()->classes.end() ||
        environments.top()->interfaces.find(class_name) != environments.top()->interfaces.end())
     {
         cout << "Redefinition of class/interface " << class_name << endl;
@@ -86,7 +86,7 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
     assert(environments.size() == 1);
 
     const std::string& interface_name = package + "." + node.name->getString();
-    if(environments.top()->classes.find(interface_name) != environments.top()->classes.end() &&
+    if(environments.top()->classes.find(interface_name) != environments.top()->classes.end() ||
        environments.top()->interfaces.find(interface_name) != environments.top()->interfaces.end())
     {
         cout << "Redefinition of class/interface " << interface_name << endl;
