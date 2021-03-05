@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 
+#define UNNAMED_PACKAGE "UNNAMED():.{}"
+
 struct ASTNode; // abstract
 template<typename T> struct ASTNodeList;
 struct Expression; // abstract

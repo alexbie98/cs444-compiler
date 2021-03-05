@@ -240,12 +240,19 @@ ASTNode* buildAST(ParseTreeNode* node)
         }
         case PACKAGE_DECLARATION:
         {
+            // Always define a PackageDeclaration node.
+            // Make it UNNAMED package if a package declaration does not exist.
+            PackageDeclaration* packageDecl = new PackageDeclaration();
             if (node->children.size() == 0)
             {
-                return nullptr;
+                SimpleName* unnamed = new SimpleName();
+                unnamed->id = UNNAMED_PACKAGE;
+                packageDecl->name = unnamed;
             }
-            PackageDeclaration* packageDecl = new PackageDeclaration();
-            packageDecl->name = dynamic_cast<Name*>(buildAST(node->children[1]));
+            else
+            {
+                packageDecl->name = dynamic_cast<Name*>(buildAST(node->children[1]));
+            }
             return packageDecl;
         }
         case IMPORT_DECLARATIONS_OPT:

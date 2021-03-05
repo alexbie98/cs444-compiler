@@ -219,6 +219,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         }
 
         // When a fully qualified name resolves to a type, no strict prefix of the fully qualified name can resolve to a type in the same environment.
+        // (no prefixes (consisting of whole identifiers) of fully qualified types themselves resolve to types.)
         // Iterate over every prefix
 
         // Get current environment
@@ -231,15 +232,41 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         current_env = parent->getEnvironment();
         assert(current_env);
 
+        // Find all classes in current package
+        // TODO Store this?
+        // Make parent CompilerUnit
+        std::set<std::string> package_classes;
+        while(parent && !dynamic_cast<CompilerUnit*>(parent))
+        {
+            parent = parent->parent;
+        }
+        assert(parent);
+        CompilerUnit* ast_root = dynamic_cast<CompilerUnit*>(parent);
+        std::string package_name = ast_root->packageDecl->name->getString();
+
+        for(const ASTNode* ast: asts)
+        {
+            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+            // If package name matches, add type decl to simple types
+            if((cunit->packageDecl && cunit->packageDecl->name->getString() == package_name))
+            {
+                // TODO Can we have 0 typedecls in a file?
+                package_classes.insert(cunit->typeDecl->getName()->getString()); 
+            }
+        }
+
         std::string prefix = type_name;
-        size_t last_period = type_name.find_last_of('.');
+        size_t last_period = prefix.size();
         while(last_period != std::string::npos)
         {
             prefix = prefix.substr(0, last_period);
             last_period = prefix.find_last_of('.');
 
+            // Either prefix is in another package, or inside the current package
             if(current_env->classes.find(prefix) != current_env->classes.end() ||
-               current_env->interfaces.find(prefix) != current_env->interfaces.end())
+               current_env->interfaces.find(prefix) != current_env->interfaces.end() ||
+               package_classes.find(prefix) != package_classes.end())
                {
                     std::cout << "Strict prefix of fully qualified name " << type_name 
                     << " collides with type defined in the same scope" <<  std::endl;
@@ -319,15 +346,12 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 
         // Type in same package
 
-        std::string package_name = UNNAMED_PACKAGE;
-        if(current_package_decl) package_name = current_package_decl->name->getString();
+        std::string package_name = current_package_decl->name->getString();
 
         for(const ASTNode* ast: asts)
         {
-            std::string other_package_name = UNNAMED_PACKAGE;
             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-            if(cunit->packageDecl) other_package_name = cunit->packageDecl->name->getString();
+            std::string other_package_name = cunit->packageDecl->name->getString();
 
             // If package name matches and the type is in the package
             if(package_name == other_package_name && 
@@ -404,8 +428,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
                             assert(cunit);
 
-                            std::string other_package = UNNAMED_PACKAGE;
-                            if(cunit->packageDecl) other_package = cunit->packageDecl->name->getString();
+                            std::string other_package = cunit->packageDecl->name->getString();
 
                             // If package name is a prefix and the type is in the package
                             auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
@@ -494,8 +517,7 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                         assert(cunit);
                         
                         // If package is prefix
-                        std::string other_package = UNNAMED_PACKAGE;
-                        if(cunit->packageDecl) other_package = cunit->packageDecl->name->getString();
+                        std::string other_package = cunit->packageDecl->name->getString();
 
                         // If package name is a prefix and the type is in the package
                         auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
