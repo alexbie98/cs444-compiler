@@ -538,11 +538,8 @@ ASTNode* buildAST(ParseTreeNode* node)
         }
         case LOCAL_VARIABLE_DECLARATION_STATEMENT:
         {
-            VariableDeclarationExpression* varDeclStatement = dynamic_cast<VariableDeclarationExpression*>(buildAST(node->children[1]));
-            varDeclStatement->type = dynamic_cast<Type*>(buildAST(node->children[0]));
-
-            ExpressionStatement* expression = new ExpressionStatement;
-            expression->expression = varDeclStatement;
+            ExpressionStatement* expression = new ExpressionStatement();
+            expression->expression = dynamic_cast<VariableDeclarationExpression*>(buildAST(node->children[0]));
 
             return expression;
         }
@@ -713,7 +710,7 @@ ASTNode* buildAST(ParseTreeNode* node)
 
             if (node->children.size() == 2)
             {
-                Name* name = dynamic_cast<Name*>(buildAST(node->parent->children[0]));
+                Name* name = dynamic_cast<Name*>(buildAST(node->children[0]));
                 if (SimpleName * simple = dynamic_cast<SimpleName*>(name))
                 {
                     methodCall->name = simple;
