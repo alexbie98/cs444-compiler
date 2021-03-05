@@ -23,7 +23,7 @@ lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS} -o lex
 
 parseTable: ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS}
-	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS} -o parseTable
+	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS} -o parseTable
 
 ${BUILDDIR}/%.o: ${SRCDIR}/%.cc
 	@mkdir -p $(@D)
