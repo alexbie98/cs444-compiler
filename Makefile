@@ -52,5 +52,5 @@ clean:
 	rm -r ${BUILDDIR} joosc lex test parseTable
 
 zip:
-	zip -r ../submit.zip src Makefile scanner.lex
+	zip -r ../submit.zip src Makefile scanner.lex grammar.cfg
 
