@@ -51,3 +51,13 @@ void printTestMsg(const string& name, bool passed, const string& result, const s
         cout << " " << XMARK  << " got \'" << result << "\', expected \'" << expect << "\'"<< endl;
     }
 }
+
+void printTestMsg(const string& name, bool passed){
+    cout << "| Test: " << name;
+    if (passed){
+        cout << " " << CHECKMARK << endl;
+    }
+    else{
+        cout << " " << XMARK  << endl;
+    }
+}

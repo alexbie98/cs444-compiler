@@ -1,4 +1,4 @@
-#include "../src/lex/test/TestDFA.h"
+#include "../../src/test/TestDFA.h"
 
 %%
 g	A

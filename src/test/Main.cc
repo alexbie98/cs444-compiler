@@ -3,8 +3,10 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "Test.h"
 #include <assert.h>
+
+#include "Test.h"
+#include "LexTest.h"
 
 using namespace std;
 
@@ -70,6 +72,12 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 
 }
 
+void runUnitTests(){
+	// run lex unit tests
+	cout << "| Running lex tests" << endl;
+	runLexTests();
+}
+
 
 // TODO Add multi assignment check
 int main(int argc, char *argv[]){
@@ -102,8 +110,11 @@ int main(int argc, char *argv[]){
 
 	vector<pair<int, int>> regRes;
 
-	if (regress)
-	{
+	if (regress){
+
+		cout << "| Running unit tests" << endl;
+		runUnitTests();
+
 		for (size_t i = 0; i < current; i++)
 		{
 			regRes.push_back(runMarmosetTests(paths[i], libPaths[i], true));

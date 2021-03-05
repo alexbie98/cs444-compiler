@@ -10,3 +10,5 @@ bool runIOTest(const std::string& testName,
 
 void printTestMsg(const std::string &testName, bool passed, const std::string &result, const std::string &expect);
 
+void printTestMsg(const std::string &testName, bool passed);
+
