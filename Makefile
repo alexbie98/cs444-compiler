@@ -1,5 +1,5 @@
 CXX = $(shell if [ -x "$$(command -v g++-9)" ]; then echo "g++-9"; else echo "g++"; fi)
-CXXFLAGS = -std=c++17 -Wall -MMD -g
+CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label
 
 BUILDDIR = build
 SRCDIR = src
@@ -7,7 +7,7 @@ SRCDIR = src
 OBJECTS = ${addprefix ${BUILDDIR}/, DFA.o ParseTable.o Tokenize.o Token.o Parser.o Weeder.o ASTBuilder.o ast/ASTNode.o NameResolution.o HierarchyCheck.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
-LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/Module.o lex/RegexProcessor.o lex/FA.o}
+LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/RegexProcessor.o lex/FA.o}
 LEX_DEPENDS = ${OBJECTS:.o=.d}
 
 TEST_OBJECTS = ${addprefix ${BUILDDIR}/, test/Test.o test/LexTest.o test/TestDFA.o}
@@ -25,10 +25,6 @@ lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 parseTable: ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS} -o parseTable
 
-${BUILDDIR}/%.o: ${SRCDIR}/%.cc
-	@mkdir -p $(@D)
-	${CXX} ${CXXFLAGS} -c -o $@ $<
-
 ${BUILDDIR}/DFA.cc: scanner.lex lex
 	./lex scanner.lex ${BUILDDIR}/DFA.cc
 
@@ -38,8 +34,16 @@ ${BUILDDIR}/ParseTable.cc: ${BUILDDIR}/grammar.lr1 parseTable
 ${BUILDDIR}/test/TestDFA.cc: ${SRCDIR}/test/test.lex lex
 	./lex src/test/test.lex ${BUILDDIR}/test/TestDFA.cc
 
-${BUILDDIR}/grammar.lr1: grammar.cfg 
-	java src/jlalr/Jlalr1.java < grammar.cfg > ${BUILDDIR}/grammar.lr1
+${BUILDDIR}/%.o: ${SRCDIR}/%.cc
+	@mkdir -p $(@D)
+	${CXX} ${CXXFLAGS} -c -o $@ $<
+
+${BUILDDIR}/%.o: ${BUILDDIR}/%.cc
+	@mkdir -p $(@D)
+	${CXX} ${CXXFLAGS} -c -o $@ $<
+
+${BUILDDIR}/grammar.lr1: grammar.cfg ${SRCDIR}/jlalr/Jlalr1.java
+	java ${SRCDIR}/jlalr/Jlalr1.java < grammar.cfg > ${BUILDDIR}/grammar.lr1
 
 test: lex joosc parseTable ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/test/Main.o ${TEST_OBJECTS} -o test
