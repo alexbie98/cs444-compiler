@@ -112,6 +112,23 @@ void EnvironmentVisitor::visit(Block& node)
 
 void EnvironmentVisitor::visit(FormalParameter& node) 
 {
+    // Nearly identical to EnvironmentVisitor::visit(VariableDeclarationExpression& node) 
+    const std::string& name = node.id->getString();
+
+    Environment* env = environments.top();
+
+    while(env && !dynamic_cast<TypeDeclaration*>(env->node))
+    {
+        
+        if(env->contains(name))
+        {
+            cout << "Redefinition of local variable " << name << endl;
+            exit(42);
+        }
+
+        env = env->parent;
+    }
+    
     environments.top()->formal_params[node.id->getString()] = &node;
 }
 
