@@ -829,12 +829,16 @@ protected:
 
 struct ConstructorDeclaration : public MemberDeclaration
 {
+    // TODO Make this and getEnvironment in base class for multiple inheritance?
+    Environment environment; 
+
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
 
     virtual ~ConstructorDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
+    Environment* getEnvironment() override { return &environment; }
     virtual std::string toString() { return "ConstructorDeclaration"; }
 
     std::string getSignature() const;

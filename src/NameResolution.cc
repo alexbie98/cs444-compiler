@@ -105,6 +105,11 @@ void EnvironmentVisitor::visit(MethodDeclaration& node)
     initEnvironment(&node);
 }
 
+void EnvironmentVisitor::visit(ConstructorDeclaration& node) 
+{
+    initEnvironment(&node);
+}
+
 void EnvironmentVisitor::visit(Block& node) 
 { 
     initEnvironment(&node);
@@ -185,6 +190,7 @@ void EnvironmentVisitor::visit(CompilerUnit& node)
 void EnvironmentVisitor::leave(ClassDeclaration& node) { environments.pop(); }
 void EnvironmentVisitor::leave(InterfaceDeclaration& node) { environments.pop(); }
 void EnvironmentVisitor::leave(MethodDeclaration& node) { environments.pop(); }
+void EnvironmentVisitor::leave(ConstructorDeclaration& node) { environments.pop(); }
 void EnvironmentVisitor::leave(Block& node) { environments.pop(); }
 
 void TypeLinkingVisitor::visit(QualifiedType& node)

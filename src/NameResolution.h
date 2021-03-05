@@ -21,6 +21,7 @@ public:
     virtual void visit(ClassDeclaration& node);
     virtual void visit(InterfaceDeclaration& node);
     virtual void visit(MethodDeclaration& node);
+    virtual void visit(ConstructorDeclaration& node);
     virtual void visit(Block& node);
     virtual void visit(FormalParameter& node);
     virtual void visit(VariableDeclarationExpression& node);
@@ -30,6 +31,7 @@ public:
     virtual void leave(ClassDeclaration& node);
     virtual void leave(InterfaceDeclaration& node);
     virtual void leave(MethodDeclaration& node);
+    virtual void leave(ConstructorDeclaration& node);
     virtual void leave(Block& node);
 };
 
