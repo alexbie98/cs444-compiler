@@ -233,9 +233,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         assert(current_env);
 
         // Find all classes in current package
-        // TODO Store this?
+        // TODO Store this? Reused in "Type in same package"
         std::set<std::string> package_classes;
-        std::string package_name = ast_root->packageDecl->name->getString();
 
         for(const ASTNode* ast: asts)
         {
@@ -295,37 +294,34 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         // Scan through import statements
         for(ImportDeclaration* import: imports->elements)
         {
-            size_t last_delimiter = import->name->getString().find_last_of('.');
-            std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
-
-            if(last_delimiter != std::string::npos && single_type_name == type_name)
+            if(!import->declareAll)
             {
-                std::string package_name = import->name->getString().substr(0, last_delimiter);
+                size_t last_delimiter = import->name->getString().find_last_of('.');
+                std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+                assert(last_delimiter != std::string::npos);
+                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
 
                 for(const ASTNode* ast: asts)
                 {
                     const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                     // If package name matches and the type is in the package
-                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name && 
-                        cunit->typeDecl &&
-                        cunit->typeDecl->getName()->getString() == single_type_name)
+                    if(cunit->packageDecl->name->getString() == import_package_name && 
+                       cunit->typeDecl &&
+                       cunit->typeDecl->getName()->getString() == single_type_name)
                     {
-                        node.name->refers_to = cunit->typeDecl;
-                        return;
+                        if(single_type_name == type_name)
+                        {
+                            node.name->refers_to = cunit->typeDecl;
+                            return;
+                        }
                     }
                 }
-
-                std::cout << "Import " << import->name->getString() << " does not exist" <<  std::endl;
-                exit(42);
-            } 
+            }
         }
         
 
         // Type in same package
-
-        std::string package_name = current_package_decl->name->getString();
-
         for(const ASTNode* ast: asts)
         {
             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
@@ -353,7 +349,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
             // If its an import-on-demand package, add its type decl to simple types and check for clash
             if(import->declareAll)
             {
-                std::string package_name = import->name->getString().substr(0, last_delimiter);
+                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
 
                 // Search all packages with packge_name
                 for(const ASTNode* ast: asts)
@@ -364,7 +360,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                         const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
                         // If package name matches, add type decl to simple types
-                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
+                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == import_package_name)
                         {
                             std::string simple_type_name = cunit->typeDecl->getName()->getString();
                             if(simple_types.find(simple_type_name) != simple_types.end())
@@ -388,7 +384,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
             // If the import is a declareAll import
             if(import->declareAll)
             {
-                std::string package_name = import->name->getString().substr(0, last_delimiter);
+                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
 
                 // Search all packages with packge_name for the type
                 for(const ASTNode* ast: asts)
@@ -402,8 +398,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                         std::string other_package = cunit->packageDecl->name->getString();
 
                         // If package name is a prefix and the type is in the package
-                        auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
-                        if(cunit->packageDecl && res.first == package_name.end())
+                        auto res = std::mismatch(import_package_name.begin(), import_package_name.end(), other_package.begin());
+                        if(cunit->packageDecl && res.first == import_package_name.end())
                         {
                             if(cunit->typeDecl &&
                                 cunit->typeDecl->getName()->getString() == node.name->getString())
@@ -426,10 +422,9 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 void TypeLinkingVisitor::visit(CompilerUnit& node)
 {
     assert(node.packageDecl);
-    package = node.packageDecl->name->getString();
+    package_name = node.packageDecl->name->getString();
     ast_root = &node;
     imports = dynamic_cast<CompilerUnit*>(ast_root)->importDecls;
-    current_package_decl = dynamic_cast<CompilerUnit*>(ast_root)->packageDecl;
     assert(imports);
 }
 
@@ -510,6 +505,36 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                     if(!package_found)
                     {
                         std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
+                        exit(42);
+                    }
+                }
+
+                // Check that all single-type imports exist
+                if(!import->declareAll)
+                {
+                    size_t last_delimiter = import->name->getString().find_last_of('.');
+                    std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+                    assert(last_delimiter != std::string::npos);
+                    std::string import_package_name = import->name->getString().substr(0, last_delimiter);
+
+                    bool import_exists = false;
+
+                    for(const ASTNode* ast: asts)
+                    {
+                        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                        // If package name matches and the type is in the package
+                        if(cunit->packageDecl->name->getString() == import_package_name && 
+                        cunit->typeDecl &&
+                        cunit->typeDecl->getName()->getString() == single_type_name)
+                        {
+                            import_exists = true;
+                        }
+                    }
+
+                    if(!import_exists)
+                    {
+                        std::cout << "Import " << import->name->getString() << " does not exist" <<  std::endl;
                         exit(42);
                     }
                 }
