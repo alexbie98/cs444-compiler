@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <iostream>
 #include <algorithm>
+#include <set>
 
 void ParentVisitor::visit(ASTNode& node)
 {
@@ -48,34 +49,33 @@ void printAST(ASTNode* ast)
     ast->visitAll(printer);
 }
 
-void removeJavaLangDups(std::vector<ASTNode*> asts)
+void removeDuplicateImports(std::vector<ASTNode*> asts)
 {
     for (ASTNode *ast : asts)
     {
+        std::set<std::string> found_imports;
+
         ASTNodeList<ImportDeclaration> *imports = dynamic_cast<CompilerUnit *>(ast)->importDecls;
+        std::vector<ImportDeclaration*> new_imports;
         const CompilerUnit *cunit = dynamic_cast<const CompilerUnit *>(ast);
 
         if (imports)
         {
-            bool found_one = false;
-
             for (ImportDeclaration *import : imports->elements)
             {
-                if (import->name->getString() == "java.lang.*")
+                if (found_imports.find(import->name->getString()) == found_imports.end())
                 {
-                    if (!found_one)
-                    {
-                        found_one = true;
-                    }
-                    else
-                    {
-                        std::cout << "REMOVED ONEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-                        imports->elements.erase(std::remove(imports->elements.begin(), imports->elements.end(), import), imports->elements.end());
-                        break;
-                    }
+                    new_imports.push_back(import);
+                    found_imports.insert(import->name->getString());
+                }
+                else
+                {
+                    delete import;
                 }
             }
         }
+
+        imports->elements = new_imports;
     }
 }
 
