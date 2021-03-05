@@ -483,6 +483,7 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
             {
                 size_t last_delimiter = import->name->getString().find_last_of('.');
                 std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+                std::string package_name = import->name->getString().substr(0, last_delimiter);
 
                 if(last_delimiter != std::string::npos)
                 {
@@ -490,7 +491,9 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                 }
 
                 // No single-type-import declaration clashes with the class or interface declared in the same file.
-                if(!import->declareAll && single_type_name == current_package_decl->getName()->getString())
+                if(!import->declareAll && 
+                   single_type_name == current_package_decl->getName()->getString() &&
+                   (!package_decl || package_name != package_decl->name->getString())) // A class may import itself
                 {
                     std::cout << "Class/interface " << import->name->getString() << " redefined in file" <<  std::endl;
                     exit(42);
