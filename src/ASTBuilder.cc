@@ -739,7 +739,7 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             ArrayAccess* arrayAccess = new ArrayAccess();
             
-            arrayAccess->prevExpr = dynamic_cast<Expression*>(buildAST(node->parent->children[0]));
+            arrayAccess->prevExpr = dynamic_cast<Expression*>(buildAST(node->children[0]));
             arrayAccess->indexExpr = dynamic_cast<Expression*>(buildAST(node->children[2]));
 
             return arrayAccess;
