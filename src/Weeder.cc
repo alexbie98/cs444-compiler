@@ -143,15 +143,18 @@ void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& co
                     exit(42);
                 }
             }
+            break;
             case METHOD_DECLARATION:
             {
                 checkMethodValidModifiers(modifiers);
                 checkMethodDeclaratorRest(classMember->children[0], modifiers, context);
             }
+            break;
             case CONSTRUCTOR_DECLARATION:
             {
                 // TODO: check modifiers for constructors
             }
+            break;
         }
     }
 }
