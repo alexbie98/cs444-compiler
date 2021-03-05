@@ -37,10 +37,15 @@ class TypeLinkingVisitor: public ASTNodeVisitor
 {
     Environment* global;
     const std::vector<ASTNode*>& asts;
+    CompilerUnit* ast_root;
+    std::string package = UNNAMED_PACKAGE;
+    ASTNodeList<ImportDeclaration>* imports;
+    PackageDeclaration* current_package_decl;
 
 public: 
     TypeLinkingVisitor(Environment* global, const std::vector<ASTNode*>& asts): global{global}, asts{asts} {}
     virtual void visit(QualifiedType& node);
+    virtual void visit(CompilerUnit& node);
 };
 
 // Returns global environment
