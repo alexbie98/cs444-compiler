@@ -16,13 +16,11 @@ TEST_DEPENDS = ${TEST_OBJECTS:.o=.d}
 PARSE_TABLE_OBJECTS = ${addprefix ${BUILDDIR}/, parseTable/LR1ParseTableGenerator.o}
 PARSE_TABLE_DEPENDS = ${PARSE_TABLE_OBJECTS:.o=.d}
 
-all: lex joosc parseTable
+joosc: ${BUILDDIR}/Main.o ${OBJECTS}
+	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
 
 lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS} -o lex
-
-joosc: ${BUILDDIR}/Main.o ${OBJECTS}
-	${CXX} ${CXXFLAGS} ${BUILDDIR}/Main.o ${OBJECTS} -o joosc
 
 parseTable: ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS} -o parseTable
@@ -43,7 +41,7 @@ ${BUILDDIR}/test/TestDFA.cc: ${SRCDIR}/test/test.lex lex
 ${BUILDDIR}/grammar.lr1: grammar.cfg 
 	java src/jlalr/Jlalr1.java < grammar.cfg > ${BUILDDIR}/grammar.lr1
 
-test: all ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
+test: lex joosc parseTable ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 	${CXX} ${CXXFLAGS} ${BUILDDIR}/test/Main.o ${TEST_OBJECTS} -o test
 
 -include ${DEPENDS}
