@@ -26,5 +26,5 @@ public:
 
 void printAST(ASTNode* ast);
 void setParents(ASTNode* ast);
-void removeJavaLangDups(std::vector<ASTNode*> asts);
+void removeDuplicateImports(std::vector<ASTNode*> asts);
 ASTNode* buildAST(ParseTreeNode* root);

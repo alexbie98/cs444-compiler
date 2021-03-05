@@ -126,8 +126,6 @@ void EnvironmentVisitor::visit(VariableDeclarationExpression& node)
         
         if(env->contains(name))
         {
-            printCurrentTraversalState(node, environments);
-
             cout << "Redefinition of local variable " << name << endl;
             exit(42);
         }
@@ -338,6 +336,60 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         }
 
         // Import-on-demand package
+
+        // All simple type names must resolve to a unique class or interface.
+        parent = node.parent;
+
+        while(parent)
+        {
+            // Find compiler unit that type is in
+            if(dynamic_cast<CompilerUnit*>(parent))
+            {
+                ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
+                if(imports)
+                {
+                    std::set<std::string> simple_types;
+                    ASTNode* ast_root = parent;
+
+                    // Scan through import statements
+                    for(ImportDeclaration* import: imports->elements)
+                    {
+                        size_t last_delimiter = import->name->getString().find_last_of('.');
+
+                        // If its an import-on-demand package, add its type decl to simple types and check for clash
+                        if(import->declareAll)
+                        {
+                            std::string package_name = import->name->getString().substr(0, last_delimiter);
+
+                            // Search all packages with packge_name
+                            for(const ASTNode* ast: asts)
+                            {
+                                // Exclude current file
+                                if(ast != ast_root)
+                                {
+                                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                                    // If package name matches, add type decl to simple types
+                                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
+                                    {
+                                        std::string simple_type_name = cunit->typeDecl->getName()->getString();
+                                        if(simple_types.find(simple_type_name) != simple_types.end())
+                                        {
+                                            std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
+                                            exit(42);
+                                        }
+                                        simple_types.insert(simple_type_name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            parent = parent->parent;
+        }
+
         // Nearly identical to "Single-type import" but kept seperate in case "Type in same package" needs additions
         parent = node.parent;
 
@@ -346,6 +398,7 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
             // Find compiler unit that type is in
             if(dynamic_cast<CompilerUnit*>(parent))
             {
+                ASTNode* ast_root = parent;
                 ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
                 
                 if(imports)
@@ -365,18 +418,22 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                             // Search all packages with packge_name for the type
                             for(const ASTNode* ast: asts)
                             {
-                                const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                                // If package name matches and the type is in the package
-                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
+                                // Exclude current file
+                                if(ast != ast_root)
                                 {
-                                    package_found = true;
-                                    
-                                    if(cunit->typeDecl &&
-                                       cunit->typeDecl->getName()->getString() == node.name->getString())
+                                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                                    // If package name matches and the type is in the package
+                                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                                     {
-                                        node.name->refers_to = cunit->typeDecl;
-                                        return;
+                                        package_found = true;
+                                        
+                                        if(cunit->typeDecl &&
+                                        cunit->typeDecl->getName()->getString() == node.name->getString())
+                                        {
+                                            node.name->refers_to = cunit->typeDecl;
+                                            return;
+                                        }
                                     }
                                 }
                             }
@@ -420,15 +477,13 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
         if(imports)
         {
             std::set<std::string> single_type_imports;
-            std::set<std::string> simple_types;
-
-            simple_types.insert(current_package_decl->getName()->getString());
 
             // Scan through import statements
             for(ImportDeclaration* import: imports->elements)
             {
                 size_t last_delimiter = import->name->getString().find_last_of('.');
                 std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+                std::string package_name = import->name->getString().substr(0, last_delimiter);
 
                 if(last_delimiter != std::string::npos)
                 {
@@ -436,7 +491,9 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                 }
 
                 // No single-type-import declaration clashes with the class or interface declared in the same file.
-                if(!import->declareAll && single_type_name == current_package_decl->getName()->getString())
+                if(!import->declareAll && 
+                   single_type_name == current_package_decl->getName()->getString() &&
+                   (!package_decl || package_name != package_decl->name->getString())) // A class may import itself
                 {
                     std::cout << "Class/interface " << import->name->getString() << " redefined in file" <<  std::endl;
                     exit(42);
@@ -448,39 +505,8 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                     std::cout << "Single type import " << import->name->getString() << " already defined" <<  std::endl;
                     exit(42);
                 }
-
-                // All simple type names must resolve to a unique class or interface.
-                {
-                    // If its an import-on-demand package, add its type decl to simple types and check for clash
-                    if(import->declareAll)
-                    {
-                        std::string package_name = import->name->getString().substr(0, last_delimiter);
-
-                        // Search all packages with packge_name
-                        for(const ASTNode* ast: asts)
-                        {
-                            // Exclude current file
-                            if(ast != file_ast)
-                            {
-                                const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                                // If package name matches, add type decl to simple types
-                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
-                                {
-                                    if(simple_types.find(cunit->typeDecl->getName()->getString()) != simple_types.end())
-                                    {
-                                        std::cout << "Simple type name " << cunit->typeDecl->getName()->getString() << " redefined" <<  std::endl;
-                                        exit(42);
-                                    }
-                                    simple_types.insert(cunit->typeDecl->getName()->getString());
-                                }
-                            }
-                        }
-                    }
-                }
-
+                
                 single_type_imports.insert(single_type_name);
-                simple_types.insert(single_type_name);
             }
         }
 

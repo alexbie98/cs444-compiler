@@ -93,7 +93,7 @@ int main(int argc, char *argv[]){
 	for (const string& path: libPaths){
 		cout << "| " << path << endl;
 	}
-	libPaths.insert(libPaths.begin(), "");
+	libPaths.insert(libPaths.begin(), libPaths[0]);
 
 	assert(argc <= 2);
 	size_t current = 1;

@@ -82,8 +82,7 @@ int main(int argc, char *argv[])
         setParents(asts.back());
     }
 
-    // Remove duplicate java.lang.*
-    removeJavaLangDups(asts);
+    removeDuplicateImports(asts);
     
     Environment globalEnv = resolveNames(asts);
 
