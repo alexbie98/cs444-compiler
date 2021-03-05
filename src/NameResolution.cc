@@ -2,6 +2,7 @@
 #include <iostream>
 #include <assert.h>
 #include <set>
+#include <algorithm>
 
 using namespace std;
 
@@ -401,12 +402,17 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                         if(ast != ast_root)
                         {
                             const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+                            assert(cunit);
 
-                            // If package name matches and the type is in the package
-                            if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
+                            std::string other_package = UNNAMED_PACKAGE;
+                            if(cunit->packageDecl) other_package = cunit->packageDecl->name->getString();
+
+                            // If package name is a prefix and the type is in the package
+                            auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
+                            if(cunit->packageDecl && res.first == package_name.end())
                             {
                                 if(cunit->typeDecl &&
-                                cunit->typeDecl->getName()->getString() == node.name->getString())
+                                   cunit->typeDecl->getName()->getString() == node.name->getString())
                                 {
                                     node.name->refers_to = cunit->typeDecl;
                                     return;
@@ -483,8 +489,13 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                         const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
                         assert(cunit);
                         
-                        // If package name matches
-                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name) package_found = true;
+                        // If package is prefix
+                        std::string other_package = UNNAMED_PACKAGE;
+                        if(cunit->packageDecl) other_package = cunit->packageDecl->name->getString();
+
+                        // If package name is a prefix and the type is in the package
+                        auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
+                        if(cunit->packageDecl && res.first == package_name.end()) package_found = true;
                     }
 
                     // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
