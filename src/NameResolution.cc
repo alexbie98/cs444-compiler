@@ -394,8 +394,6 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                 {
                     std::string package_name = import->name->getString().substr(0, last_delimiter);
 
-                    bool package_found = false;
-
                     // Search all packages with packge_name for the type
                     for(const ASTNode* ast: asts)
                     {
@@ -407,8 +405,6 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                             // If package name matches and the type is in the package
                             if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                             {
-                                package_found = true;
-                                
                                 if(cunit->typeDecl &&
                                 cunit->typeDecl->getName()->getString() == node.name->getString())
                                 {
@@ -417,13 +413,6 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                                 }
                             }
                         }
-                    }
-
-                    // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
-                    if(!package_found)
-                    {
-                        std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
-                        exit(42);
                     }
                 }
             }
@@ -481,6 +470,29 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                 {
                     std::cout << "Single type import " << import->name->getString() << " already defined" <<  std::endl;
                     exit(42);
+                }
+
+                // Check that all import-on-demand declarations refer to existing packages.
+                if(import->declareAll)
+                {
+                    bool package_found = false;
+
+                    // Search all packages with packge_name for the type
+                    for(const ASTNode* ast: asts)
+                    {
+                        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+                        assert(cunit);
+                        
+                        // If package name matches
+                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name) package_found = true;
+                    }
+
+                    // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
+                    if(!package_found)
+                    {
+                        std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
+                        exit(42);
+                    }
                 }
                 
                 single_type_imports.insert(single_type_name);
