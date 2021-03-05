@@ -250,206 +250,160 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         // Single-type import
         parent = node.parent;
 
-        while(parent)
+        // Make parent CompilerUnit
+        while(parent && !dynamic_cast<CompilerUnit*>(parent))
         {
-            // Find compiler unit that type is in
-            if(dynamic_cast<CompilerUnit*>(parent))
-            {
-                ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
-                // TypeDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->typeDecl;
-                
-                if(imports)
-                {
-                    // Scan through import statements
-                    for(ImportDeclaration* import: imports->elements)
-                    {
-                        size_t last_delimiter = import->name->getString().find_last_of('.');
-                        std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
-
-                        if(last_delimiter != std::string::npos && single_type_name == type_name)
-                        {
-                            std::string package_name = import->name->getString().substr(0, last_delimiter);
-
-                            for(const ASTNode* ast: asts)
-                            {
-                                const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                                // If package name matches and the type is in the package
-                                if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name && 
-                                   cunit->typeDecl &&
-                                   cunit->typeDecl->getName()->getString() == single_type_name)
-                                {
-                                    node.name->refers_to = cunit->typeDecl;
-                                    return;
-                                }
-                            }
-
-                            std::cout << "Import " << import->name->getString() << " does not exist" <<  std::endl;
-                            exit(42);
-                        } 
-                    }
-                }
-            }
-            
             parent = parent->parent;
+        }
+        assert(parent);
+        ASTNode* ast_root = parent;
+
+        ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
+        PackageDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->packageDecl;
+        
+        if(imports)
+        {
+            // Scan through import statements
+            for(ImportDeclaration* import: imports->elements)
+            {
+                size_t last_delimiter = import->name->getString().find_last_of('.');
+                std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+
+                if(last_delimiter != std::string::npos && single_type_name == type_name)
+                {
+                    std::string package_name = import->name->getString().substr(0, last_delimiter);
+
+                    for(const ASTNode* ast: asts)
+                    {
+                        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                        // If package name matches and the type is in the package
+                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name && 
+                            cunit->typeDecl &&
+                            cunit->typeDecl->getName()->getString() == single_type_name)
+                        {
+                            node.name->refers_to = cunit->typeDecl;
+                            return;
+                        }
+                    }
+
+                    std::cout << "Import " << import->name->getString() << " does not exist" <<  std::endl;
+                    exit(42);
+                } 
+            }
         }
 
         // Type in same package
-        parent = node.parent;
 
-        while(parent)
+        std::string package_name = UNNAMED_PACKAGE;
+        if(current_package_decl) package_name = current_package_decl->name->getString();
+
+        for(const ASTNode* ast: asts)
         {
-            // Find compiler unit that type is in
-            if(dynamic_cast<CompilerUnit*>(parent))
+            std::string other_package_name = UNNAMED_PACKAGE;
+            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+            if(cunit->packageDecl) other_package_name = cunit->packageDecl->name->getString();
+
+            // If package name matches and the type is in the package
+            if(package_name == other_package_name && 
+                cunit->typeDecl && 
+                cunit->typeDecl->getName()->getString() == type_name)
             {
-                PackageDeclaration* current_package_decl = dynamic_cast<CompilerUnit*>(parent)->packageDecl;
-
-                std::string package_name = UNNAMED_PACKAGE;
-                if(current_package_decl) package_name = current_package_decl->name->getString();
-
-                // if(type_name == "A") std::cout << "Current package: " << package_name << std::endl;
-                // if(type_name == "A") std::cout << "Current typename: " << type_name << std::endl;
-
-                for(const ASTNode* ast: asts)
-                {
-                    std::string other_package_name = UNNAMED_PACKAGE;
-                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                    if(cunit->packageDecl) other_package_name = cunit->packageDecl->name->getString();
-
-                    // if(type_name == "A") std::cout << "Other package: " << other_package_name << std::endl;
-                    // if(type_name == "A") std::cout << "Other typdef: " << cunit->typeDecl->getName()->getString() << std::endl;
-
-                    // If package name matches and the type is in the package
-                    if(package_name == other_package_name && 
-                       cunit->typeDecl && 
-                       cunit->typeDecl->getName()->getString() == type_name)
-                    {
-                        node.name->refers_to = cunit->typeDecl;
-                        return;
-                    }
-                }
-                
+                node.name->refers_to = cunit->typeDecl;
+                return;
             }
-            
-            parent = parent->parent;
         }
 
         // Import-on-demand package
 
         // All simple type names must resolve to a unique class or interface.
-        parent = node.parent;
-
-        while(parent)
+        if(imports)
         {
-            // Find compiler unit that type is in
-            if(dynamic_cast<CompilerUnit*>(parent))
+            std::set<std::string> simple_types;
+            ASTNode* ast_root = parent;
+
+            // Scan through import statements
+            for(ImportDeclaration* import: imports->elements)
             {
-                ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
-                if(imports)
+                size_t last_delimiter = import->name->getString().find_last_of('.');
+
+                // If its an import-on-demand package, add its type decl to simple types and check for clash
+                if(import->declareAll)
                 {
-                    std::set<std::string> simple_types;
-                    ASTNode* ast_root = parent;
+                    std::string package_name = import->name->getString().substr(0, last_delimiter);
 
-                    // Scan through import statements
-                    for(ImportDeclaration* import: imports->elements)
+                    // Search all packages with packge_name
+                    for(const ASTNode* ast: asts)
                     {
-                        size_t last_delimiter = import->name->getString().find_last_of('.');
-
-                        // If its an import-on-demand package, add its type decl to simple types and check for clash
-                        if(import->declareAll)
+                        // Exclude current file
+                        if(ast != ast_root)
                         {
-                            std::string package_name = import->name->getString().substr(0, last_delimiter);
+                            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
-                            // Search all packages with packge_name
-                            for(const ASTNode* ast: asts)
+                            // If package name matches, add type decl to simple types
+                            if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                             {
-                                // Exclude current file
-                                if(ast != ast_root)
+                                std::string simple_type_name = cunit->typeDecl->getName()->getString();
+                                if(simple_types.find(simple_type_name) != simple_types.end())
                                 {
-                                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                                    // If package name matches, add type decl to simple types
-                                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
-                                    {
-                                        std::string simple_type_name = cunit->typeDecl->getName()->getString();
-                                        if(simple_types.find(simple_type_name) != simple_types.end())
-                                        {
-                                            std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
-                                            exit(42);
-                                        }
-                                        simple_types.insert(simple_type_name);
-                                    }
+                                    std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
+                                    exit(42);
                                 }
+                                simple_types.insert(simple_type_name);
                             }
                         }
                     }
                 }
             }
-            
-            parent = parent->parent;
         }
 
         // Nearly identical to "Single-type import" but kept seperate in case "Type in same package" needs additions
-        parent = node.parent;
-
-        while(parent)
+        if(imports)
         {
-            // Find compiler unit that type is in
-            if(dynamic_cast<CompilerUnit*>(parent))
+            // Scan through import statements
+            for(ImportDeclaration* import: imports->elements)
             {
-                ASTNode* ast_root = parent;
-                ASTNodeList<ImportDeclaration>* imports = dynamic_cast<CompilerUnit*>(parent)->importDecls;
-                
-                if(imports)
+                size_t last_delimiter = import->name->getString().find_last_of('.');
+
+                // If the import is a declareAll import
+                if(import->declareAll)
                 {
-                    // Scan through import statements
-                    for(ImportDeclaration* import: imports->elements)
+                    std::string package_name = import->name->getString().substr(0, last_delimiter);
+
+                    bool package_found = false;
+
+                    // Search all packages with packge_name for the type
+                    for(const ASTNode* ast: asts)
                     {
-                        size_t last_delimiter = import->name->getString().find_last_of('.');
-
-                        // If the import is a declareAll import
-                        if(import->declareAll)
+                        // Exclude current file
+                        if(ast != ast_root)
                         {
-                            std::string package_name = import->name->getString().substr(0, last_delimiter);
+                            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
 
-                            bool package_found = false;
-
-                            // Search all packages with packge_name for the type
-                            for(const ASTNode* ast: asts)
+                            // If package name matches and the type is in the package
+                            if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
                             {
-                                // Exclude current file
-                                if(ast != ast_root)
+                                package_found = true;
+                                
+                                if(cunit->typeDecl &&
+                                cunit->typeDecl->getName()->getString() == node.name->getString())
                                 {
-                                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                                    // If package name matches and the type is in the package
-                                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == package_name)
-                                    {
-                                        package_found = true;
-                                        
-                                        if(cunit->typeDecl &&
-                                        cunit->typeDecl->getName()->getString() == node.name->getString())
-                                        {
-                                            node.name->refers_to = cunit->typeDecl;
-                                            return;
-                                        }
-                                    }
+                                    node.name->refers_to = cunit->typeDecl;
+                                    return;
                                 }
-                            }
-
-                            // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
-                            if(!package_found)
-                            {
-                                std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
-                                exit(42);
                             }
                         }
                     }
+
+                    // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
+                    if(!package_found)
+                    {
+                        std::cout << "Import-on-demand package" << package_name << " does not exist" << std::endl;
+                        exit(42);
+                    }
                 }
             }
-            
-            parent = parent->parent;
         }
 
         // All type names must resolve to some class or interface declared in some file listed on the Joos command line.
