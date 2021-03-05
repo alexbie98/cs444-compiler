@@ -461,6 +461,10 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                 {
                     used_package_names.push_back(import->name->getString().substr(0, last_delimiter));
                 }
+                else
+                {
+                    used_package_names.push_back(import->name->getString());
+                }
 
                 // No single-type-import declaration clashes with the class or interface declared in the same file.
                 if(!import->declareAll && 
@@ -495,7 +499,9 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
 
                         // If package name is a prefix and the type is in the package
                         auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
-                        if(cunit->packageDecl && res.first == package_name.end()) package_found = true;
+                        if(cunit->packageDecl && res.first == package_name.end() && 
+                           (other_package.size() == package_name.size() || other_package[package_name.size()] == '.')) // package prefix ends at a '.'
+                           package_found = true;
                     }
 
                     // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
@@ -512,11 +518,11 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
 
         //No package names or prefixes of package names of declared packages, single-type-import declarations or 
         //import-on-demand declarations that are used may resolve to types, except for types in the default package.
-        // TODO Check
         for(std::string package_name: used_package_names)
         {
             std::string prefix = package_name;
-            size_t last_period = package_name.find_last_of('.');
+            size_t last_period = package_name.size();
+
             while(last_period != std::string::npos)
             {
                 prefix = prefix.substr(0, last_period);
