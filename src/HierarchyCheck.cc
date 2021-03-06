@@ -240,46 +240,6 @@ void linkTypeHierarchy(ClassDeclaration* classDecl){
     }
 }
 
-// typedef pair<string, ASTNodeList<Modifier> *> Signature;
-
-// vector<Signature> getAndReplaceSignatures(const InterfaceDeclaration* const classDecl){
-//     vector<Signature> signatures;
-
-//     return signatures;
-// }
-
-// vector<Signature> getAndReplaceSignatures(const ClassDeclaration* const classDecl){
-
-//     vector<Signature> signatures;
-
-//     if (classDecl->baseType != nullptr)
-//     {
-
-//         QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->baseType);
-//         assert(baseClassType != nullptr);        
-//         assert(baseClassType->name->refers_to != nullptr);
-//         const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
-
-//         vector<Signature> inheritedSignatures = getAndReplaceSignatures(baseClass);
-
-//     }
-
-//     if (classDecl->interfaces!= nullptr){
-
-
-//     }
-
-
-//     for (const Type* type: classDecl->interfaces->elements)
-//         {
-//             const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
-//             assert(implementsType != nullptr);
-//             assert(implementsType->name->refers_to != nullptr);
-
-// }
-
-
-
 
 void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
 {
