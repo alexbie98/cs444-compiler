@@ -3,8 +3,6 @@
 #include "ast/ASTNode.h"
 #include <stack>
 
-#define UNNAMED_PACKAGE "UNNAMED():.{}"
-
 class EnvironmentVisitor: public ASTNodeVisitor
 {
     void initEnvironment(ASTNode* node);
@@ -39,10 +37,14 @@ class TypeLinkingVisitor: public ASTNodeVisitor
 {
     Environment* global;
     const std::vector<ASTNode*>& asts;
+    CompilerUnit* ast_root;
+    std::string package_name = UNNAMED_PACKAGE;
+    ASTNodeList<ImportDeclaration>* imports;
 
 public: 
     TypeLinkingVisitor(Environment* global, const std::vector<ASTNode*>& asts): global{global}, asts{asts} {}
     virtual void visit(QualifiedType& node);
+    virtual void visit(CompilerUnit& node);
 };
 
 // Returns global environment
