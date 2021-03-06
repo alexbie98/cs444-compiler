@@ -338,9 +338,13 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
         }
 
         // Import-on-demand package
-        // All simple type names must resolve to a unique class or interface.
-        std::set<std::string> simple_types;
 
+        // All simple type names must resolve to a unique class or interface.
+        //      Ambiguity does not arise unless you try to use the simple type name
+        //      (Could have both imports but only use qualifed names).
+        //      Imports and packages don't cause ambiguities by themselves, instead
+        //      the evaluation of a type in the file causes ambiguity.
+        bool type_name_found = false;
         // Scan through import statements
         for(ImportDeclaration* import: imports->elements)
         {
@@ -363,19 +367,24 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
                         if(cunit->packageDecl && cunit->packageDecl->name->getString() == import_package_name)
                         {
                             std::string simple_type_name = cunit->typeDecl->getName()->getString();
-                            if(simple_types.find(simple_type_name) != simple_types.end())
+
+                            if(simple_type_name == type_name)
                             {
-                                std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
-                                exit(42);
+                                if(type_name_found)
+                                {
+                                    std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
+                                    exit(42);
+                                }
+                                type_name_found = true;
                             }
-                            simple_types.insert(simple_type_name);
                         }
                     }
                 }
             }
         }
 
-        // Nearly identical to "Single-type import" but kept seperate in case "Type in same package" needs additions
+        // Import-on-demand package (contd...)
+
         // Scan through import statements
         for(ImportDeclaration* import: imports->elements)
         {
@@ -397,9 +406,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 
                         std::string other_package = cunit->packageDecl->name->getString();
 
-                        // If package name is a prefix and the type is in the package
-                        auto res = std::mismatch(import_package_name.begin(), import_package_name.end(), other_package.begin());
-                        if(cunit->packageDecl && res.first == import_package_name.end())
+                        // If package name matches and the type is in the package
+                        if(cunit->packageDecl && import_package_name == other_package)
                         {
                             if(cunit->typeDecl &&
                                 cunit->typeDecl->getName()->getString() == node.name->getString())
@@ -498,7 +506,7 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                         auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
                         if(cunit->packageDecl && res.first == package_name.end() && 
                            (other_package.size() == package_name.size() || other_package[package_name.size()] == '.')) // package prefix ends at a '.'
-                           package_found = true;
+                            package_found = true;
                     }
 
                     // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
