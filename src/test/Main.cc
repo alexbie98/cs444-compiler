@@ -94,6 +94,7 @@ int main(int argc, char *argv[]){
 		cout << "| " << path << endl;
 	}
 	libPaths.insert(libPaths.begin(), libPaths[0]);
+	//libPaths.insert(libPaths.begin(), "");
 
 	assert(argc <= 2);
 	size_t current = 1;
@@ -106,7 +107,6 @@ int main(int argc, char *argv[]){
 			regress = ('r' == argv[1][2]);
 		}
 	}
-
 
 	vector<pair<int, int>> regRes;
 

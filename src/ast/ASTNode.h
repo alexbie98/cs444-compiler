@@ -779,9 +779,13 @@ struct ClassDeclaration : public TypeDeclaration
     Environment environment;
 
     SimpleName* name = nullptr;
-    Type* baseType = nullptr;
-    ASTNodeList<Type>* interfaces = nullptr;
+    Type* extends = nullptr;
+    ASTNodeList<Type>* implements = nullptr;
     ASTNodeList<MemberDeclaration>* classBody = nullptr;
+
+    ClassDeclaration * baseClass = nullptr;
+    std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
+    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
 
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -801,6 +805,9 @@ struct InterfaceDeclaration : public TypeDeclaration
     SimpleName* name = nullptr;
     ASTNodeList<Type>* extends = nullptr;
     ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
+
+    std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
+    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -868,6 +875,8 @@ struct MethodDeclaration : public MemberDeclaration
     Name* name = nullptr;
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
+
+    MethodDeclaration *overriding = nullptr;
 
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }

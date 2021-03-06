@@ -53,8 +53,9 @@ test: lex joosc parseTable ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 .PHONY: clean zip
 
 clean:
-	rm -r ${BUILDDIR} joosc lex test parseTable
+	rm -r ${BUILDDIR} joosc lex test parseTable submit.zip
 
 zip:
-	zip -r ../submit.zip src Makefile scanner.lex grammar.cfg
+	rm -f submit.zip
+	zip -r submit.zip src Makefile scanner.lex grammar.cfg
 

@@ -789,14 +789,14 @@ ClassDeclaration::~ClassDeclaration()
         delete name;
     }
 
-    if (baseType)
+    if (extends)
     {
-        delete baseType;
+        delete extends;
     }
 
-    if (interfaces)
+    if (implements)
     {
-        delete interfaces;
+        delete implements;
     }
 
     if (classBody)
@@ -814,14 +814,14 @@ void ClassDeclaration::visitAllInner(ASTNodeVisitor& v)
         name->visitAll(v);
     }
 
-    if (baseType)
+    if (extends)
     {
-        baseType->visitAll(v);
+        extends->visitAll(v);
     }
 
-    if (interfaces)
+    if (implements)
     {
-        interfaces->visitAll(v);
+        implements->visitAll(v);
     }
 
     if (classBody)

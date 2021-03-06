@@ -363,8 +363,8 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             ClassDeclaration* classDecl = new ClassDeclaration();
             classDecl->name = dynamic_cast<SimpleName*>(buildAST(node->children[1]));
-            classDecl->baseType = dynamic_cast<Type*>(buildAST(node->children[2]));
-            classDecl->interfaces = dynamic_cast<ASTNodeList<Type>*>(buildAST(node->children[3]));
+            classDecl->extends = dynamic_cast<Type*>(buildAST(node->children[2]));
+            classDecl->implements = dynamic_cast<ASTNodeList<Type>*>(buildAST(node->children[3]));
             classDecl->classBody = dynamic_cast<ASTNodeList<MemberDeclaration>*>(buildAST(node->children[4]));
 
             return classDecl;

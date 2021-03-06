@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <set>
 #include "ast/ASTNode.h"
 
 void CheckEnvironmentHierarchy(const Environment& env);
@@ -12,3 +13,6 @@ void printASTNodeMap(const std::unordered_map<std::string, T*>& m) {
     }
 }
 void printEnvironment(const Environment &env);
+
+void linkClassHierarchy(ClassDeclaration* classDecl);
+void linkInterfaceHierarchy(InterfaceDeclaration* interfaceDecl);
