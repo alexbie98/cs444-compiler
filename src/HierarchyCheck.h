@@ -4,7 +4,7 @@
 #include <set>
 #include "ast/ASTNode.h"
 
-void CheckEnvironmentHierarchy(const Environment& env);
+void CheckEnvironmentHierarchy(Environment& env);
 
 template <class T>
 void printASTNodeMap(const std::unordered_map<std::string, T*>& m) {

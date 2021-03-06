@@ -94,6 +94,11 @@ int main(int argc, char *argv[])
 
     CheckEnvironmentHierarchy(globalEnv);
 
+    // clean up extras in environment
+    for (auto it: globalEnv.extras){
+        delete it.second;
+    }
+
     return 0;
 }
 

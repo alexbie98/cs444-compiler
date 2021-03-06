@@ -5,6 +5,10 @@
 
 using namespace std;
 
+Environment *env_ptr;
+ASTNodeList<MethodDeclaration> *objectMethodStubs;
+
+
 void CheckCycles(const ClassDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
 void CheckCycles(const InterfaceDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
 
@@ -18,20 +22,16 @@ void CheckCycles(const ClassDeclaration* const classDecl, unordered_set<const Ty
     }
 
     visited.insert(classDecl);
-    if (classDecl->extends != nullptr)
+    if (classDecl->baseClass != nullptr)
     {
-        QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->extends);
-        const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
-        CheckCycles(baseClass, visited);
+        CheckCycles(classDecl->baseClass, visited);
     }
 
-    if (classDecl->implements != nullptr)
+    if (classDecl->interfaces != nullptr)
     {
-        for (const Type* type : classDecl->implements->elements)
+        for (const InterfaceDeclaration* interface : *classDecl->interfaces)
         {
-            const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
-            const InterfaceDeclaration* interfaceDecl = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
-            CheckCycles(interfaceDecl, visited);
+            CheckCycles(interface, visited);
         }
     }
 
@@ -47,13 +47,11 @@ void CheckCycles(const InterfaceDeclaration* const interfaceDecl, unordered_set<
     }
 
     visited.insert(interfaceDecl);
-    if (interfaceDecl->extends != nullptr)
+    if (interfaceDecl->interfaces != nullptr)
     {
-        for (const Type* type : interfaceDecl->extends->elements)
+        for (const InterfaceDeclaration* interface : *interfaceDecl->interfaces)
         {
-            const QualifiedType* extendsType = dynamic_cast<const QualifiedType*>(type);
-            const InterfaceDeclaration* interfaceType = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
-            CheckCycles(interfaceType, visited);
+            CheckCycles(interface, visited);
         }
     }
 
@@ -69,10 +67,20 @@ bool modifiersContains(const vector<Modifier*>& modifiers, Modifier::ModifierTyp
     return containsModType;
 }
 
+void modifiersAdd(vector<Modifier*>& modifiers, Modifier::ModifierType modType){
+    if (modifiersContains(modifiers,modType)){
+        return;
+    }
+    Modifier * m = new Modifier();
+    m->type = modType;
+    modifiers.push_back(m);
+}
+
 void addMethodDeclaration(unordered_map<string,MethodDeclaration*>&m, 
                           const string& signature, MethodDeclaration* method, bool addingCurrentClassDecls=false){
 
-    if (m.find(signature) == m.end()){ // brand new signature -- add it
+    if (m.find(signature) == m.end())
+    { // brand new signature -- add it
         m[signature] = method;
     }
     else{
@@ -94,9 +102,9 @@ void addMethodDeclaration(unordered_map<string,MethodDeclaration*>&m,
             exit(42);
         }
 
-        if(modifiersContains(existingMethod->modifiers->elements, Modifier::PROTECTED) &&
-           modifiersContains(method->modifiers->elements,  Modifier::PUBLIC)){
-            cout << "Cannot override protected method with public" << endl;
+        if(modifiersContains(existingMethod->modifiers->elements, Modifier::PUBLIC) &&
+           modifiersContains(method->modifiers->elements,  Modifier::PROTECTED)){
+            cout << "Cannot override public method with protected" << endl;
             exit(42);
         }
         if(modifiersContains(existingMethod->modifiers->elements, Modifier::FINAL)){
@@ -115,34 +123,88 @@ void addMethodDeclaration(unordered_map<string,MethodDeclaration*>&m,
     }
 }
 
-void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl){
+ASTNodeList<MethodDeclaration> * createObjectMethodStubs(){
 
+    auto * stubs = new ASTNodeList<MethodDeclaration>();
+    ClassDeclaration *objectDecl = env_ptr->classes["java.lang.Object"];
+    for (auto & it : *objectDecl->containedMethods){
+        // TODO clean this up
+        MethodDeclaration* m = it.second;
+        MethodDeclaration *copy = new MethodDeclaration();
+        copy->type = m->type;
+        copy->name = m->name;
+        copy->parameters = m->parameters;
+
+
+        copy->modifiers = new ASTNodeList<Modifier>();
+        // copy->modifiers->elements.insert(copy->modifiers->elements.end(), 
+        //                                  m->modifiers->elements.begin(),
+        //                                  m->modifiers->elements.end());
+        modifiersAdd(copy->modifiers->elements, Modifier::ABSTRACT);
+        modifiersAdd(copy->modifiers->elements, Modifier::PUBLIC);
+
+        stubs->elements.push_back(copy);
+    }
+    return stubs;
+}
+
+void linkTypeMemberMethodsHierarchy(ClassDeclaration *classDecl);
+
+void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
+{
     if (interfaceDecl->containedMethods == nullptr){
         assert(interfaceDecl->interfaces != nullptr);
 
         interfaceDecl->containedMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
 
+        // if (objectMethodStubs == nullptr){
+        //     ClassDeclaration * objectDecl = env_ptr->classes["java.lang.Object"];
+        //     if (objectDecl->containedMethods == nullptr){
+        //         linkTypeMemberMethodsHierarchy(objectDecl);
+        //     }
+        //     objectMethodStubs = createObjectMethodStubs();
+        // }
+
+        if (interfaceDecl->interfaces->size() == 0){
+            // for (auto *e : objectMethodStubs->elements)
+            // {
+            //     addMethodDeclaration(*interfaceDecl->containedMethods, e->getSignature(), e);
+            // }
+        }
+        else {
         // 用recursion来把父母containedMethods建起来
-        for (auto * e: *interfaceDecl->interfaces){
-            linkTypeMemberMethodsHierarchy(e);
-            for (const auto& it: *e->containedMethods){
-                addMethodDeclaration(*interfaceDecl->containedMethods, it.first, it.second);
+            for (auto * e: *interfaceDecl->interfaces){
+                linkTypeMemberMethodsHierarchy(e);
+                for (const auto& it: *e->containedMethods){
+                    addMethodDeclaration(*interfaceDecl->containedMethods, it.first, it.second);
+                }
             }
+
         }
         // go through declared methods and try to add them
+        unordered_set<string> signatures;
         for (auto* member: interfaceDecl->interfaceBody->elements){
             auto *method = dynamic_cast<MethodDeclaration *>(member);
-            // TODO: add abstract, public modifiers to interface functions
-            // method->modifiers->elements.push_back(
-            //     new Modifier
-            // );
             if (method)
             { // successful cast
+                modifiersAdd(method->modifiers->elements, Modifier::ABSTRACT);
+                modifiersAdd(method->modifiers->elements, Modifier::PUBLIC);
                 addMethodDeclaration(*interfaceDecl->containedMethods, method->getSignature(), method, true);
+                if (signatures.find(method->getSignature())!=signatures.end()){
+                    cout << "Cannot declare same signature twice in interface" << endl;
+                    exit(42);
+                }
+                signatures.insert(method->getSignature());
             }
         }
+
     }
 
+    // cout << interfaceDecl->name->getString() << endl;
+    // for (const auto &it : *interfaceDecl->containedMethods)
+    // {
+    //     cout << it.first << endl;
+    // }
 }
 
 void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
@@ -150,9 +212,7 @@ void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
 
     if (classDecl->containedMethods == nullptr){
         assert(classDecl->interfaces != nullptr);
-        assert((classDecl->extends == nullptr && classDecl->baseClass == nullptr) || 
-               (classDecl->extends != nullptr && classDecl->baseClass != nullptr)
-        );
+        assert(classDecl->baseClass != nullptr || classDecl->name->getString() == "Object");
 
         classDecl->containedMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
 
@@ -171,10 +231,16 @@ void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
         }
 
         // go through declared methods and try to add them
+        unordered_set<string> signatures;
         for (auto* member: classDecl->classBody->elements){
             auto *method = dynamic_cast<MethodDeclaration *>(member);
             if (method){ // successful cast
                 addMethodDeclaration(*classDecl->containedMethods, method->getSignature(), method, true);
+                if (signatures.find(method->getSignature())!=signatures.end()){
+                    cout << "Cannot declare same signature twice in class" << endl;
+                    exit(42);
+                }
+                signatures.insert(method->getSignature());
             }
         }
 
@@ -187,14 +253,18 @@ void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
                 }
             }
         }
-
+        // cout << classDecl->name->getString() << endl;
+        // for (const auto &it : *classDecl->containedMethods)
+        // {
+        //     cout << it.first << endl;
+        // }
     }
 }
 
-void linkNullExtendsToObject(ClassDeclaration* classDecl, const Environment& env){
-    if (classDecl->extends == nullptr && classDecl->name->getString() != "Object"){
-        // TODO: set the extends to QualifiedType* for OBJECT OR just straightup set baseClass
-        // will need to refactor checks
+void linkNullExtendsToObject(ClassDeclaration* classDecl, Environment& env){
+    if (classDecl->extends == nullptr && classDecl->name->getString() != "Object")
+    {
+        classDecl->baseClass = env.classes["java.lang.Object"];
     }
 }
 
@@ -205,9 +275,14 @@ void linkTypeHierarchy(InterfaceDeclaration* interfaceDecl){
         interfaceDecl->interfaces = make_unique<vector<InterfaceDeclaration *>>();
         assert(interfaceDecl->extends != nullptr);
         for (auto * e: interfaceDecl->extends->elements){
-            interfaceDecl->interfaces->push_back(
-                dynamic_cast<InterfaceDeclaration *>(dynamic_cast<QualifiedType *>(e)->name->refers_to)
-            );
+
+            InterfaceDeclaration *interface = dynamic_cast<InterfaceDeclaration *>(dynamic_cast<QualifiedType *>(e)->name->refers_to);
+            if (interface == nullptr)
+            {
+                cout << "Interface can only implement an interface" << endl;
+                exit(42);
+            }
+            interfaceDecl->interfaces->push_back(interface);
         }
         for (auto * e: *interfaceDecl->interfaces){
             linkTypeHierarchy(e);
@@ -218,10 +293,14 @@ void linkTypeHierarchy(InterfaceDeclaration* interfaceDecl){
 
 void linkTypeHierarchy(ClassDeclaration* classDecl){
 
-    if (classDecl->extends != nullptr && classDecl->baseClass == nullptr){
+    if (classDecl->name->getString()!="Object" && classDecl->baseClass == nullptr){
         classDecl->baseClass = dynamic_cast<ClassDeclaration*>(
             dynamic_cast<QualifiedType*>(classDecl->extends)->name->refers_to
         );
+        if (classDecl->baseClass == nullptr){
+            cout << "Class can only extend a class" << endl;
+            exit(42);
+        }
         linkTypeHierarchy(classDecl->baseClass);
     }
 
@@ -230,9 +309,13 @@ void linkTypeHierarchy(ClassDeclaration* classDecl){
         assert(classDecl->implements != nullptr);
         for (auto *e : classDecl->implements->elements)
         {
-            classDecl->interfaces->push_back(
-                dynamic_cast<InterfaceDeclaration *>(dynamic_cast<QualifiedType *>(e)->name->refers_to)
-            );
+            InterfaceDeclaration *interface = dynamic_cast<InterfaceDeclaration *>(dynamic_cast<QualifiedType *>(e)->name->refers_to);
+            if (interface == nullptr)
+            {
+                cout << "Class can only implement an interface" << endl;
+                exit(42);
+            }
+            classDecl->interfaces->push_back(interface);
         }
         for (auto * e: *classDecl->interfaces){
             linkTypeHierarchy(e);
@@ -241,59 +324,31 @@ void linkTypeHierarchy(ClassDeclaration* classDecl){
 }
 
 
-void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
+void CheckClass(const ClassDeclaration* const classDecl, Environment& env)
 {
-    if (classDecl->extends != nullptr)
+    if (classDecl->baseClass != nullptr)
     {
-        QualifiedType* baseClassType = dynamic_cast<QualifiedType*>(classDecl->extends);
-        
-        assert(baseClassType != nullptr);        
-        assert(baseClassType->name->refers_to != nullptr);
-        
-        const ClassDeclaration* baseClass = dynamic_cast<const ClassDeclaration*>(baseClassType->name->refers_to);
-        if (baseClass == nullptr)
-        {
-            cout << "Class can only extend a class" << endl;
-            exit(42);
-        }
+        if (classDecl->baseClass->modifiers != nullptr && 
+            modifiersContains(classDecl->baseClass->modifiers->elements, Modifier::FINAL)){
 
-        if (baseClass->modifiers != nullptr)
-        {
-            for (const Modifier* mod : baseClass->modifiers->elements)
-            {
-                if (mod->type == Modifier::FINAL)
-                {
-                    cout << "Cannot extend a final class" << endl;
-                    exit(42);
-                }
-            }
+            cout << "Cannot extend a final class" << endl;
+            exit(42);
         }
     }
 
-    if (classDecl->implements != nullptr)
+    if (classDecl->interfaces != nullptr)
     {
         unordered_set<const InterfaceDeclaration*> implemented;
 
-        for (const Type* type: classDecl->implements->elements)
+        for (const InterfaceDeclaration* interface: *classDecl->interfaces)
         {
-            const QualifiedType* implementsType = dynamic_cast<const QualifiedType*>(type);
-            assert(implementsType != nullptr);
-            assert(implementsType->name->refers_to != nullptr);
-            
-            const InterfaceDeclaration* interfaceDecl = dynamic_cast<const InterfaceDeclaration*>(implementsType->name->refers_to);
-            if (interfaceDecl == nullptr)
-            {
-                cout << "Class cannot implement a class, must implement interface" << endl;
-                exit(42);
-            }
-
-            if (implemented.find(interfaceDecl) != implemented.cend())
+            if (implemented.find(interface) != implemented.cend())
             {
                 cout << "Class cannot implement the same interface twice" << endl;
                 exit(42);
             }
 
-            implemented.insert(interfaceDecl);
+            implemented.insert(interface);
         }
     }
 
@@ -319,31 +374,20 @@ void CheckClass(const ClassDeclaration* const classDecl, const Environment& env)
 
 }
 
-void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Environment& env)
+void CheckInterface(const InterfaceDeclaration* const interfaceDecl, Environment& env)
 {
-    if (interfaceDecl->extends)
+    if (interfaceDecl->interfaces)
     {
         unordered_set<const InterfaceDeclaration*> implemented;
-        for (const Type* type : interfaceDecl->extends->elements)
+        for (const InterfaceDeclaration * interface : *interfaceDecl->interfaces)
         {
-            const QualifiedType* extendsType = dynamic_cast<const QualifiedType*>(type);
-            assert(extendsType != nullptr);
-            assert(extendsType->name->refers_to != nullptr);
-
-            const InterfaceDeclaration* interfaceType = dynamic_cast<const InterfaceDeclaration*>(extendsType->name->refers_to);
-            if (interfaceType == nullptr)
-            {
-                cout << "Interface cannot extend a class, must extend interface" << endl;
-                exit(42);
-            }
-
-            if (implemented.find(interfaceType) != implemented.cend())
+            if (implemented.find(interface) != implemented.cend())
             {
                 cout << "Interface cannot extend the same interface twice" << endl;
                 exit(42);
             }
 
-            implemented.insert(interfaceType);
+            implemented.insert(interface);
         }
     }
 
@@ -351,17 +395,12 @@ void CheckInterface(const InterfaceDeclaration* const interfaceDecl, const Envir
 }
 
 
-void CheckEnvironmentHierarchy(const Environment& env)
+void CheckEnvironmentHierarchy(Environment& env)
 {
-    // check classes and add Object extentsion
-    for (const pair<string, ClassDeclaration *> &entry : env.classes)
-    {
-        CheckClass(entry.second, env);
+    env_ptr = &env;
+    // add implicit object extends
+    for (const pair<string, ClassDeclaration*>& entry : env.classes){
         linkNullExtendsToObject(entry.second, env);
-    }
-    for (const pair<string, InterfaceDeclaration*>& entry : env.interfaces)
-    {
-        CheckInterface(entry.second, env);
     }
 
     // link type hierarchy
@@ -385,6 +424,18 @@ void CheckEnvironmentHierarchy(const Environment& env)
     {
         linkTypeMemberMethodsHierarchy(entry.second);
     }
+
+    // check classes
+    for (const pair<string, ClassDeclaration *> &entry : env.classes)
+    {
+        CheckClass(entry.second, env);
+    }
+    
+    for (const pair<string, InterfaceDeclaration*>& entry : env.interfaces)
+    {
+        CheckInterface(entry.second, env);
+    }
+    delete objectMethodStubs;
 
 }
 

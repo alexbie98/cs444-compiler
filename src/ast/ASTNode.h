@@ -189,6 +189,7 @@ struct Environment
     std::unordered_map<std::string, MethodDeclaration*> methods;
     std::unordered_map<std::string, FormalParameter*> formal_params;
     std::unordered_map<std::string, VariableDeclarationExpression*> variables;
+    std::unordered_map<std::string, ASTNode*> extras;
 
     // TODO Maybe make environment single map to tuples
     bool contains(const std::string& name)

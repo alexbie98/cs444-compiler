@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Test.h"
 
-#define PRINT_PASSES false
+#define PRINT_PASSES true
 
 using namespace std;
 
@@ -33,7 +33,9 @@ bool runIOTest(const string& testName,
 
         if(!(passed && !PRINT_PASSES))
         {
-            cout << command << endl; // COMMENT THIS LINE TO STOP PRINTING THE FULL TEST COMMAND
+            if (!passed){
+                cout << command << endl; // COMMENT THIS LINE TO STOP PRINTING THE FULL TEST COMMAND
+            }
             printTestMsg(testName, passed, to_string(result), to_string(expect));
             cout << "----------------------------------------------------" << endl;
         }
