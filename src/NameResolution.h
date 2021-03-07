@@ -47,5 +47,16 @@ public:
     virtual void visit(CompilerUnit& node);
 };
 
+class DisambiguationVisitor: public ASTNodeVisitor
+{
+    Environment* global;
+
+    virtual void disambiguate(const std::vector<SimpleName*>& exp);
+
+public:
+    DisambiguationVisitor(Environment* global): global{global} {}
+    virtual void visit(Name& node);
+};
+
 // Returns global environment
 Environment resolveNames(std::vector<ASTNode*> asts);

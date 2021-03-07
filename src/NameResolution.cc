@@ -576,6 +576,45 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
     }
 }
 
+void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
+{
+    // Each QualifiedName should be made to refer to what it's immediate SimpleName refers to.
+    // For example, the QualifiedName for a.b.c would have c as the SimpleName, and so
+    // a.b.c and c would point to the same thing.
+
+    // TEMP
+    for(SimpleName* name: exp) std::cout << name->id << ".";
+    std::cout << std::endl;
+}
+
+void DisambiguationVisitor::visit(Name& node)
+{
+    // If node is the top level of a Name
+    if(!dynamic_cast<QualifiedName*>(node.parent) && 
+       // TODO Rather than stating all the types of ASTNodes a name cant be a part of below,
+       // we should make it so all undefined "refers_to"s at this stage denote ambiguous names.
+       // In particular, all names that are part of declarations could point to their own objects that they declare.
+       !dynamic_cast<PackageDeclaration*>(node.parent) && 
+       !dynamic_cast<TypeDeclaration*>(node.parent) && 
+       !dynamic_cast<MethodDeclaration*>(node.parent) && // ...
+       !node.refers_to)
+    {
+        std::vector<SimpleName*> exp;
+
+        Name* child = &node;
+        QualifiedName* qualified_child;
+        while(qualified_child = dynamic_cast<QualifiedName*>(child))
+        {
+            exp.push_back(qualified_child->simpleName);
+            child = qualified_child->name;
+        }
+        exp.push_back(dynamic_cast<SimpleName*>(child));
+        std::reverse(exp.begin(), exp.end());
+
+        disambiguate(exp);
+    }
+}
+
 Environment resolveNames(std::vector<ASTNode*> asts)
 {
     // Create environments
@@ -590,6 +629,10 @@ Environment resolveNames(std::vector<ASTNode*> asts)
 
     // Check class hierarchy
     CheckEnvironmentHierarchy(global);
+
+    // Disambiguate ambiguous namespace
+    DisambiguationVisitor disambiguation_visitor(&global);
+    for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
 
     return global;
 }

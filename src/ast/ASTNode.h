@@ -265,7 +265,7 @@ struct Type : public ASTNode // abstract
 
 struct Name : public Expression // abstract
 {
-    ASTNode* refers_to;
+    ASTNode* refers_to = nullptr;
 
     virtual ~Name() = default;
     virtual std::string getString() const = 0;
