@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Test.h"
 
-#define PRINT_PASSES true
+#define PRINT_PASSES false
 
 using namespace std;
 

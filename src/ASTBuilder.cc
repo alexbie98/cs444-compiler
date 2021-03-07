@@ -518,6 +518,45 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             Block* block = new Block();
             block->statements = dynamic_cast<ASTNodeList<Statement>*>(buildAST(node->children[1]));
+
+            // Create explicit scopes (blocks) for each VariableDeclarationExpression
+            std::vector<Statement*> original_statements = block->statements->elements;
+            Block* current_block = block;
+            block->statements->elements.clear();
+
+            // Skip the first statement in the block if its already a VariableDeclarationExpression
+            if(original_statements.size() > 0 && 
+               dynamic_cast<ExpressionStatement*>(original_statements[0]) &&
+               dynamic_cast<VariableDeclarationExpression*>(dynamic_cast<ExpressionStatement*>(original_statements[0])->expression))
+               {
+                   current_block->statements->elements.push_back(original_statements[0]);
+                   original_statements.erase(original_statements.begin());
+               }
+
+            for(Statement* statement: original_statements)
+            {
+                ExpressionStatement* exp_statement = dynamic_cast<ExpressionStatement*>(statement);
+                if(exp_statement)
+                {
+                    VariableDeclarationExpression* var_exp = dynamic_cast<VariableDeclarationExpression*>(exp_statement);
+                    if(var_exp)
+                    {
+                        // Create a new block with the variable declaration at the start and add it to the current blocks statements
+                        Block* new_block = new Block();
+                        ExpressionStatement* var_statement = new ExpressionStatement();
+                        var_statement->expression = var_exp;
+                        new_block->statements->elements.push_back(var_statement);
+                        current_block->statements->elements.push_back(new_block);
+
+                        // Set the current block to the new block to continue inserting statements into the deepest block
+                        current_block = new_block;
+
+                        continue;
+                    }
+                }
+                current_block->statements->elements.push_back(statement);
+            }
+
             return block;
         }
         case BLOCK_BODY:
