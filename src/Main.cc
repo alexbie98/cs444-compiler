@@ -92,8 +92,6 @@ int main(int argc, char *argv[])
         cout << "---------------------------------------" << endl;
     }
 
-    CheckEnvironmentHierarchy(globalEnv);
-
     // clean up extras in environment
     for (auto it: globalEnv.extras){
         delete it.second;

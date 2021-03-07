@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <set>
 #include <algorithm>
+#include "HierarchyCheck.h"
 
 using namespace std;
 
@@ -577,11 +578,18 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
 
 Environment resolveNames(std::vector<ASTNode*> asts)
 {
+    // Create environments
     EnvironmentVisitor env_visitor;
     for(ASTNode* ast: asts) ast->visitAll(env_visitor);
+    Environment& global = env_visitor.global;
 
-    checkTypeLinking(&env_visitor.global, asts);
-    TypeLinkingVisitor type_visitor(&env_visitor.global, asts);
+    // Resolve type names
+    checkTypeLinking(&global, asts);
+    TypeLinkingVisitor type_visitor(&global, asts);
     for(ASTNode* ast: asts) ast->visitAll(type_visitor);
-    return env_visitor.global;
+
+    // Check class hierarchy
+    CheckEnvironmentHierarchy(global);
+
+    return global;
 }
