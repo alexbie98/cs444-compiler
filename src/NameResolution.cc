@@ -199,9 +199,8 @@ void TypeLinkingVisitor::visit(QualifiedType& node)
 {
     ASTNodeVisitor::visit(dynamic_cast<Type&>(node));
 
-    std::string type_name;
-
-    type_name = node.name->getString();
+    assert(node.name);
+    std::string type_name = node.name->getString();;
 
     if(dynamic_cast<QualifiedName*>(node.name))
     {
@@ -587,32 +586,21 @@ void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
     std::cout << std::endl;
 }
 
-void DisambiguationVisitor::visit(Name& node)
+void DisambiguationVisitor::visit(NameExpression& node)
 {
-    // If node is the top level of a Name
-    if(!dynamic_cast<QualifiedName*>(node.parent) && 
-       // TODO Rather than stating all the types of ASTNodes a name cant be a part of below,
-       // we should make it so all undefined "refers_to"s at this stage denote ambiguous names.
-       // In particular, all names that are part of declarations could point to their own objects that they declare.
-       !dynamic_cast<PackageDeclaration*>(node.parent) && 
-       !dynamic_cast<TypeDeclaration*>(node.parent) && 
-       !dynamic_cast<MethodDeclaration*>(node.parent) && // ...
-       !node.refers_to)
+    std::vector<SimpleName*> exp;
+
+    Name* child = node.name;
+    QualifiedName* qualified_child;
+    while(qualified_child = dynamic_cast<QualifiedName*>(child))
     {
-        std::vector<SimpleName*> exp;
-
-        Name* child = &node;
-        QualifiedName* qualified_child;
-        while(qualified_child = dynamic_cast<QualifiedName*>(child))
-        {
-            exp.push_back(qualified_child->simpleName);
-            child = qualified_child->name;
-        }
-        exp.push_back(dynamic_cast<SimpleName*>(child));
-        std::reverse(exp.begin(), exp.end());
-
-        disambiguate(exp);
+        exp.push_back(qualified_child->simpleName);
+        child = qualified_child->name;
     }
+    exp.push_back(dynamic_cast<SimpleName*>(child));
+    std::reverse(exp.begin(), exp.end());
+
+    disambiguate(exp);
 }
 
 Environment resolveNames(std::vector<ASTNode*> asts)
