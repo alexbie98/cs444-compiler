@@ -764,7 +764,9 @@ ASTNode* buildAST(ParseTreeNode* node)
                 else if (QualifiedName * qualified = dynamic_cast<QualifiedName*>(name))
                 {
                     methodCall->name = qualified->simpleName;
-                    methodCall->prevExpr = qualified->name;
+                    NameExpression* nameExpr = new NameExpression();
+                    nameExpr->name = qualified->name;
+                    methodCall->prevExpr = nameExpr;
 
                     qualified->name = nullptr;
                     qualified->simpleName = nullptr;
@@ -785,7 +787,16 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             ArrayAccess* arrayAccess = new ArrayAccess();
             
-            arrayAccess->prevExpr = dynamic_cast<Expression*>(buildAST(node->children[0]));
+            if (node->children[0]->symbol == NAME)
+            {
+                NameExpression* nameExpr = new NameExpression();
+                nameExpr->name = dynamic_cast<Name*>(buildAST(node->children[0]));
+                arrayAccess->prevExpr = nameExpr;
+            }
+            else
+            {
+                arrayAccess->prevExpr = dynamic_cast<Expression*>(buildAST(node->children[0]));
+            }
             arrayAccess->indexExpr = dynamic_cast<Expression*>(buildAST(node->children[2]));
 
             return arrayAccess;
@@ -802,6 +813,12 @@ ASTNode* buildAST(ParseTreeNode* node)
                 case NOT:   prefix->op = PrefixOperation::NOT;
                 }
                 return prefix;
+            }
+            else if (node->children[0]->symbol == NAME)
+            {
+                NameExpression* nameExpr = new NameExpression();
+                nameExpr->name = dynamic_cast<Name*>(buildAST(node->children[0]));
+                return nameExpr;
             }
             return buildAST(node->children[0]);
         }
@@ -888,7 +905,17 @@ ASTNode* buildAST(ParseTreeNode* node)
         case ASSIGNMENT:
         {
             AssignmentExpression* assignExpr = new AssignmentExpression();
-            assignExpr->lhs = dynamic_cast<Expression*>(buildAST(node->children[0]));
+            if (node->children[0]->symbol == NAME)
+            {
+                NameExpression* nameExpr = new NameExpression();
+                nameExpr->name = dynamic_cast<Name*>(buildAST(node->children[0]));
+                assignExpr->lhs = nameExpr;
+            }
+            else
+            {
+                assignExpr->lhs = dynamic_cast<Expression*>(buildAST(node->children[0]));
+            }
+
             assignExpr->rhs = dynamic_cast<Expression*>(buildAST(node->children[2]));
             return assignExpr;
         }

@@ -23,6 +23,7 @@ struct CharLiteral;
 struct StringLiteral;
 struct BooleanLiteral;
 struct NullLiteral;
+struct NameExpression;
 struct BinaryOperation;
 struct PrefixOperation;
 struct CastExpression;
@@ -87,6 +88,7 @@ struct ASTNodeVisitor
     virtual void visit(StringLiteral& node);
     virtual void visit(BooleanLiteral& node);
     virtual void visit(NullLiteral& node);
+    virtual void visit(NameExpression& node);
     virtual void visit(BinaryOperation& node);
     virtual void visit(PrefixOperation& node);
     virtual void visit(CastExpression& node);
@@ -146,6 +148,7 @@ struct ASTNodeVisitor
     virtual void leave(StringLiteral& node);
     virtual void leave(BooleanLiteral& node);
     virtual void leave(NullLiteral& node);
+    virtual void leave(NameExpression& node);
     virtual void leave(BinaryOperation& node);
     virtual void leave(PrefixOperation& node);
     virtual void leave(CastExpression& node);
@@ -263,7 +266,7 @@ struct Type : public ASTNode // abstract
     virtual std::string getTypeName() const = 0;
 };
 
-struct Name : public Expression // abstract
+struct Name : public ASTNode // abstract
 {
     ASTNode* refers_to = nullptr;
 
@@ -394,6 +397,19 @@ struct NullLiteral : public Expression
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString(){ return "NullLiteral"; }
+};
+
+struct NameExpression : public Expression
+{
+    Name* name = nullptr;
+
+    virtual ~NameExpression();
+    virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
+    virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
+    virtual std::string toString() { return "NameExpression"; }
+
+protected:
+    virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
 
 struct BinaryOperation : public Expression
