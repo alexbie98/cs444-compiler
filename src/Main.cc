@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
 {
     // cout << "Running joosc ..." << endl;
 
-    // If last argument is "s", supress outputs for testing
-    bool supress = argc > 2 && std::string(argv[argc-1]) == std::string("s");
-    if(supress) argc--;
+    // If last argument is "v", print full output
+    bool verbose = argc > 2 && std::string(argv[argc-1]) == std::string("v");
+    if(verbose) argc--;
 
     std::vector<ASTNode*> asts;
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
         preprocess(text);
         vector<Token> tokens = munch(text);
 
-        if (!supress){
+        if (verbose){
             for (const auto & t: tokens) {
                 printToken(t);
             }
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         }
 
         postprocess(tokens);
-        if (!supress){
+        if (verbose){
             for (const auto & t: tokens) {
                 printToken(t);
             }
@@ -59,12 +59,13 @@ int main(int argc, char *argv[])
         const string &fileName = filesystem::path(filename).stem().string();
         ParseTreeNode *t = parse(tokens);
 
-        if (!supress){
+        if (verbose){
             printParseTree(t);
             cout << "-----------------------------------" << endl;
         }
         
         if (t == NULL){
+            cout << "failed to parse program" << endl;
             exit(42);
         }
 
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
 
         asts.push_back(buildAST(t));
 
-        if (!supress)
+        if (verbose)
         {
             printAST(asts.back());
         }
@@ -86,8 +87,7 @@ int main(int argc, char *argv[])
     
     Environment globalEnv = resolveNames(asts);
 
-    if (!supress){
-
+    if (verbose){
         printEnvironment(globalEnv);
         cout << "---------------------------------------" << endl;
     }
