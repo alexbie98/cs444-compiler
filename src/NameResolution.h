@@ -55,7 +55,7 @@ class DisambiguationVisitor: public ASTNodeVisitor
 
 public:
     DisambiguationVisitor(Environment* global): global{global} {}
-    virtual void visit(Name& node);
+    virtual void visit(NameExpression& node);
 };
 
 // Returns global environment
