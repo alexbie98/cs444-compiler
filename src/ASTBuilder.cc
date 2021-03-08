@@ -834,7 +834,13 @@ ASTNode* buildAST(ParseTreeNode* node)
             else
             {
                 QualifiedType* qualType = new QualifiedType();
-                qualType->name = dynamic_cast<Name*>(buildAST(node->children[1]));
+                if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(buildAST(node->children[1])))
+                {
+                    qualType->name = nameExpr->name;
+                    nameExpr->name = nullptr;
+                    delete nameExpr;
+                }
+
                 castType = qualType;
             }
 
