@@ -7,6 +7,13 @@
 
 using namespace std;
 
+const set<TokenType> CLASS_ALLOWED_MODIFIERS = {PUBLIC, FINAL, ABSTRACT};
+const set<TokenType> INTERFACE_ALLOWED_MODIFIERS = {PUBLIC, ABSTRACT};
+const set<TokenType> CONSTRUCTOR_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED};
+const set<TokenType> FIELD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, STATIC};
+const set<TokenType> METHOD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, STATIC, NATIVE, ABSTRACT, FINAL};
+const set<TokenType> INTERFACE_METHOD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, ABSTRACT};
+
 set<TokenType> getModifiers(ParseTreeNode* modifiers)
 {
     assert(modifiers->symbol == MODIFIERS);
@@ -38,20 +45,42 @@ set<TokenType> getModifiers(ParseTreeNode* modifiers)
     return modifierTypes;
 }
 
-// get list of modifiers from MODIFIERS_OPT node
 set<TokenType> getModifiersFromModifiersOpt(ParseTreeNode *modifiersOpt){
 
     assert(modifiersOpt->symbol == MODIFIERS_OPT);
-
     if (modifiersOpt->children.size() == 0){
         return set<TokenType>();
     }
-
     assert(modifiersOpt->children.size() == 1);
     return getModifiers(modifiersOpt->children[0]);
 }
 
-void checkMethodValidModifiers(const set<TokenType>& modifiers){
+
+void checkAllowedModifiers(const set<TokenType>& modifiers, const set<TokenType>& allowed){
+    for (auto m: modifiers){
+        if (allowed.find(m) == allowed.end()){
+            cout << "modifier '" << TOKEN_TYPE_STR[m] << "' not allowed here"<< endl;
+            exit(42);
+        }
+    }
+}
+
+void checkValidModifiers(const set<TokenType>& modifiers){
+
+    size_t access = 0;
+    if (modifiers.find(PUBLIC) != modifiers.end()) access++;
+    if (modifiers.find(PRIVATE) != modifiers.end()) access++;
+    if (modifiers.find(PROTECTED) != modifiers.end()) access++;
+
+    if (access > 1){
+        cout << ">1 access modifier specified" << endl;
+        exit(42);
+    }
+
+    if (access == 0){
+        cout << "package private not allowed" << endl;
+        exit(42);
+    }    
 
     if (modifiers.find(ABSTRACT) != modifiers.end() && 
         (modifiers.find(FINAL) != modifiers.end() || modifiers.find(STATIC) != modifiers.end()))
@@ -60,7 +89,8 @@ void checkMethodValidModifiers(const set<TokenType>& modifiers){
         exit(42);
     }
 
-    if (modifiers.find(FINAL) != modifiers.end() && modifiers.find(STATIC) != modifiers.end())
+    if (modifiers.find(FINAL) != modifiers.end() && 
+        modifiers.find(STATIC) != modifiers.end())
     {    
         cout << "static can't be final" << endl;
         exit(42);
@@ -72,101 +102,58 @@ void checkMethodValidModifiers(const set<TokenType>& modifiers){
         cout << "native must be static" << endl;
         exit(42);
     }
-
-    if (modifiers.find(PUBLIC) == modifiers.end() &&
-        modifiers.find(PROTECTED) == modifiers.end() &&
-        modifiers.find(PRIVATE) == modifiers.end())
-    {
-        cout << "method declaration can't be package private" << endl;
-        exit(42);
-    }
 }
 
-void checkMethodDeclaratorRest(ParseTreeNode * methodRest, const set<TokenType>& modifiers, map<string,string>& context){
-    assert(methodRest->symbol == METHOD_DECLARATION);
+
+void checkMethodDeclaration(ParseTreeNode * methodDecl, const set<TokenType>& modifiers, map<string,string>& context){
+    assert(methodDecl->symbol == METHOD_DECLARATION);
 
     bool abstractOrNative = modifiers.find(ABSTRACT) != modifiers.end() || modifiers.find(NATIVE) != modifiers.end();
-    if ((methodRest->children[1]->symbol == BLOCK && abstractOrNative) ||
-        (methodRest->children[1]->symbol == SEMICOLON && !abstractOrNative))
+    if ((methodDecl->children[1]->symbol == BLOCK && abstractOrNative) ||
+        (methodDecl->children[1]->symbol == SEMICOLON && !abstractOrNative))
     {
         cout << "no body iff abstract or native" << endl;
         exit(42);
     }
 }
 
-void checkInterfaceMethodDeclaratorRest(ParseTreeNode * iMethodRest, const set<TokenType>& modifiers, map<string,string>& context){
-    assert(iMethodRest->symbol == INTERFACE_METHOD_DECLARATION);
-}
+void checkInterfaceBodyDeclaration(ParseTreeNode * interfaceBodyDecl, map<string,string>& context){
+    assert(interfaceBodyDecl->symbol == INTERFACE_BODY_DECLARATION);
 
-void checkInterfaceBodyDeclaration(ParseTreeNode * iBodyDecl, map<string,string>& context){
-    assert(iBodyDecl->symbol == INTERFACE_BODY_DECLARATION);
+    if (interfaceBodyDecl->children.size() == 2){
+        assert(interfaceBodyDecl->children[0]->symbol == MODIFIERS_OPT);
 
-    if (iBodyDecl->children.size() == 2){
-        assert(iBodyDecl->children[0]->symbol == MODIFIERS_OPT);
-        set<TokenType> modifiers = getModifiersFromModifiersOpt(iBodyDecl->children[0]);
-
-        checkMethodValidModifiers(modifiers);
-
-        if (modifiers.find(STATIC) != modifiers.end() ||
-            modifiers.find(FINAL) != modifiers.end() ||
-            modifiers.find(NATIVE) != modifiers.end())
-        {
-            cout << "invalid interface member modifiers" << endl;
-            exit(42);
-        }
+        // interface members are always interface methods
+        set<TokenType> modifiers = getModifiersFromModifiersOpt(interfaceBodyDecl->children[0]);
+        checkAllowedModifiers(modifiers, INTERFACE_METHOD_ALLOWED_MODIFIERS);
+        checkValidModifiers(modifiers);
     }
 }
 
+void checkClassBodyDeclaration(ParseTreeNode * classBodyDecl, map<string,string>& context){
+    assert(classBodyDecl->symbol == CLASS_BODY_DECLARATION);
 
-void checkClassBodyDeclaration(ParseTreeNode * cBodyDecl, map<string,string>& context){
-    assert(cBodyDecl->symbol == CLASS_BODY_DECLARATION);
+    if (classBodyDecl->children.size() == 2){
+        assert(classBodyDecl->children[0]->symbol == MODIFIERS_OPT);
+        set<TokenType> modifiers = getModifiersFromModifiersOpt(classBodyDecl->children[0]);
 
-    if (cBodyDecl->children.size() == 2){
-        assert(cBodyDecl->children[0]->symbol == MODIFIERS_OPT);
-        set<TokenType> modifiers = getModifiersFromModifiersOpt(cBodyDecl->children[0]);
-
-        ParseTreeNode* classMember = cBodyDecl->children[1];
+        ParseTreeNode* classMember = classBodyDecl->children[1];
         switch (classMember->children[0]->symbol)
         {
             case FIELD_DECLARATION:
-            {
-                if (modifiers.find(FINAL) != modifiers.end()) 
-                {
-                    cout << "fields cannot be final" << endl;
-                    exit(42);
-                }
-                if (modifiers.find(PUBLIC) == modifiers.end() &&
-                    modifiers.find(PRIVATE) == modifiers.end() &&
-                    modifiers.find(PROTECTED) == modifiers.end()) 
-                {
-                    cout << "fields declaration can't be package private" << endl;
-                    exit(42);
-                }
-            }
-            break;
+                checkAllowedModifiers(modifiers, FIELD_ALLOWED_MODIFIERS);
+                break;
             case METHOD_DECLARATION:
-            {
-                checkMethodValidModifiers(modifiers);
-                checkMethodDeclaratorRest(classMember->children[0], modifiers, context);
-            }
-            break;
+                checkAllowedModifiers(modifiers, METHOD_ALLOWED_MODIFIERS);
+                checkMethodDeclaration(classMember->children[0], modifiers, context);
+                break;
             case CONSTRUCTOR_DECLARATION:
-            {
-                // TODO: check modifiers for constructors
-            }
-            break;
+                checkAllowedModifiers(modifiers, CONSTRUCTOR_ALLOWED_MODIFIERS);
+                break;
         }
+        checkValidModifiers(modifiers);
     }
 }
-
-/**
- * check for a constructor
- */
-void checkClassBody(ParseTreeNode * cBody){
-    assert(cBody->symbol == CLASS_BODY);
-
-}
-
 
 bool bodyDeclarationIsConstructor(ParseTreeNode* cBodyDecl){
     assert(cBodyDecl->symbol == CLASS_BODY_DECLARATION);
@@ -184,6 +171,72 @@ bool bodyDeclarationsHasConstructor(ParseTreeNode* cBodyDecls){
         return bodyDeclarationIsConstructor(cBodyDecls->children[0]);
     }
 }
+
+void checkClassDeclaration(ParseTreeNode * classDecl, map<string,string>& context){
+
+    assert(classDecl->symbol == CLASS_DECLARATION);
+
+    assert(classDecl->children[1]->symbol == ID);
+    if (context["fileName"] != classDecl->children[1]->token->second)
+    {
+        cout << "filename: " << context["fileName"] << " does not match classname: " << classDecl->children[1]->token->second << endl;
+        exit(42);
+    }
+
+    assert(classDecl->children[4]->symbol == CLASS_BODY);
+    if (classDecl->children[4]->children.size() < 3 || !bodyDeclarationsHasConstructor(classDecl->children[4]->children[1]))
+    {
+        cout << "class no constructor" << endl;
+        exit(42);
+    }
+}
+
+
+void checkInterfaceDeclaration(ParseTreeNode * interfaceDecl, map<string,string>& context){
+
+    assert(interfaceDecl->symbol == INTERFACE_DECLARATION);
+
+    assert(interfaceDecl->children[1]->symbol == ID);
+    if (context["fileName"] != interfaceDecl->children[1]->token->second)
+    {
+        cout << "filename: " << context["fileName"] << " does not match interfacename: " << interfaceDecl->children[1]->token->second << endl;
+        exit(42);
+    }
+}
+
+/**
+ * checks validity of class/interface declaration
+ * 
+ */
+void checkTypeDeclaration(ParseTreeNode* t, map<string,string>& context){
+    assert(t->symbol == TYPE_DECLARATION);
+
+    if (t->children.size() == 1){ 
+        return; // TYPE_DECLARATION SEMICOLON
+    }
+
+    set<TokenType> modifiers = getModifiersFromModifiersOpt(t->children[0]);
+    ParseTreeNode* declaration = t->children[1];
+
+    if (declaration)
+    {
+        if (declaration->symbol == CLASS_DECLARATION) 
+        {
+            checkAllowedModifiers(modifiers, CLASS_ALLOWED_MODIFIERS);
+            checkValidModifiers(modifiers);
+            checkClassDeclaration(declaration, context);
+        }
+        else if (declaration->symbol == INTERFACE_DECLARATION) 
+        {
+            checkAllowedModifiers(modifiers, INTERFACE_ALLOWED_MODIFIERS);
+            checkValidModifiers(modifiers);
+            checkInterfaceDeclaration(declaration, context);
+        }
+    }
+}
+
+
+// implemented by grammar ------------
 
 bool typeIsBasicOrArrayType(ParseTreeNode*type, map<string,string>& context)
 {
@@ -204,90 +257,11 @@ bool typeListHasBasicOrArrayType(ParseTreeNode* typeList, map<string,string>& co
     }
 }
 
-/**
- *  1. ID matches filename
- *  3. contains a constructor
- */
-void checkClassDeclaration(ParseTreeNode * cDecl, map<string,string>& context){
+void checkExtendsOpt(ParseTreeNode * extendsOpt, map<string,string> context){}
 
-    assert(cDecl->symbol == CLASS_DECLARATION);
+void checkInterfacesOpt(ParseTreeNode * inter, map<string,string> context){}
 
-    assert(cDecl->children[1]->symbol == ID);
-    if (context["fileName"] != cDecl->children[1]->token->second)
-    {
-        cout << "filename: " << context["fileName"] << " does not match classname: " << cDecl->children[1]->token->second << endl;
-        exit(42);
-    }
-
-    assert(cDecl->children[4]->symbol == CLASS_BODY);
-    if (cDecl->children[4]->children.size() < 3 || !bodyDeclarationsHasConstructor(cDecl->children[4]->children[1]))
-    {
-        cout << "class no constructor" << endl;
-        exit(42);
-    }
-}
-
-
-/**
- *  1. ID matches filename
- *  3. contains a constructor
- */
-void checkInterfaceDeclaration(ParseTreeNode * iDecl, map<string,string>& context){
-
-    assert(iDecl->symbol == INTERFACE_DECLARATION);
-
-    assert(iDecl->children[1]->symbol == ID);
-    if (context["fileName"] != iDecl->children[1]->token->second)
-    {
-        cout << "filename: " << context["fileName"] << " does not match interfacename: " << iDecl->children[1]->token->second << endl;
-        exit(42);
-    }
-}
-
-/**
- * checks validity of class/interface declaration
- * 
- */
-void checkTypeDeclaration(ParseTreeNode* t, map<string,string>& context){
-    assert(t->symbol == TYPE_DECLARATION);
-    assert(t->children.size() == 2);
-
-    set<TokenType> modifiers = getModifiersFromModifiersOpt(t->children[0]);
-    ParseTreeNode* declaration = t->children[1];
-
-    if (declaration)
-    {
-        if (declaration->symbol == CLASS_DECLARATION) 
-        {
-            // cant be abstract final
-            if (modifiers.find(ABSTRACT) != modifiers.end() &&
-                modifiers.find(FINAL) != modifiers.end()) 
-            {
-                cout << "class declaration contains both abstract and final" << endl;
-                exit(42);
-            }
-            if (modifiers.find(PUBLIC) == modifiers.end() ||
-                modifiers.find(PRIVATE) != modifiers.end() ||
-                modifiers.find(PROTECTED) != modifiers.end() )
-            {
-                cout << "class declaration must be public" << endl;
-                exit(42);
-            }
-            checkClassDeclaration(declaration, context);
-        }
-        else if (declaration->symbol == INTERFACE_DECLARATION) 
-        {
-            if (modifiers.find(PUBLIC) == modifiers.end() ||
-                modifiers.find(PRIVATE) != modifiers.end() ||
-                modifiers.find(PROTECTED) != modifiers.end()) 
-            {
-                cout << "interface declaration must be public" << endl;
-                exit(42);
-            }
-            checkInterfaceDeclaration(declaration, context);
-        }
-    }
-}
+// ------------------------------------------
 
 void checkUnaryExpression(ParseTreeNode * unaryExpr, map<string,string>& context)
 {
@@ -358,10 +332,6 @@ void weed(ParseTreeNode *t, map<string,string>& context){
     else if (t->symbol == CLASS_BODY_DECLARATION)
     {
         checkClassBodyDeclaration(t, context);
-    }
-    else if (t->symbol == UNARY_EXPRESSION)
-    {
-        checkUnaryExpression(t, context);
     }
     else if (t->symbol == ARRAY_ACCESS) 
     {
