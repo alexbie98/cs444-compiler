@@ -21,8 +21,6 @@ bool runIOTest(const string& testName,
     for (const string& s: libSourceFiles){
         command += s + " ";
     }
-    command += "s";
-
 
     int result = system(command.c_str());
     result = WEXITSTATUS(result);

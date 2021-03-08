@@ -6,8 +6,6 @@
 using namespace std;
 
 Environment *env_ptr;
-ASTNodeList<MethodDeclaration> *objectMethodStubs;
-
 
 void CheckCycles(const ClassDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
 void CheckCycles(const InterfaceDeclaration* const classDecl, unordered_set<const TypeDeclaration*> visited);
@@ -130,20 +128,20 @@ ASTNodeList<MethodDeclaration> * createObjectMethodStubs(){
     for (auto & it : *objectDecl->containedMethods){
         // TODO clean this up
         MethodDeclaration* m = it.second;
-        MethodDeclaration *copy = new MethodDeclaration();
-        copy->type = m->type;
-        copy->name = m->name;
-        copy->parameters = m->parameters;
+        if (modifiersContains(m->modifiers->elements, Modifier::PUBLIC)){
+            MethodDeclaration *copy = new MethodDeclaration();
+            copy->type = m->type;
+            copy->name = m->name;
+            copy->parameters = m->parameters;
 
-
-        copy->modifiers = new ASTNodeList<Modifier>();
-        // copy->modifiers->elements.insert(copy->modifiers->elements.end(), 
-        //                                  m->modifiers->elements.begin(),
-        //                                  m->modifiers->elements.end());
-        modifiersAdd(copy->modifiers->elements, Modifier::ABSTRACT);
-        modifiersAdd(copy->modifiers->elements, Modifier::PUBLIC);
-
-        stubs->elements.push_back(copy);
+            copy->modifiers = new ASTNodeList<Modifier>();
+            // copy->modifiers->elements.insert(copy->modifiers->elements.end(), 
+            //                                  m->modifiers->elements.begin(),
+            //                                  m->modifiers->elements.end());
+            modifiersAdd(copy->modifiers->elements, Modifier::ABSTRACT);
+            modifiersAdd(copy->modifiers->elements, Modifier::PUBLIC);
+            stubs->elements.push_back(copy);
+        }
     }
     return stubs;
 }
@@ -157,19 +155,22 @@ void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
 
         interfaceDecl->containedMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
 
-        // if (objectMethodStubs == nullptr){
-        //     ClassDeclaration * objectDecl = env_ptr->classes["java.lang.Object"];
-        //     if (objectDecl->containedMethods == nullptr){
-        //         linkTypeMemberMethodsHierarchy(objectDecl);
-        //     }
-        //     objectMethodStubs = createObjectMethodStubs();
-        // }
+        if (env_ptr->extras.find("objectMethodStubs") == env_ptr->extras.end()){
+            ClassDeclaration * objectDecl = env_ptr->classes["java.lang.Object"];
+            if (objectDecl->containedMethods == nullptr){
+                linkTypeMemberMethodsHierarchy(objectDecl);
+            }
+            //objectM = dynamic_cast<ASTNodeList<MethodDeclaration>>(createObjectMethodStubs());
+            env_ptr->extras["objectMethodStubs"] = createObjectMethodStubs();
+        }
 
         if (interfaceDecl->interfaces->size() == 0){
-            // for (auto *e : objectMethodStubs->elements)
-            // {
-            //     addMethodDeclaration(*interfaceDecl->containedMethods, e->getSignature(), e);
-            // }
+            auto * objectMethodStubs = dynamic_cast<ASTNodeList<MethodDeclaration> *>(env_ptr->extras["objectMethodStubs"]);
+            assert(objectMethodStubs);
+            for (auto *e : objectMethodStubs->elements)
+            {
+                addMethodDeclaration(*interfaceDecl->containedMethods, e->getSignature(), e);
+            }
         }
         else {
         // 用recursion来把父母containedMethods建起来
@@ -187,24 +188,27 @@ void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
             auto *method = dynamic_cast<MethodDeclaration *>(member);
             if (method)
             { // successful cast
+                string signature = method->getSignature();
+                auto &objectContainedMethods = *(env_ptr->classes["java.lang.Object"]->containedMethods.get());
+                if (objectContainedMethods.find(signature) != objectContainedMethods.end()){
+                    if (modifiersContains(objectContainedMethods[signature]->modifiers->elements,Modifier::FINAL)){
+                        cout << "Interface declares method with the same signature as a public final method in java.lang.Object" << endl;
+                        exit(42);
+                    }
+                }
+
                 modifiersAdd(method->modifiers->elements, Modifier::ABSTRACT);
                 modifiersAdd(method->modifiers->elements, Modifier::PUBLIC);
-                addMethodDeclaration(*interfaceDecl->containedMethods, method->getSignature(), method, true);
-                if (signatures.find(method->getSignature())!=signatures.end()){
+                addMethodDeclaration(*interfaceDecl->containedMethods, signature, method, true);
+                if (signatures.find(signature)!=signatures.end()){
                     cout << "Cannot declare same signature twice in interface" << endl;
                     exit(42);
                 }
-                signatures.insert(method->getSignature());
+                signatures.insert(signature);
             }
         }
 
     }
-
-    // cout << interfaceDecl->name->getString() << endl;
-    // for (const auto &it : *interfaceDecl->containedMethods)
-    // {
-    //     cout << it.first << endl;
-    // }
 }
 
 void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
@@ -253,11 +257,6 @@ void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
                 }
             }
         }
-        // cout << classDecl->name->getString() << endl;
-        // for (const auto &it : *classDecl->containedMethods)
-        // {
-        //     cout << it.first << endl;
-        // }
     }
 }
 
@@ -435,8 +434,6 @@ void CheckEnvironmentHierarchy(Environment& env)
     {
         CheckInterface(entry.second, env);
     }
-    delete objectMethodStubs;
-
 }
 
 

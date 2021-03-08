@@ -112,8 +112,6 @@ int main(int argc, char *argv[]){
 
 	if (regress){
 
-		cout << "| Running unit tests" << endl;
-		runUnitTests();
 
 		for (size_t i = 0; i < current; i++)
 		{
@@ -121,6 +119,11 @@ int main(int argc, char *argv[]){
 		}
 	}
 	auto res = runMarmosetTests(paths[current], libPaths[current]);
+
+	if (regress){
+		cout << "| Running unit tests" << endl;
+		runUnitTests();
+	}
 
 	for (int i = 0; i <regRes.size(); i++){
 		cout << "| " << paths[i] <<" tests complete: " << regRes[i].first << "/" << regRes[i].second << " passed" << endl;

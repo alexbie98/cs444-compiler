@@ -22,8 +22,8 @@ joosc: ${BUILDDIR}/Main.o ${OBJECTS}
 lex: ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS}
 	${CXX} ${CXXFLAGS}  ${BUILDDIR}/lex/Main.o ${LEX_OBJECTS} -o lex
 
-parseTable: ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS}
-	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/Main.o ${PARSE_TABLE_OBJECTS} -o parseTable
+parseTable: ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS}
+	${CXX} ${CXXFLAGS}  ${BUILDDIR}/parseTable/main.o ${PARSE_TABLE_OBJECTS} -o parseTable
 
 ${BUILDDIR}/DFA.cc: scanner.lex lex
 	./lex scanner.lex ${BUILDDIR}/DFA.cc
