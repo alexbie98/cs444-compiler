@@ -575,15 +575,99 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
     }
 }
 
+// TODO Make all environment pointers point to closest scope?
+Environment* getClosestScope(ASTNode* node)
+{
+    ASTNode* parent = node;
+    while(parent && !parent->getEnvironment()) parent = parent->parent;
+    assert(parent);
+    return parent->getEnvironment();
+}
+
+// TODO Make all ASTNodes point to contained class?
+ClassDeclaration* getEnclosingClass(ASTNode* node)
+{
+    ASTNode* parent = node;
+    while(parent && !dynamic_cast<ClassDeclaration*>(parent)) parent = parent->parent;
+    assert(parent);
+    return dynamic_cast<ClassDeclaration*>(parent);
+}
+
 void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
 {
-    // Each QualifiedName should be made to refer to what it's immediate SimpleName refers to.
+    // for(SimpleName* name: exp) std::cout << name->id << ".";
+    // std::cout << std::endl;
+
+    assert(exp.size());
+    assert(!exp[0]->refers_to);
+    std::string a1 = exp[0]->id;
+
+    // If local var/ parameter exists in scope
+    Environment* scanner = getClosestScope(exp[0]);
+    while(scanner)
+    {
+        if(scanner->variables.find(a1) != scanner->variables.end())
+        {
+            exp[0]->refers_to = scanner->variables[a1];
+            break;
+        }
+        if(scanner->formal_params.find(a1) != scanner->formal_params.end())
+        {
+            exp[0]->refers_to = scanner->formal_params[a1];
+            break;
+        }
+        // a_2, ..., a_n are instance fields
+
+        scanner = scanner->parent;
+    }
+
+    // If field a1 is in contain set of current class
+    if(!exp[0]->refers_to)
+    {
+        ClassDeclaration* enclosing_class = getEnclosingClass(exp[0]);
+        assert(enclosing_class->containedFields); // TODO Populate containedFields
+        if(enclosing_class->containedFields->find(a1) != enclosing_class->containedFields->end())
+        {
+            exp[0]->refers_to = (*enclosing_class->containedFields)[a1];
+            // a_2, ..., a_n are instance fields
+        }
+    }
+
+    if(!exp[0]->refers_to)
+    {
+        size_t i = 0;
+        // Shortest prefix that's a valid class
+        while(true)
+        {
+            // Shouldn't be an interface
+            if(global->classes.find(a1) != global->classes.end())
+            {
+                ClassDeclaration* class_decl = global->classes[a1];
+                for(size_t j = 0; j <= i; j++) exp[j]->refers_to = class_decl; 
+                break;
+            }
+
+            i++;
+
+            if(i < exp.size()) a1 += "." + exp[i]->id;
+            else break;
+        }
+
+        // ak+1 static field
+        // ak+2, ..., an instance fields
+    }
+
+    // Make each QualifiedName refer to what it's immediate SimpleName refers to.
     // For example, the QualifiedName for a.b.c would have c as the SimpleName, and so
     // a.b.c and c would point to the same thing.
-
-    // TEMP
-    for(SimpleName* name: exp) std::cout << name->id << ".";
-    std::cout << std::endl;
+    for(SimpleName* name: exp)
+    {
+        // Second SimpleName overides first if more than one exist.
+        if(name->refers_to && dynamic_cast<QualifiedName*>(name->parent))
+        {
+            dynamic_cast<QualifiedName*>(name->parent)->refers_to = name->refers_to;
+        } 
+    }
 }
 
 void DisambiguationVisitor::visit(NameExpression& node)

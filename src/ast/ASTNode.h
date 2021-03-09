@@ -806,6 +806,7 @@ struct ClassDeclaration : public TypeDeclaration
     ClassDeclaration * baseClass = nullptr;
     std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
     std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
+    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
 
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -828,6 +829,7 @@ struct InterfaceDeclaration : public TypeDeclaration
 
     std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
     std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
+    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
