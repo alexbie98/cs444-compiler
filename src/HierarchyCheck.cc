@@ -282,7 +282,7 @@ void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
 
         assert(interfaceDecl->interfaces != nullptr);
 
-        interfaceDecl->replace = make_unique<unordered_map<MethodDeclaration *, vector<MethodDeclaration*>>>();
+        interfaceDecl->replaceMethods = make_unique<unordered_map<MethodDeclaration *, vector<MethodDeclaration*>>>();
         interfaceDecl->containedAbstractMethods = make_unique<unordered_map<string, vector<MethodDeclaration *>>>();
 
 
@@ -294,7 +294,7 @@ void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
             env_ptr->extras["objectMethodStubs"] = createObjectMethodStubs();
         }
 
-        auto objectAbstractMethods = unordered_map<string, vector<MethodDeclaration *>>{};
+        unordered_map<string, vector<MethodDeclaration *>> objectAbstractMethods;
         if (interfaceDecl->interfaces->size() == 0){
             auto * objectMethodStubs = dynamic_cast<ASTNodeList<MethodDeclaration> *>(env_ptr->extras["objectMethodStubs"]);
             assert(objectMethodStubs);
@@ -339,8 +339,8 @@ void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
 
         auto superAbstractMethods = merge(superAbstractMethodSets);
 
-        auto containedMethods = replace(*interfaceDecl->replace, declaredMethods, superAbstractMethods, interfaceDecl->name->getString());
-        checkContainedMethods(containedMethods, *interfaceDecl->replace);
+        auto containedMethods = replace(*interfaceDecl->replaceMethods, declaredMethods, superAbstractMethods, interfaceDecl->name->getString());
+        checkContainedMethods(containedMethods, *interfaceDecl->replaceMethods);
 
         *interfaceDecl->containedAbstractMethods = containedMethods;
     }
@@ -412,25 +412,44 @@ void linkTypeMemberFieldsHierarchy(ClassDeclaration* classDecl)
 
     if (classDecl->containedFields == nullptr){
         assert(classDecl->baseClass != nullptr || classDecl->name->getString() == "Object");
+
         classDecl->containedFields = make_unique<unordered_map<string, FieldDeclaration *>>();
-        if (classDecl->baseClass){
+        classDecl->replaceFields = make_unique<unordered_map<FieldDeclaration *, FieldDeclaration *>>();
+
+        unordered_map<string, FieldDeclaration *> superFields;
+        if (classDecl->baseClass)
+        {
             linkTypeMemberFieldsHierarchy(classDecl->baseClass);
+            superFields = *classDecl->baseClass->containedFields;
         }
 
-    }
-    auto declaredFields = unordered_map<string, FieldDeclaration *>{};
+        auto declaredFields = unordered_map<string, FieldDeclaration *>{};
         for (auto* member: classDecl->classBody->elements){
             auto * f= dynamic_cast<FieldDeclaration *>(member);
-            // if(f){
-            //     string name = f->
+            if(f){
+                string name = f->declaration->name->getString();
 
-            //     if (declaredMethods.find(sig) != declaredMethods.end()){
-            //         cout << "Cannot declare two methods with the same signature in a class" << endl;
-            //         exit(42);
-            //     }
-            //     declaredMethods[sig] = m;
-            // }
+                if (declaredFields.find(name) != declaredFields.end()){
+                    cout << "Cannot declare two fields with the same name in a class" << endl;
+                    exit(42);
+                }
+                declaredFields[name] = f;
+            }
         }
+
+        for (const auto& [name, f]: declaredFields){
+            if (superFields.find(name) != superFields.end()){
+                assert(classDecl->replaceFields->find(f) == classDecl->replaceFields->end());
+                (*classDecl->replaceFields)[f] = superFields[name];
+            }
+            (*classDecl->containedFields)[name] = f;
+        }
+        for (const auto& [name, f]: superFields){
+            if (declaredFields.find(name) == declaredFields.end()){
+                (*classDecl->containedFields)[name] = f;
+            }
+        }
+    }
 }
 
 void linkTypeHierarchy(InterfaceDeclaration* interfaceDecl){
