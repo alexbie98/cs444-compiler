@@ -249,6 +249,8 @@ protected:
 
 struct Expression : public ASTNode //abstract
 {
+    Type* resolvedType = nullptr ;
+
     virtual ~Expression() = default;
     virtual std::string toString(){ return "Expression"; }
 };
@@ -310,7 +312,8 @@ struct PrimitiveType : public Type
         INT,
         CHAR,
         BOOLEAN,
-        VOID
+        VOID,
+        NULL_TYPE
     };
 
     BasicType type;

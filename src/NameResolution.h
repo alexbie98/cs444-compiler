@@ -51,12 +51,35 @@ class DisambiguationVisitor: public ASTNodeVisitor
 {
     Environment* global;
 
-    virtual void disambiguate(const std::vector<SimpleName*>& exp);
+    bool disambiguate(const std::vector<SimpleName*>& exp);
 
 public:
     DisambiguationVisitor(Environment* global): global{global} {}
     virtual void visit(NameExpression& node);
 };
+
+class TypeCheckingVisitor : public ASTNodeVisitor
+{
+    Environment* globalEnvironment;
+    Environment* localEnvironment;
+    ClassDeclaration* enclosingClass;
+    Type* returnType;
+public:
+    TypeCheckingVisitor(Environment* globalEnv);
+
+    virtual void visit(ClassDeclaration& node);
+    virtual void visit(MethodDeclaration& node);
+    virtual void visit(ConstructorDeclaration& node);
+    virtual void visit(Block& node);
+
+    virtual void leave(ConstructorDeclaration& node);
+    virtual void leave(IntLiteral& node);
+    virtual void leave(CharLiteral& node);
+    virtual void leave(StringLiteral& node);
+    virtual void leave(BooleanLiteral& node);
+    virtual void leave(NullLiteral& node);
+};
+
 
 // Returns global environment
 Environment resolveNames(std::vector<ASTNode*> asts);
