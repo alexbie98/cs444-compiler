@@ -805,8 +805,12 @@ struct ClassDeclaration : public TypeDeclaration
 
     ClassDeclaration * baseClass = nullptr;
     std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
-    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
-    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
+    std::unique_ptr<std::unordered_map<std::string, MethodDeclaration *>> containedConcreteMethods;
+    std::unique_ptr<std::unordered_map<std::string, std::vector<MethodDeclaration *>>> containedAbstractMethods;
+    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields;
+    
+    std::unique_ptr<std::unordered_map<MethodDeclaration *, std::vector<MethodDeclaration *>>> replaceMethods;
+    std::unique_ptr<std::unordered_map<FieldDeclaration *, FieldDeclaration *>> replaceFields;
 
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -828,8 +832,8 @@ struct InterfaceDeclaration : public TypeDeclaration
     ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
 
     std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
-    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
-    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
+    std::unique_ptr<std::unordered_map<std::string, std::vector<MethodDeclaration *>>> containedAbstractMethods;
+    std::unique_ptr<std::unordered_map<MethodDeclaration *, std::vector<MethodDeclaration *>>> replaceMethods;
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -897,8 +901,6 @@ struct MethodDeclaration : public MemberDeclaration
     Name* name = nullptr;
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
-
-    MethodDeclaration *overriding = nullptr;
 
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }

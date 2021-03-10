@@ -74,70 +74,18 @@ void modifiersAdd(vector<Modifier*>& modifiers, Modifier::ModifierType modType){
     modifiers.push_back(m);
 }
 
-void addMethodDeclaration(unordered_map<string,MethodDeclaration*>&m, 
-                          const string& signature, MethodDeclaration* method, bool addingCurrentClassDecls=false){
-
-    if (m.find(signature) == m.end())
-    { // brand new signature -- add it
-        m[signature] = method;
-    }
-    else{
-        MethodDeclaration *existingMethod = m[signature];
-        if (existingMethod->type->getTypeName() != method->type->getTypeName()){
-            cout << "Cannot contain two methods with same signature but different return type" << endl;
-            exit(42);
-        }
-
-        if(modifiersContains(existingMethod->modifiers->elements, Modifier::STATIC) &&
-           !modifiersContains(method->modifiers->elements,  Modifier::STATIC)){
-            cout << "Cannot override static method with non-static method" << endl;
-            exit(42);
-        }
-
-        if(!modifiersContains(existingMethod->modifiers->elements, Modifier::STATIC) &&
-           modifiersContains(method->modifiers->elements,  Modifier::STATIC)){
-            cout << "Cannot override non-static method with static method" << endl;
-            exit(42);
-        }
-
-        if(modifiersContains(existingMethod->modifiers->elements, Modifier::PUBLIC) &&
-           modifiersContains(method->modifiers->elements,  Modifier::PROTECTED)){
-            cout << "Cannot override public method with protected" << endl;
-            exit(42);
-        }
-        if(modifiersContains(existingMethod->modifiers->elements, Modifier::FINAL)){
-            cout << "Cannot override final method" << endl;
-            exit(42);
-        }
-
-        if (addingCurrentClassDecls)
-        {
-            method->overriding = existingMethod;
-        }
-        else{
-            cout << "WARN: interface overriding interface or base class overriding interface share methods, update pointer to latest" << endl;
-        }
-        m[signature] = method;
-    }
-}
-
 ASTNodeList<MethodDeclaration> * createObjectMethodStubs(){
 
     auto * stubs = new ASTNodeList<MethodDeclaration>();
     ClassDeclaration *objectDecl = env_ptr->classes["java.lang.Object"];
-    for (auto & it : *objectDecl->containedMethods){
-        // TODO clean this up
+    for (auto & it : *objectDecl->containedConcreteMethods){
         MethodDeclaration* m = it.second;
         if (modifiersContains(m->modifiers->elements, Modifier::PUBLIC)){
             MethodDeclaration *copy = new MethodDeclaration();
             copy->type = m->type;
             copy->name = m->name;
             copy->parameters = m->parameters;
-
             copy->modifiers = new ASTNodeList<Modifier>();
-            // copy->modifiers->elements.insert(copy->modifiers->elements.end(), 
-            //                                  m->modifiers->elements.begin(),
-            //                                  m->modifiers->elements.end());
             modifiersAdd(copy->modifiers->elements, Modifier::ABSTRACT);
             modifiersAdd(copy->modifiers->elements, Modifier::PUBLIC);
             stubs->elements.push_back(copy);
@@ -146,125 +94,343 @@ ASTNodeList<MethodDeclaration> * createObjectMethodStubs(){
     return stubs;
 }
 
+
+unordered_map<string, vector<MethodDeclaration *>> merge(
+    vector<unordered_map<string, vector<MethodDeclaration *>> *>& abstractMethodSets)
+{
+    unordered_map<string, vector<MethodDeclaration *>> abstractMethods;
+    for (auto *s : abstractMethodSets)
+    {
+        for (const auto& [sig, ms]: *s){
+            abstractMethods[sig].insert(abstractMethods[sig].end(), (*s)[sig].begin(), (*s)[sig].end());
+        }
+    }
+    return abstractMethods;
+}
+
+
+
+unordered_map<string, vector<MethodDeclaration *>> merge(
+    unordered_map<string, vector<MethodDeclaration *>>& abstractMethods,
+    const unordered_map<string, MethodDeclaration *>& concreteMethods)
+{
+    unordered_map<string, vector<MethodDeclaration *>> methods;
+    for (const auto &[sig, ms] : abstractMethods)
+    {
+        methods[sig].insert(methods[sig].end(), abstractMethods[sig].begin(), abstractMethods[sig].end());
+    }
+    for (const auto& [sig, m]: concreteMethods){
+        methods[sig].push_back(m);
+    }
+
+    return methods;
+}
+void split(
+    unordered_map<string, vector<MethodDeclaration *>>& abstractMethods,
+    unordered_map<string, MethodDeclaration *>& concreteMethods,
+    const unordered_map<string, vector<MethodDeclaration *>>& methods)
+{
+    for (const auto &[sig, ms] : methods)
+    {
+        for (MethodDeclaration * m: ms){
+            if (modifiersContains(m->modifiers->elements, Modifier::ABSTRACT)){
+                abstractMethods[sig].push_back(m);
+            }
+            else{
+                assert(concreteMethods.find(sig) == concreteMethods.end());
+                concreteMethods[sig] = m;
+            }
+        }
+    }
+}
+
+unordered_map<string, vector<MethodDeclaration *>> replace(
+    unordered_map<MethodDeclaration *, vector<MethodDeclaration *>>& replace,
+    const unordered_map<string, MethodDeclaration *>& declaredMethods,
+    unordered_map<string, vector<MethodDeclaration *>>& superMethods, string print)
+{
+    unordered_map<string, vector<MethodDeclaration *>> containedMethods;
+
+    // cout << print << endl;
+    // cout << "--------------" << endl;
+    // for (const auto &[sig, m] : declaredMethods)
+    // {
+    //     cout << sig << endl;
+    // }
+    // cout << "--------------" << endl;
+    // for (const auto &[sig, ms] : superMethods)
+    // {
+    //     cout << sig << " ";
+    //     cout << ms.size() << endl;
+    // }
+    // cout << "--------------" << endl;
+
+    for (const auto& [sig, m]: declaredMethods){
+        if (superMethods.find(sig) != superMethods.end()){
+            replace[m] = superMethods[sig];
+        }
+        containedMethods[sig].push_back(m);
+    }
+
+    for (const auto& [sig, ms]: superMethods){
+        if (declaredMethods.find(sig) == declaredMethods.end()){
+            bool allAbs = all_of(ms.begin(), ms.end(),
+                                 [](MethodDeclaration *m) {
+                                     return modifiersContains(m->modifiers->elements, Modifier::ABSTRACT);
+                                 });
+            if (allAbs){
+                containedMethods[sig] = ms;
+            }
+            else{
+                size_t count = 0;
+                MethodDeclaration *concrete;
+                for (auto *m : ms){
+                    if(!modifiersContains(m->modifiers->elements, Modifier::ABSTRACT)){
+                        count++;
+                        concrete = m;
+                    }
+                }
+                assert(count == 1);
+
+                for (auto *m : ms){
+                    if (m != concrete){
+                        replace[concrete].push_back(m);
+                    }
+                }
+                containedMethods[sig].push_back(concrete);
+            }
+        }
+    }
+    // for (const auto &[sig, ms] : containedMethods)
+    // {
+    //     cout << sig <<  " ";
+    //     for (auto mod: ms[0]->modifiers->elements){
+    //         cout << mod->type << " ";
+    //     }
+    //     cout << ms.size() << endl;
+    // }
+    return containedMethods;
+}
+
+void checkContainedMethods(
+    const unordered_map<string, vector<MethodDeclaration *>>& containedMethods,
+    unordered_map<MethodDeclaration *, vector<MethodDeclaration *>>& replace)
+{
+
+
+    for (const auto&[sig, ms]: containedMethods){
+        assert(ms.size() >= 1);
+        string returnType = ms[0]->type->getTypeName();
+        bool returnTypeMatches = all_of(ms.begin(), ms.end(),
+                                        [returnType](MethodDeclaration *m) {
+                                            return (m->type->getTypeName() == returnType);
+                                        });
+
+        if (!returnTypeMatches){
+            cout << "cannot contain two methods with same signature but different return type" << endl;
+            exit(42);
+        }
+
+        for (MethodDeclaration * m: ms){
+            if (replace.find(m) != replace.end()){
+                assert(ms.size() == 1);
+                for (MethodDeclaration * replaced : replace[m]){
+
+                    if(modifiersContains(replaced->modifiers->elements, Modifier::STATIC) &&
+                       !modifiersContains(m->modifiers->elements,  Modifier::STATIC))
+                    {
+                        cout << "Cannot replace static method with non-static method" << endl;
+                        exit(42);
+                    }
+
+                    if(!modifiersContains(replaced->modifiers->elements, Modifier::STATIC) &&
+                       modifiersContains(m->modifiers->elements,  Modifier::STATIC))
+                    {
+                        cout << "Cannot replace non-static method with static method" << endl;
+                        exit(42);
+                    }
+
+                    if(replaced->type->getTypeName() != m->type->getTypeName()){
+                        cout << "Cannot replace method with different return type" << endl;
+                        exit(42);
+                    }
+                    if(modifiersContains(replaced->modifiers->elements, Modifier::PUBLIC) &&
+                       !modifiersContains(m->modifiers->elements, Modifier::PUBLIC))
+                    {
+                        cout << "Cannot replace public method with non-public" << endl;
+                        exit(42);
+                    }
+
+                    if(modifiersContains(replaced->modifiers->elements, Modifier::FINAL)){
+                        cout << "Cannot replace final method" << endl;
+                        exit(42);
+                    }
+                }
+            }
+        }
+
+    }
+
+}
+
+
 void linkTypeMemberMethodsHierarchy(ClassDeclaration *classDecl);
 
 void linkTypeMemberMethodsHierarchy(InterfaceDeclaration *interfaceDecl)
 {
-    if (interfaceDecl->containedMethods == nullptr){
+    if (interfaceDecl->containedAbstractMethods == nullptr){
+
         assert(interfaceDecl->interfaces != nullptr);
 
-        interfaceDecl->containedMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
+        interfaceDecl->replace = make_unique<unordered_map<MethodDeclaration *, vector<MethodDeclaration*>>>();
+        interfaceDecl->containedAbstractMethods = make_unique<unordered_map<string, vector<MethodDeclaration *>>>();
+
+
+        vector<unordered_map<string, vector<MethodDeclaration *>> *> superAbstractMethodSets;
 
         if (env_ptr->extras.find("objectMethodStubs") == env_ptr->extras.end()){
             ClassDeclaration * objectDecl = env_ptr->classes["java.lang.Object"];
-            if (objectDecl->containedMethods == nullptr){
-                linkTypeMemberMethodsHierarchy(objectDecl);
-            }
-            //objectM = dynamic_cast<ASTNodeList<MethodDeclaration>>(createObjectMethodStubs());
+            linkTypeMemberMethodsHierarchy(objectDecl);
             env_ptr->extras["objectMethodStubs"] = createObjectMethodStubs();
         }
 
+        auto objectAbstractMethods = unordered_map<string, vector<MethodDeclaration *>>{};
         if (interfaceDecl->interfaces->size() == 0){
             auto * objectMethodStubs = dynamic_cast<ASTNodeList<MethodDeclaration> *>(env_ptr->extras["objectMethodStubs"]);
             assert(objectMethodStubs);
+
             for (auto *e : objectMethodStubs->elements)
             {
-                addMethodDeclaration(*interfaceDecl->containedMethods, e->getSignature(), e);
+                objectAbstractMethods[e->getSignature()].push_back(e);
             }
+            superAbstractMethodSets.push_back(&objectAbstractMethods);
         }
-        else {
-        // 用recursion来把父母containedMethods建起来
-            for (auto * e: *interfaceDecl->interfaces){
-                linkTypeMemberMethodsHierarchy(e);
-                for (const auto& it: *e->containedMethods){
-                    addMethodDeclaration(*interfaceDecl->containedMethods, it.first, it.second);
-                }
-            }
 
+        for (auto * e: *interfaceDecl->interfaces){
+            linkTypeMemberMethodsHierarchy(e);
+            superAbstractMethodSets.push_back(e->containedAbstractMethods.get());
         }
-        // go through declared methods and try to add them
-        unordered_set<string> signatures;
+
+
+        auto declaredMethods = unordered_map<string, MethodDeclaration *>{};
         for (auto* member: interfaceDecl->interfaceBody->elements){
-            auto *method = dynamic_cast<MethodDeclaration *>(member);
-            if (method)
-            { // successful cast
-                string signature = method->getSignature();
-                auto &objectContainedMethods = *(env_ptr->classes["java.lang.Object"]->containedMethods.get());
-                if (objectContainedMethods.find(signature) != objectContainedMethods.end()){
-                    if (modifiersContains(objectContainedMethods[signature]->modifiers->elements,Modifier::FINAL)){
-                        cout << "Interface declares method with the same signature as a public final method in java.lang.Object" << endl;
-                        exit(42);
-                    }
-                }
+            auto *m = dynamic_cast<MethodDeclaration *>(member);
+            assert(m);
 
-                modifiersAdd(method->modifiers->elements, Modifier::ABSTRACT);
-                modifiersAdd(method->modifiers->elements, Modifier::PUBLIC);
-                addMethodDeclaration(*interfaceDecl->containedMethods, signature, method, true);
-                if (signatures.find(signature)!=signatures.end()){
-                    cout << "Cannot declare same signature twice in interface" << endl;
+            string sig = m->getSignature();
+
+            auto &objectContainedMethods = *(env_ptr->classes["java.lang.Object"]->containedConcreteMethods.get());
+            if (objectContainedMethods.find(sig) != objectContainedMethods.end()){
+                if (modifiersContains(objectContainedMethods[sig]->modifiers->elements,Modifier::FINAL)){
+                    cout << "Interface declares method with the same signature as a public final method in java.lang.Object" << endl;
                     exit(42);
                 }
-                signatures.insert(signature);
             }
+
+            if (declaredMethods.find(sig) != declaredMethods.end()){
+                cout << "Cannot declare two methods with the same signature in an interface" << endl;
+                exit(42);
+            }
+
+            modifiersAdd(m->modifiers->elements, Modifier::ABSTRACT);
+            modifiersAdd(m->modifiers->elements, Modifier::PUBLIC);
+            declaredMethods[sig] = m;
         }
 
+        auto superAbstractMethods = merge(superAbstractMethodSets);
+
+        auto containedMethods = replace(*interfaceDecl->replace, declaredMethods, superAbstractMethods, interfaceDecl->name->getString());
+        checkContainedMethods(containedMethods, *interfaceDecl->replace);
+
+        *interfaceDecl->containedAbstractMethods = containedMethods;
     }
 }
 
 void linkTypeMemberMethodsHierarchy(ClassDeclaration* classDecl)
 {
 
-    if (classDecl->containedMethods == nullptr){
+    if (classDecl->containedConcreteMethods == nullptr || classDecl->containedAbstractMethods == nullptr){
         assert(classDecl->interfaces != nullptr);
         assert(classDecl->baseClass != nullptr || classDecl->name->getString() == "Object");
+        assert(classDecl->containedConcreteMethods == nullptr && classDecl->containedAbstractMethods == nullptr);
 
-        classDecl->containedMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
+        classDecl->containedConcreteMethods = make_unique<unordered_map<string, MethodDeclaration *>>();
+        classDecl->containedAbstractMethods = make_unique<unordered_map<string, vector<MethodDeclaration *>>>();
+        classDecl->replaceMethods = make_unique<unordered_map<MethodDeclaration *, vector<MethodDeclaration*>>>();
 
-        // 用recursion来把父母containedMethods建起来
+        vector<unordered_map<string, vector<MethodDeclaration *>> *> superAbstractMethodSets;
+
         for (auto * e: *classDecl->interfaces){
             linkTypeMemberMethodsHierarchy(e);
-            for (const auto& it: *e->containedMethods){
-                addMethodDeclaration(*classDecl->containedMethods, it.first, it.second);
-            }
+            superAbstractMethodSets.push_back(e->containedAbstractMethods.get());
         }
+
         if (classDecl->baseClass){
             linkTypeMemberMethodsHierarchy(classDecl->baseClass);
-            for (const auto& it: *classDecl->baseClass->containedMethods){
-                addMethodDeclaration(*classDecl->containedMethods, it.first, it.second);
-            }
+            superAbstractMethodSets.push_back(classDecl->baseClass->containedAbstractMethods.get());
         }
 
-        // go through declared methods and try to add them
-        unordered_set<string> signatures;
+        auto declaredMethods = unordered_map<string, MethodDeclaration *>{};
         for (auto* member: classDecl->classBody->elements){
-            auto *method = dynamic_cast<MethodDeclaration *>(member);
-            if (method){ // successful cast
-                addMethodDeclaration(*classDecl->containedMethods, method->getSignature(), method, true);
-                if (signatures.find(method->getSignature())!=signatures.end()){
-                    cout << "Cannot declare same signature twice in class" << endl;
+            auto *m = dynamic_cast<MethodDeclaration *>(member);
+            if(m){
+                string sig = m->getSignature();
+
+                if (declaredMethods.find(sig) != declaredMethods.end()){
+                    cout << "Cannot declare two methods with the same signature in a class" << endl;
                     exit(42);
                 }
-                signatures.insert(method->getSignature());
+                declaredMethods[sig] = m;
             }
         }
 
+        auto superAbstractMethods = merge(superAbstractMethodSets);
+        unordered_map<string, vector<MethodDeclaration *>> superMethods;
+        if (classDecl->baseClass){
+            superMethods = merge(superAbstractMethods, *classDecl->baseClass->containedConcreteMethods);
+        }
+        else{
+            superMethods = move(superAbstractMethods);
+        }
+
+        auto containedMethods = replace(*classDecl->replaceMethods, declaredMethods, superMethods, classDecl->name->getString());
+        checkContainedMethods(containedMethods, *classDecl->replaceMethods);
+
+        split(*classDecl->containedAbstractMethods, *classDecl->containedConcreteMethods, containedMethods);
 
         if (!modifiersContains(classDecl->modifiers->elements,Modifier::ABSTRACT)){
-            for (const auto& it: *classDecl->containedMethods){
-                if (modifiersContains(it.second->modifiers->elements, Modifier::ABSTRACT)){
-                    cout << "non-abstract class contains (inherits or declares) abstract methods" << endl;
-                    exit(42);
-                }
+            if (classDecl->containedAbstractMethods->size() != 0){
+                cout << "Non-abstract class cannot contain abstract methods" << endl;
+                exit(42);
             }
         }
     }
 }
 
-void linkNullExtendsToObject(ClassDeclaration* classDecl, Environment& env){
-    if (classDecl->extends == nullptr && classDecl->name->getString() != "Object")
-    {
-        classDecl->baseClass = env.classes["java.lang.Object"];
+void linkTypeMemberFieldsHierarchy(ClassDeclaration* classDecl)
+{
+
+    if (classDecl->containedFields == nullptr){
+        assert(classDecl->baseClass != nullptr || classDecl->name->getString() == "Object");
+        classDecl->containedFields = make_unique<unordered_map<string, FieldDeclaration *>>();
+        if (classDecl->baseClass){
+            linkTypeMemberFieldsHierarchy(classDecl->baseClass);
+        }
+
     }
+    auto declaredFields = unordered_map<string, FieldDeclaration *>{};
+        for (auto* member: classDecl->classBody->elements){
+            auto * f= dynamic_cast<FieldDeclaration *>(member);
+            // if(f){
+            //     string name = f->
+
+            //     if (declaredMethods.find(sig) != declaredMethods.end()){
+            //         cout << "Cannot declare two methods with the same signature in a class" << endl;
+            //         exit(42);
+            //     }
+            //     declaredMethods[sig] = m;
+            // }
+        }
 }
 
 void linkTypeHierarchy(InterfaceDeclaration* interfaceDecl){
@@ -282,20 +448,26 @@ void linkTypeHierarchy(InterfaceDeclaration* interfaceDecl){
                 exit(42);
             }
             interfaceDecl->interfaces->push_back(interface);
-        }
-        for (auto * e: *interfaceDecl->interfaces){
-            linkTypeHierarchy(e);
+            linkTypeHierarchy(interface);
         }
     }
+    modifiersAdd(interfaceDecl->modifiers->elements, Modifier::PUBLIC);
+    modifiersAdd(interfaceDecl->modifiers->elements, Modifier::ABSTRACT);
 }
-
 
 void linkTypeHierarchy(ClassDeclaration* classDecl){
 
-    if (classDecl->name->getString()!="Object" && classDecl->baseClass == nullptr){
-        classDecl->baseClass = dynamic_cast<ClassDeclaration*>(
-            dynamic_cast<QualifiedType*>(classDecl->extends)->name->refers_to
-        );
+    if (classDecl->baseClass == nullptr && classDecl->name->getString()!="Object"){
+
+        if (classDecl->extends == nullptr){
+            classDecl->baseClass = env_ptr->classes["java.lang.Object"];
+        }
+        else{
+            classDecl->baseClass = dynamic_cast<ClassDeclaration*>(
+                dynamic_cast<QualifiedType*>(classDecl->extends)->name->refers_to
+            );
+        }
+
         if (classDecl->baseClass == nullptr){
             cout << "Class can only extend a class" << endl;
             exit(42);
@@ -315,9 +487,7 @@ void linkTypeHierarchy(ClassDeclaration* classDecl){
                 exit(42);
             }
             classDecl->interfaces->push_back(interface);
-        }
-        for (auto * e: *classDecl->interfaces){
-            linkTypeHierarchy(e);
+            linkTypeHierarchy(interface);
         }
     }
 }
@@ -325,69 +495,61 @@ void linkTypeHierarchy(ClassDeclaration* classDecl){
 
 void CheckClass(const ClassDeclaration* const classDecl, Environment& env)
 {
-    if (classDecl->baseClass != nullptr)
-    {
-        if (classDecl->baseClass->modifiers != nullptr && 
-            modifiersContains(classDecl->baseClass->modifiers->elements, Modifier::FINAL)){
+    assert (classDecl->baseClass != nullptr || classDecl->name->getString() == "Object");
+    if (classDecl->baseClass){
+        if (modifiersContains(classDecl->baseClass->modifiers->elements, Modifier::FINAL)){
 
             cout << "Cannot extend a final class" << endl;
             exit(42);
         }
     }
 
-    if (classDecl->interfaces != nullptr)
+    assert(classDecl->interfaces);
+    unordered_set<const InterfaceDeclaration*> implemented;
+
+    for (const InterfaceDeclaration* interface: *classDecl->interfaces)
     {
-        unordered_set<const InterfaceDeclaration*> implemented;
-
-        for (const InterfaceDeclaration* interface: *classDecl->interfaces)
+        if (implemented.find(interface) != implemented.cend())
         {
-            if (implemented.find(interface) != implemented.cend())
-            {
-                cout << "Class cannot implement the same interface twice" << endl;
-                exit(42);
-            }
-
-            implemented.insert(interface);
+            cout << "Class cannot implement the same interface twice" << endl;
+            exit(42);
         }
+        implemented.insert(interface);
     }
 
-    if (classDecl->classBody != nullptr)
+    assert(classDecl->classBody);
+    unordered_set<string> constructors;
+
+    for (const MemberDeclaration* member : classDecl->classBody->elements)
     {
-        unordered_set<string> constructors;
-        for (const MemberDeclaration* member : classDecl->classBody->elements)
+        if (const ConstructorDeclaration * constructor = dynamic_cast<const ConstructorDeclaration*>(member))
         {
-            if (const ConstructorDeclaration * constructor = dynamic_cast<const ConstructorDeclaration*>(member))
+            if (constructors.find(constructor->getSignature()) != constructors.cend())
             {
-                if (constructors.find(constructor->getSignature()) != constructors.cend())
-                {
-                    cout << "Cannot define multiple constructors with the same signature" << endl;
-                    exit(42);
-                }
-                constructors.insert(constructor->getSignature());
+                cout << "Cannot define multiple constructors with the same signature" << endl;
+                exit(42);
             }
+            constructors.insert(constructor->getSignature());
         }
     }
 
     CheckCycles(classDecl, unordered_set<const TypeDeclaration*>());
-    
 
 }
 
 void CheckInterface(const InterfaceDeclaration* const interfaceDecl, Environment& env)
 {
-    if (interfaceDecl->interfaces)
+    assert(interfaceDecl->interfaces);
+    unordered_set<const InterfaceDeclaration*> implemented;
+    for (const InterfaceDeclaration * interface : *interfaceDecl->interfaces)
     {
-        unordered_set<const InterfaceDeclaration*> implemented;
-        for (const InterfaceDeclaration * interface : *interfaceDecl->interfaces)
+        if (implemented.find(interface) != implemented.cend())
         {
-            if (implemented.find(interface) != implemented.cend())
-            {
-                cout << "Interface cannot extend the same interface twice" << endl;
-                exit(42);
-            }
-
-            implemented.insert(interface);
+            cout << "Interface cannot extend the same interface twice" << endl;
+            exit(42);
         }
+
+        implemented.insert(interface);
     }
 
     CheckCycles(interfaceDecl, unordered_set<const TypeDeclaration*>());
@@ -397,10 +559,6 @@ void CheckInterface(const InterfaceDeclaration* const interfaceDecl, Environment
 void CheckEnvironmentHierarchy(Environment& env)
 {
     env_ptr = &env;
-    // add implicit object extends
-    for (const pair<string, ClassDeclaration*>& entry : env.classes){
-        linkNullExtendsToObject(entry.second, env);
-    }
 
     // link type hierarchy
     for (const pair<string, ClassDeclaration*>& entry : env.classes)
@@ -424,12 +582,12 @@ void CheckEnvironmentHierarchy(Environment& env)
         linkTypeMemberMethodsHierarchy(entry.second);
     }
 
-    // check classes
+    // check types
     for (const pair<string, ClassDeclaration *> &entry : env.classes)
     {
         CheckClass(entry.second, env);
     }
-    
+    // check interfaces
     for (const pair<string, InterfaceDeclaration*>& entry : env.interfaces)
     {
         CheckInterface(entry.second, env);

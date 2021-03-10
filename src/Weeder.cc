@@ -12,7 +12,7 @@ const set<TokenType> INTERFACE_ALLOWED_MODIFIERS = {PUBLIC, ABSTRACT};
 const set<TokenType> CONSTRUCTOR_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED};
 const set<TokenType> FIELD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, STATIC};
 const set<TokenType> METHOD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, STATIC, NATIVE, ABSTRACT, FINAL};
-const set<TokenType> INTERFACE_METHOD_ALLOWED_MODIFIERS = {PUBLIC, PROTECTED, ABSTRACT};
+const set<TokenType> INTERFACE_METHOD_ALLOWED_MODIFIERS = {PUBLIC, ABSTRACT};
 
 set<TokenType> getModifiers(ParseTreeNode* modifiers)
 {
@@ -65,7 +65,7 @@ void checkAllowedModifiers(const set<TokenType>& modifiers, const set<TokenType>
     }
 }
 
-void checkValidModifiers(const set<TokenType>& modifiers){
+void checkValidModifiers(const set<TokenType>& modifiers, bool allowPackagePrivate = false){
 
     size_t access = 0;
     if (modifiers.find(PUBLIC) != modifiers.end()) access++;
@@ -77,7 +77,7 @@ void checkValidModifiers(const set<TokenType>& modifiers){
         exit(42);
     }
 
-    if (access == 0){
+    if (!allowPackagePrivate && access == 0){
         cout << "package private not allowed" << endl;
         exit(42);
     }    
@@ -126,7 +126,7 @@ void checkInterfaceBodyDeclaration(ParseTreeNode * interfaceBodyDecl, map<string
         // interface members are always interface methods
         set<TokenType> modifiers = getModifiersFromModifiersOpt(interfaceBodyDecl->children[0]);
         checkAllowedModifiers(modifiers, INTERFACE_METHOD_ALLOWED_MODIFIERS);
-        checkValidModifiers(modifiers);
+        checkValidModifiers(modifiers, true);
     }
 }
 
