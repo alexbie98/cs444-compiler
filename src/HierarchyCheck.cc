@@ -601,6 +601,13 @@ void CheckEnvironmentHierarchy(Environment& env)
         linkTypeMemberMethodsHierarchy(entry.second);
     }
 
+    // link fields
+    // for (const pair<string, ClassDeclaration*>& entry : env.classes)
+    // {
+    //     linkTypeMemberFieldsHierarchy(entry.second);
+    // }
+
+
     // check types
     for (const pair<string, ClassDeclaration *> &entry : env.classes)
     {
