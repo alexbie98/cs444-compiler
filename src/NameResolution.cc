@@ -718,6 +718,120 @@ void DisambiguationVisitor::visit(NameExpression& node)
     }
 }
 
+Type* cloneType(Type* type)
+{
+    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(type))
+    {
+        PrimitiveType* clone = new PrimitiveType();
+        clone->type = primType->type;
+        return clone;
+    }
+    else if (QualifiedType * qualType = dynamic_cast<QualifiedType*>(type))
+    {
+        SimpleName* name = new SimpleName;
+
+        if (SimpleName * simple = dynamic_cast<SimpleName*>(qualType->name))
+        {
+            name->id = simple->id;
+        }
+        else if (QualifiedName * qual = dynamic_cast<QualifiedName*>(qualType->name))
+        {
+            name->id = qual->simpleName->id;
+        }
+        name->refers_to = qualType->name->refers_to;
+
+        assert(name->refers_to != nullptr);
+
+        QualifiedType* clone = new QualifiedType();
+        clone->name = name;
+        return clone;
+    }
+    else if (ArrayType * arrayType = dynamic_cast<ArrayType*>(type))
+    {
+        ArrayType* clone = new ArrayType();
+        clone->elementType = cloneType(arrayType->elementType);
+        return clone;
+    }
+
+    return nullptr;
+}
+
+TypeCheckingVisitor::TypeCheckingVisitor(Environment* globalEnv)
+    :globalEnvironment(globalEnv)
+{
+}
+
+void TypeCheckingVisitor::visit(ClassDeclaration& node)
+{
+    enclosingClass = &node;
+}
+
+void TypeCheckingVisitor::visit(MethodDeclaration & node)
+{
+    returnType = node.type;
+}
+
+void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
+{
+    PrimitiveType* voidType = new PrimitiveType();
+    voidType->type = PrimitiveType::VOID;
+    returnType = voidType;
+}
+
+void TypeCheckingVisitor::visit(Block& node)
+{
+    localEnvironment = node.getEnvironment();
+}
+
+void TypeCheckingVisitor::leave(ConstructorDeclaration& node)
+{
+    delete returnType;
+    returnType = nullptr;
+}
+
+void TypeCheckingVisitor::leave(IntLiteral& node)
+{
+    PrimitiveType* type = new PrimitiveType();
+    type->type = PrimitiveType::INT;
+    node.resolvedType = type;
+}
+
+void TypeCheckingVisitor::leave(CharLiteral& node)
+{
+    PrimitiveType* type = new PrimitiveType();
+    type->type = PrimitiveType::CHAR;
+    node.resolvedType = type;
+}
+
+void TypeCheckingVisitor::leave(StringLiteral& node)
+{
+    // Create a type that refers to string
+    SimpleName* stringName = new SimpleName;
+    stringName->id = "String";
+    stringName->refers_to = globalEnvironment->classes["java.lang.String"];
+
+    assert(stringName->refers_to != nullptr);
+
+    QualifiedType* stringType = new QualifiedType();
+    stringType->name = stringName;
+
+    node.resolvedType = stringType;
+}
+
+void TypeCheckingVisitor::leave(BooleanLiteral& node)
+{
+    PrimitiveType* type = new PrimitiveType();
+    type->type = PrimitiveType::INT;
+    node.resolvedType = type;
+}
+
+void TypeCheckingVisitor::leave(NullLiteral& node)
+{
+    PrimitiveType* type = new PrimitiveType();
+    type->type = PrimitiveType::INT;
+    node.resolvedType = type;
+}
+
 Environment resolveNames(std::vector<ASTNode*> asts)
 {
     // Create environments
@@ -736,6 +850,9 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     // Disambiguate ambiguous namespace and resolve expressions
     DisambiguationVisitor disambiguation_visitor(&global);
     for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
+
+    TypeCheckingVisitor type_check_visitor(&global);
+    for (ASTNode* ast : asts) ast->visitAll(type_check_visitor);
 
     return global;
 }
