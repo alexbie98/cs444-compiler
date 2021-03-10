@@ -51,7 +51,7 @@ class DisambiguationVisitor: public ASTNodeVisitor
 {
     Environment* global;
 
-    virtual void disambiguate(const std::vector<SimpleName*>& exp);
+    bool disambiguate(const std::vector<SimpleName*>& exp);
 
 public:
     DisambiguationVisitor(Environment* global): global{global} {}

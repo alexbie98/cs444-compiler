@@ -143,14 +143,13 @@ void EnvironmentVisitor::visit(VariableDeclarationExpression& node)
 {  
     const std::string& name = node.name->getString();
 
+    // Check outter scopes for duplicates
     Environment* env = environments.top();
-
     while(env && !dynamic_cast<TypeDeclaration*>(env->node))
     {
-        
         if(env->contains(name))
         {
-            cout << "Redefinition of local variable " << name << endl;
+            cout << "Redefinition of local variable (can only shadow fields)" << name << endl;
             exit(42);
         }
 
@@ -593,7 +592,43 @@ ClassDeclaration* getEnclosingClass(ASTNode* node)
     return dynamic_cast<ClassDeclaration*>(parent);
 }
 
-void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
+// Returns true if name is in the expression namespace, false otherwise.
+bool resolveExpression(SimpleName* name)
+{
+    // If local var/ parameter exists in scope
+    Environment* scanner = getClosestScope(name);
+    while(scanner)
+    {
+        if(scanner->variables.find(name->id) != scanner->variables.end())
+        {
+            name->refers_to = scanner->variables[name->id];
+            return true;
+        }
+        if(scanner->formal_params.find(name->id) != scanner->formal_params.end())
+        {
+            name->refers_to = scanner->formal_params[name->id];
+            return true;
+        }
+        // a_2, ..., a_n are instance fields
+
+        scanner = scanner->parent;
+    }
+
+    // If field is in contain set of current class
+    ClassDeclaration* enclosing_class = getEnclosingClass(name);
+    assert(enclosing_class->containedFields); // TODO Populate containedFields
+    if(enclosing_class->containedFields->find(name->id) != enclosing_class->containedFields->end())
+    {
+        name->refers_to = (*enclosing_class->containedFields)[name->id];
+        // a_2, ..., a_n are instance fields
+        return true;
+    }
+
+    return false;
+}
+
+// Returns whether it succeeded in disambiguating exp
+bool DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
 {
     // for(SimpleName* name: exp) std::cout << name->id << ".";
     // std::cout << std::endl;
@@ -603,40 +638,13 @@ void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
     std::string a1 = exp[0]->id;
 
     // If local var/ parameter exists in scope
-    Environment* scanner = getClosestScope(exp[0]);
-    while(scanner)
-    {
-        if(scanner->variables.find(a1) != scanner->variables.end())
-        {
-            exp[0]->refers_to = scanner->variables[a1];
-            break;
-        }
-        if(scanner->formal_params.find(a1) != scanner->formal_params.end())
-        {
-            exp[0]->refers_to = scanner->formal_params[a1];
-            break;
-        }
-        // a_2, ..., a_n are instance fields
+    // If field a1 is in contain set of current class (Done after in resolve Expression)
+    resolveExpression(exp[0]);
 
-        scanner = scanner->parent;
-    }
-
-    // If field a1 is in contain set of current class
-    if(!exp[0]->refers_to)
-    {
-        ClassDeclaration* enclosing_class = getEnclosingClass(exp[0]);
-        assert(enclosing_class->containedFields); // TODO Populate containedFields
-        if(enclosing_class->containedFields->find(a1) != enclosing_class->containedFields->end())
-        {
-            exp[0]->refers_to = (*enclosing_class->containedFields)[a1];
-            // a_2, ..., a_n are instance fields
-        }
-    }
-
+    // Shortest prefix that's a valid class
     if(!exp[0]->refers_to)
     {
         size_t i = 0;
-        // Shortest prefix that's a valid class
         while(true)
         {
             // Shouldn't be an interface
@@ -657,6 +665,9 @@ void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
         // ak+2, ..., an instance fields
     }
 
+    // Failed to disambiguate exp
+    if(!exp[0]->refers_to) return false;
+
     // Make each QualifiedName refer to what it's immediate SimpleName refers to.
     // For example, the QualifiedName for a.b.c would have c as the SimpleName, and so
     // a.b.c and c would point to the same thing.
@@ -668,23 +679,43 @@ void DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
             dynamic_cast<QualifiedName*>(name->parent)->refers_to = name->refers_to;
         } 
     }
+
+    return true;
 }
 
 void DisambiguationVisitor::visit(NameExpression& node)
 {
-    std::vector<SimpleName*> exp;
-
-    Name* child = node.name;
-    QualifiedName* qualified_child;
-    while(qualified_child = dynamic_cast<QualifiedName*>(child))
+    if(dynamic_cast<SimpleName*>(node.name))
     {
-        exp.push_back(qualified_child->simpleName);
-        child = qualified_child->name;
+        // Resolve expression
+        if(!resolveExpression(dynamic_cast<SimpleName*>(node.name)))
+        {
+            std::cout << "Failed to find expression " << node.name << std::endl;
+            exit(42);
+        }
     }
-    exp.push_back(dynamic_cast<SimpleName*>(child));
-    std::reverse(exp.begin(), exp.end());
+    else
+    {
+        assert(dynamic_cast<QualifiedName*>(node.name));
+        // Disambiguate ambiguous namespace
+        std::vector<SimpleName*> exp;
 
-    disambiguate(exp);
+        Name* child = node.name;
+        QualifiedName* qualified_child;
+        while(qualified_child = dynamic_cast<QualifiedName*>(child))
+        {
+            exp.push_back(qualified_child->simpleName);
+            child = qualified_child->name;
+        }
+        exp.push_back(dynamic_cast<SimpleName*>(child));
+        std::reverse(exp.begin(), exp.end());
+
+        if(!disambiguate(exp))
+        {
+            std::cout << "Failed to disambiguate expression " << node.name->getString() << std::endl;
+            exit(42);
+        }
+    }
 }
 
 Environment resolveNames(std::vector<ASTNode*> asts)
@@ -702,7 +733,7 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     // Check class hierarchy
     CheckEnvironmentHierarchy(global);
 
-    // Disambiguate ambiguous namespace
+    // Disambiguate ambiguous namespace and resolve expressions
     DisambiguationVisitor disambiguation_visitor(&global);
     for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
 
