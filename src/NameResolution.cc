@@ -970,10 +970,11 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     {
         if (PrimitiveType * primCast = dynamic_cast<PrimitiveType*>(castType))
         {
-            if (primBase->type == primCast->type)
-            {
-                return true;
-            }
+            return primBase->type == primCast->type;
+        }
+        else
+        {
+            return primBase->type == PrimitiveType::NULL_TYPE;
         }
     }
     else if (QualifiedType * qualBase = dynamic_cast<QualifiedType*>(baseType))
