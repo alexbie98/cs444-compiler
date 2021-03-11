@@ -816,8 +816,8 @@ ASTNode* buildAST(ParseTreeNode* node)
                 PrefixOperation* prefix = new PrefixOperation();
                 switch (node->children[0]->symbol)
                 {
-                case MINUS: prefix->op = PrefixOperation::MINUS;
-                case NOT:   prefix->op = PrefixOperation::NOT;
+                case MINUS: prefix->op = PrefixOperation::MINUS; break;
+                case NOT:   prefix->op = PrefixOperation::NOT; break;
                 }
                 prefix->operand = dynamic_cast<Expression*>(buildAST(node->children[1]));
                 return prefix;
