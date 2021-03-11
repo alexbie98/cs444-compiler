@@ -194,235 +194,260 @@ void EnvironmentVisitor::leave(MethodDeclaration& node) { environments.pop(); }
 void EnvironmentVisitor::leave(ConstructorDeclaration& node) { environments.pop(); }
 void EnvironmentVisitor::leave(Block& node) { environments.pop(); }
 
+ASTNode* linkQualifedName(QualifiedName* node, Environment* global, std::string package_name, const std::vector<ASTNode*>& asts)
+{
+    ASTNode* result = nullptr;
+    std::string type_name = node->getString();
+
+    // TODO Fix imports occuring without import statements!
+    if(global->classes.find(type_name) != global->classes.end())
+    {
+        result = global->classes[type_name];
+    }
+    else if(global->interfaces.find(type_name) != global->interfaces.end())
+    {
+        result = global->interfaces[type_name];
+    }
+
+    if(!result) return nullptr;
+
+    // When a fully qualified name resolves to a type, no strict prefix of the fully qualified name can resolve to a type in the same environment.
+    // (no prefixes (consisting of whole identifiers) of fully qualified types themselves resolve to types.)
+    // Iterate over every prefix
+
+    // Get current environment
+    ASTNode* parent = node->parent->parent;
+    Environment* current_env;
+    while(!parent->getEnvironment())
+    {
+        parent = parent->parent;
+    }
+    current_env = parent->getEnvironment();
+    assert(current_env);
+
+    // Find all classes in current package
+    // TODO Store this? Reused in "Type in same package"
+    std::set<std::string> package_classes;
+
+    for(const ASTNode* ast: asts)
+    {
+        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+        // If package name matches, add type decl to simple types
+        if((cunit->packageDecl && cunit->packageDecl->name->getString() == package_name))
+        {
+            // TODO Can we have 0 typedecls in a file?
+            package_classes.insert(cunit->typeDecl->getName()->getString()); 
+        }
+    }
+
+    std::string prefix = type_name;
+    size_t last_period = prefix.size();
+    while(last_period != std::string::npos)
+    {
+        prefix = prefix.substr(0, last_period);
+        last_period = prefix.find_last_of('.');
+
+        // Either prefix is in another package, or inside the current package
+        if(current_env->classes.find(prefix) != current_env->classes.end() ||
+            current_env->interfaces.find(prefix) != current_env->interfaces.end() ||
+            package_classes.find(prefix) != package_classes.end())
+            {
+                std::cout << "Strict prefix of fully qualified name " << type_name 
+                << " collides with type defined in the same scope" <<  std::endl;
+                exit(42);
+            }
+    }
+
+    return result;
+}
+
+ASTNode* linkSimpleName(SimpleName* node, 
+                        Environment* global, 
+                        std::string package_name, 
+                        const std::vector<ASTNode*>& asts,
+                        CompilerUnit* ast_root,
+                        ASTNodeList<ImportDeclaration>* imports)
+{
+    // Enclosing class/interface
+    ASTNode* parent = node->parent;
+    std::string type_name = node->getString();
+
+    while(parent)
+    {
+        if(dynamic_cast<ClassDeclaration*>(parent) &&
+            dynamic_cast<ClassDeclaration*>(parent)->name->getString() == type_name)
+        {
+            return parent;
+        }
+
+        if(dynamic_cast<InterfaceDeclaration*>(parent) &&
+            dynamic_cast<InterfaceDeclaration*>(parent)->name->getString() == type_name)
+        {
+            return parent;
+        }
+        
+        parent = parent->parent;
+    }
+
+    // Single-type import
+    // Scan through import statements
+    for(ImportDeclaration* import: imports->elements)
+    {
+        if(!import->declareAll)
+        {
+            size_t last_delimiter = import->name->getString().find_last_of('.');
+            std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
+            assert(last_delimiter != std::string::npos);
+            std::string import_package_name = import->name->getString().substr(0, last_delimiter);
+
+            for(const ASTNode* ast: asts)
+            {
+                const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                // If package name matches and the type is in the package
+                if(cunit->packageDecl->name->getString() == import_package_name && 
+                    cunit->typeDecl &&
+                    cunit->typeDecl->getName()->getString() == single_type_name)
+                {
+                    if(single_type_name == type_name)
+                    {
+                        return cunit->typeDecl;
+                    }
+                }
+            }
+        }
+    }
+    
+
+    // Type in same package
+    for(const ASTNode* ast: asts)
+    {
+        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+        std::string other_package_name = cunit->packageDecl->name->getString();
+
+        // If package name matches and the type is in the package
+        if(package_name == other_package_name && 
+            cunit->typeDecl && 
+            cunit->typeDecl->getName()->getString() == type_name)
+        {
+            return cunit->typeDecl;
+        }
+    }
+
+    // Import-on-demand package
+
+    // All simple type names must resolve to a unique class or interface.
+    //      Ambiguity does not arise unless you try to use the simple type name
+    //      (Could have both imports but only use qualifed names).
+    //      Imports and packages don't cause ambiguities by themselves, instead
+    //      the evaluation of a type in the file causes ambiguity.
+    bool type_name_found = false;
+    // Scan through import statements
+    for(ImportDeclaration* import: imports->elements)
+    {
+        size_t last_delimiter = import->name->getString().find_last_of('.');
+
+        // If its an import-on-demand package, add its type decl to simple types and check for clash
+        if(import->declareAll)
+        {
+            std::string import_package_name = import->name->getString().substr(0, last_delimiter);
+
+            // Search all packages with packge_name
+            for(const ASTNode* ast: asts)
+            {
+                // Exclude current file
+                if(ast != ast_root)
+                {
+                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+
+                    // If package name matches, add type decl to simple types
+                    if(cunit->packageDecl && cunit->packageDecl->name->getString() == import_package_name)
+                    {
+                        std::string simple_type_name = cunit->typeDecl->getName()->getString();
+
+                        if(simple_type_name == type_name)
+                        {
+                            if(type_name_found)
+                            {
+                                std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
+                                exit(42);
+                            }
+                            type_name_found = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Import-on-demand package (contd...)
+
+    // Scan through import statements
+    for(ImportDeclaration* import: imports->elements)
+    {
+        size_t last_delimiter = import->name->getString().find_last_of('.');
+
+        // If the import is a declareAll import
+        if(import->declareAll)
+        {
+            std::string import_package_name = import->name->getString().substr(0, last_delimiter);
+
+            // Search all packages with packge_name for the type
+            for(const ASTNode* ast: asts)
+            {
+                // Exclude current file
+                if(ast != ast_root)
+                {
+                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
+                    assert(cunit);
+
+                    std::string other_package = cunit->packageDecl->name->getString();
+
+                    // If package name matches and the type is in the package
+                    if(cunit->packageDecl && import_package_name == other_package)
+                    {
+                        if(cunit->typeDecl &&
+                            cunit->typeDecl->getName()->getString() == node->getString())
+                        {
+                            return cunit->typeDecl;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 void TypeLinkingVisitor::visit(QualifiedType& node)
 {
     ASTNodeVisitor::visit(dynamic_cast<Type&>(node));
 
     assert(node.name);
-    std::string type_name = node.name->getString();;
+    std::string type_name = node.name->getString();
 
     if(dynamic_cast<QualifiedName*>(node.name))
     {
-        if(global->classes.find(type_name) != global->classes.end())
+        node.name->refers_to = linkQualifedName(dynamic_cast<QualifiedName*>(node.name), global, package_name, asts);
+
+        if(!node.name->refers_to)
         {
-            node.name->refers_to = global->classes[type_name];
-        }
-        else if(global->interfaces.find(type_name) != global->interfaces.end())
-        {
-            node.name->refers_to = global->interfaces[type_name];
-        }
-        else
-        {
-            std::cout << "Undefined qualified type name \"" << type_name << "\" used";
+            std::cout << "Undefined qualified type name \"" << node.name->getString() << "\" used";
             exit(42);
-        }
-
-        // When a fully qualified name resolves to a type, no strict prefix of the fully qualified name can resolve to a type in the same environment.
-        // (no prefixes (consisting of whole identifiers) of fully qualified types themselves resolve to types.)
-        // Iterate over every prefix
-
-        // Get current environment
-        ASTNode* parent = node.parent;
-        Environment* current_env;
-        while(!parent->getEnvironment())
-        {
-            parent = parent->parent;
-        }
-        current_env = parent->getEnvironment();
-        assert(current_env);
-
-        // Find all classes in current package
-        // TODO Store this? Reused in "Type in same package"
-        std::set<std::string> package_classes;
-
-        for(const ASTNode* ast: asts)
-        {
-            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-            // If package name matches, add type decl to simple types
-            if((cunit->packageDecl && cunit->packageDecl->name->getString() == package_name))
-            {
-                // TODO Can we have 0 typedecls in a file?
-                package_classes.insert(cunit->typeDecl->getName()->getString()); 
-            }
-        }
-
-        std::string prefix = type_name;
-        size_t last_period = prefix.size();
-        while(last_period != std::string::npos)
-        {
-            prefix = prefix.substr(0, last_period);
-            last_period = prefix.find_last_of('.');
-
-            // Either prefix is in another package, or inside the current package
-            if(current_env->classes.find(prefix) != current_env->classes.end() ||
-               current_env->interfaces.find(prefix) != current_env->interfaces.end() ||
-               package_classes.find(prefix) != package_classes.end())
-               {
-                    std::cout << "Strict prefix of fully qualified name " << type_name 
-                    << " collides with type defined in the same scope" <<  std::endl;
-                    exit(42);
-               }
         }
     }
     else
     {
-        // Enclosing class/interface
-        ASTNode* parent = node.parent;
+        node.name->refers_to = linkSimpleName(dynamic_cast<SimpleName*>(node.name), global, package_name, asts, ast_root, imports);
 
-        while(parent)
+        if(!node.name->refers_to)
         {
-            if(dynamic_cast<ClassDeclaration*>(parent) &&
-               dynamic_cast<ClassDeclaration*>(parent)->name->getString() == type_name)
-            {
-                node.name->refers_to = parent;
-                return;
-            }
-
-            if(dynamic_cast<InterfaceDeclaration*>(parent) &&
-               dynamic_cast<InterfaceDeclaration*>(parent)->name->getString() == type_name)
-            {
-                node.name->refers_to = parent;
-                return;
-            }
-            
-            parent = parent->parent;
+            // All type names must resolve to some class or interface declared in some file listed on the Joos command line.
+            std::cout << "Type name " << node.name->getString() << " does not exist" << std::endl;
+            exit(42);
         }
-
-        // Single-type import
-        // Scan through import statements
-        for(ImportDeclaration* import: imports->elements)
-        {
-            if(!import->declareAll)
-            {
-                size_t last_delimiter = import->name->getString().find_last_of('.');
-                std::string single_type_name = import->name->getString().substr(last_delimiter + 1);
-                assert(last_delimiter != std::string::npos);
-                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
-
-                for(const ASTNode* ast: asts)
-                {
-                    const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                    // If package name matches and the type is in the package
-                    if(cunit->packageDecl->name->getString() == import_package_name && 
-                       cunit->typeDecl &&
-                       cunit->typeDecl->getName()->getString() == single_type_name)
-                    {
-                        if(single_type_name == type_name)
-                        {
-                            node.name->refers_to = cunit->typeDecl;
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-        
-
-        // Type in same package
-        for(const ASTNode* ast: asts)
-        {
-            const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-            std::string other_package_name = cunit->packageDecl->name->getString();
-
-            // If package name matches and the type is in the package
-            if(package_name == other_package_name && 
-                cunit->typeDecl && 
-                cunit->typeDecl->getName()->getString() == type_name)
-            {
-                node.name->refers_to = cunit->typeDecl;
-                return;
-            }
-        }
-
-        // Import-on-demand package
-
-        // All simple type names must resolve to a unique class or interface.
-        //      Ambiguity does not arise unless you try to use the simple type name
-        //      (Could have both imports but only use qualifed names).
-        //      Imports and packages don't cause ambiguities by themselves, instead
-        //      the evaluation of a type in the file causes ambiguity.
-        bool type_name_found = false;
-        // Scan through import statements
-        for(ImportDeclaration* import: imports->elements)
-        {
-            size_t last_delimiter = import->name->getString().find_last_of('.');
-
-            // If its an import-on-demand package, add its type decl to simple types and check for clash
-            if(import->declareAll)
-            {
-                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
-
-                // Search all packages with packge_name
-                for(const ASTNode* ast: asts)
-                {
-                    // Exclude current file
-                    if(ast != ast_root)
-                    {
-                        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-
-                        // If package name matches, add type decl to simple types
-                        if(cunit->packageDecl && cunit->packageDecl->name->getString() == import_package_name)
-                        {
-                            std::string simple_type_name = cunit->typeDecl->getName()->getString();
-
-                            if(simple_type_name == type_name)
-                            {
-                                if(type_name_found)
-                                {
-                                    std::cout << "Simple type name " << simple_type_name << " redefined" <<  std::endl;
-                                    exit(42);
-                                }
-                                type_name_found = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Import-on-demand package (contd...)
-
-        // Scan through import statements
-        for(ImportDeclaration* import: imports->elements)
-        {
-            size_t last_delimiter = import->name->getString().find_last_of('.');
-
-            // If the import is a declareAll import
-            if(import->declareAll)
-            {
-                std::string import_package_name = import->name->getString().substr(0, last_delimiter);
-
-                // Search all packages with packge_name for the type
-                for(const ASTNode* ast: asts)
-                {
-                    // Exclude current file
-                    if(ast != ast_root)
-                    {
-                        const CompilerUnit* cunit = dynamic_cast<const CompilerUnit*>(ast);
-                        assert(cunit);
-
-                        std::string other_package = cunit->packageDecl->name->getString();
-
-                        // If package name matches and the type is in the package
-                        if(cunit->packageDecl && import_package_name == other_package)
-                        {
-                            if(cunit->typeDecl &&
-                                cunit->typeDecl->getName()->getString() == node.name->getString())
-                            {
-                                node.name->refers_to = cunit->typeDecl;
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // All type names must resolve to some class or interface declared in some file listed on the Joos command line.
-        std::cout << "Type name " << node.name->getString() << " does not exist" << std::endl;
-        exit(42);
     }
 }
 
@@ -628,37 +653,37 @@ bool resolveExpression(SimpleName* name)
 }
 
 // Returns whether it succeeded in disambiguating exp
-bool DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
+bool DisambiguationVisitor::disambiguate(const std::vector<Name*>& exp)
 {
     // for(SimpleName* name: exp) std::cout << name->id << ".";
     // std::cout << std::endl;
 
     assert(exp.size());
     assert(!exp[0]->refers_to);
-    std::string a1 = exp[0]->id;
+    assert(dynamic_cast<SimpleName*>(exp[0]));
+
+    SimpleName* exp_base = dynamic_cast<SimpleName*>(exp[0]);
+    std::string a1 = exp_base->id;
 
     // If local var/ parameter exists in scope
     // If field a1 is in contain set of current class (Done after in resolve Expression)
-    resolveExpression(exp[0]);
+    resolveExpression(exp_base);
 
     // Shortest prefix that's a valid class
     if(!exp[0]->refers_to)
     {
-        size_t i = 0;
-        while(true)
+        exp[0]->refers_to = linkSimpleName(exp_base, global, package_name, asts, ast_root, imports);
+    }
+
+    if(!exp[0]->refers_to)
+    {
+        for(Name* name: exp)
         {
-            // Shouldn't be an interface
-            if(global->classes.find(a1) != global->classes.end())
+            if(dynamic_cast<QualifiedName*>(name))
             {
-                ClassDeclaration* class_decl = global->classes[a1];
-                for(size_t j = 0; j <= i; j++) exp[j]->refers_to = class_decl; 
-                break;
+                exp[0]->refers_to = linkQualifedName(dynamic_cast<QualifiedName*>(name), global, package_name, asts);
+                if(exp[0]->refers_to) break;
             }
-
-            i++;
-
-            if(i < exp.size()) a1 += "." + exp[i]->id;
-            else break;
         }
 
         // ak+1 static field
@@ -671,12 +696,12 @@ bool DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
     // Make each QualifiedName refer to what it's immediate SimpleName refers to.
     // For example, the QualifiedName for a.b.c would have c as the SimpleName, and so
     // a.b.c and c would point to the same thing.
-    for(SimpleName* name: exp)
+    for(Name* name: exp)
     {
         // Second SimpleName overides first if more than one exist.
         if(name->refers_to && dynamic_cast<QualifiedName*>(name->parent))
         {
-            dynamic_cast<QualifiedName*>(name->parent)->refers_to = name->refers_to;
+            dynamic_cast<QualifiedName*>(name->parent)->simpleName->refers_to = name->refers_to;
         } 
     }
 
@@ -685,37 +710,32 @@ bool DisambiguationVisitor::disambiguate(const std::vector<SimpleName*>& exp)
 
 void DisambiguationVisitor::visit(NameExpression& node)
 {
-    if(dynamic_cast<SimpleName*>(node.name))
-    {
-        // Resolve expression
-        if(!resolveExpression(dynamic_cast<SimpleName*>(node.name)))
-        {
-            std::cout << "Failed to find expression " << node.name << std::endl;
-            exit(42);
-        }
-    }
-    else
-    {
-        assert(dynamic_cast<QualifiedName*>(node.name));
-        // Disambiguate ambiguous namespace
-        std::vector<SimpleName*> exp;
+    // Create vector of each prefix of the QualifiedName
+    std::vector<Name*> exp;
 
-        Name* child = node.name;
-        QualifiedName* qualified_child;
-        while(qualified_child = dynamic_cast<QualifiedName*>(child))
-        {
-            exp.push_back(qualified_child->simpleName);
-            child = qualified_child->name;
-        }
-        exp.push_back(dynamic_cast<SimpleName*>(child));
-        std::reverse(exp.begin(), exp.end());
-
-        if(!disambiguate(exp))
-        {
-            std::cout << "Failed to disambiguate expression " << node.name->getString() << std::endl;
-            exit(42);
-        }
+    Name* child = node.name;
+    QualifiedName* qualified_child;
+    while(qualified_child = dynamic_cast<QualifiedName*>(child))
+    {
+        exp.push_back(qualified_child);
+        child = qualified_child->name;
     }
+    exp.push_back(child);
+    std::reverse(exp.begin(), exp.end());
+
+    if(!disambiguate(exp))
+    {
+        std::cout << "Failed to disambiguate expression " << node.name->getString() << std::endl;
+        exit(42);
+    }
+}
+
+void DisambiguationVisitor::visit(CompilerUnit& node)
+{
+    assert(node.packageDecl);
+    package_name = node.packageDecl->name->getString();
+    imports = node.importDecls;
+    ast_root = &node;
 }
 
 Type* cloneType(Type* type)
@@ -1556,7 +1576,7 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     CheckEnvironmentHierarchy(global);
 
     // Disambiguate ambiguous namespace and resolve expressions
-    DisambiguationVisitor disambiguation_visitor(&global);
+    DisambiguationVisitor disambiguation_visitor(&global, asts);
     for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
 
     TypeCheckingVisitor type_check_visitor(&global);

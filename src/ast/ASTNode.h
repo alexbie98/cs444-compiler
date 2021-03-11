@@ -783,8 +783,8 @@ struct TypeDeclaration : public ASTNode // abstract
     std::string fullyQualifiedName;
 
     std::unique_ptr<std::vector<InterfaceDeclaration*>> interfaces;
-    std::unique_ptr<std::unordered_map<std::string, MethodDeclaration*>> containedMethods;
-    std::unique_ptr<std::unordered_map<std::string, FieldDeclaration*>> containedFields; // TODO Populate
+    std::unique_ptr<std::unordered_map<std::string, std::vector<MethodDeclaration*>>> containedAbstractMethods;
+    std::unique_ptr<std::unordered_map<MethodDeclaration*, std::vector<MethodDeclaration*>>> replaceMethods;
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -811,6 +811,11 @@ struct ClassDeclaration : public TypeDeclaration
 
     ClassDeclaration * baseClass = nullptr;
 
+    std::unique_ptr<std::unordered_map<std::string, MethodDeclaration *>> containedConcreteMethods;
+    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields;
+    
+    std::unique_ptr<std::unordered_map<FieldDeclaration *, FieldDeclaration *>> replaceFields;
+
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
@@ -829,6 +834,7 @@ struct InterfaceDeclaration : public TypeDeclaration
     SimpleName* name = nullptr;
     ASTNodeList<Type>* extends = nullptr;
     ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
+
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -897,8 +903,6 @@ struct MethodDeclaration : public MemberDeclaration
     SimpleName* name = nullptr;
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
-
-    MethodDeclaration *overriding = nullptr;
 
     virtual ~MethodDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
