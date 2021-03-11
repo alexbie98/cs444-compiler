@@ -208,6 +208,11 @@ NameExpression::~NameExpression()
     {
         delete name;
     }
+
+    if (field)
+    {
+        delete field;
+    }
 }
 
 void NameExpression::visitAllInner(ASTNodeVisitor& v)
@@ -217,6 +222,11 @@ void NameExpression::visitAllInner(ASTNodeVisitor& v)
     if (name)
     {
         name->visitAll(v);
+    }
+
+    if (field)
+    {
+        field->visitAll(v);
     }
 }
 

@@ -1076,6 +1076,28 @@ void TypeCheckingVisitor::visit(Block& node)
     localEnvironment = node.getEnvironment();
 }
 
+void TypeCheckingVisitor::visit(NameExpression& node)
+{
+    if (node.name->refers_to == nullptr)
+    {
+        // hasn't been resolved in prev step so it must be an instance field
+        QualifiedName* qualName = dynamic_cast<QualifiedName*>(node.name);
+        node.field = new FieldAccess();
+        node.field->name = qualName->simpleName;
+        
+        NameExpression* prevName = new NameExpression();
+        prevName->name = qualName->name;
+        node.field->prevExpr = prevName;
+        node.field->parent = &node;
+        
+        qualName->simpleName = nullptr;
+        qualName->name = nullptr;
+
+        delete qualName;
+        node.name = nullptr;
+    }
+}
+
 void TypeCheckingVisitor::leave(ConstructorDeclaration& node)
 {
     delete returnType;
@@ -1127,32 +1149,47 @@ void TypeCheckingVisitor::leave(NullLiteral& node)
 
 void TypeCheckingVisitor::leave(NameExpression& node)
 {
-    if (node.name->refers_to == nullptr)
+    if (node.name)
     {
-        cout << "Name should be resolved by now" << endl;
-        exit(42);
-    }
+        if (node.name->refers_to == nullptr)
+        {
+            cout << "Name should be resolved by now" << endl;
+            exit(42);
+        }
 
-    if (FormalParameter * param = dynamic_cast<FormalParameter*>(node.name->refers_to))
-    {
-        node.resolvedType = cloneType(param->type);
-    }
-    else if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(node.name->refers_to))
-    {
-        node.resolvedType = cloneType(field->declaration->type);
-    }
-    else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
-    {
-        node.resolvedType = cloneType(var->type);
-    }
-    else if (ClassDeclaration * type = dynamic_cast<ClassDeclaration*>(node.name->refers_to))
-    {
-        node.resolvedType = typeFromDecl(type);
+        if (FormalParameter * param = dynamic_cast<FormalParameter*>(node.name->refers_to))
+        {
+            node.resolvedType = cloneType(param->type);
+        }
+        else if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(node.name->refers_to))
+        {
+            node.resolvedType = cloneType(field->declaration->type);
+        }
+        else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
+        {
+            node.resolvedType = cloneType(var->type);
+        }
+        else if (ClassDeclaration * type = dynamic_cast<ClassDeclaration*>(node.name->refers_to))
+        {
+            node.resolvedType = typeFromDecl(type);
+        }
+        else
+        {
+            cout << "Should refer to one of the above" << endl;
+            assert(false);
+        }
     }
     else
     {
-        cout << "Should refer to one of the above" << endl;
-        assert(false);
+        if (node.field->resolvedType)
+        {
+            node.resolvedType = cloneType(node.field->resolvedType);
+        }
+        else
+        {
+            cout << "Field access of name expr did not resolve type" << endl;
+            exit(42);
+        }
     }
 }
 
@@ -1548,7 +1585,9 @@ void TypeCheckingVisitor::leave(InstanceOfExpression& node)
     {
         if (isCastable(node.expression->resolvedType, node.type))
         {
-            node.resolvedType = cloneType(node.type);
+            PrimitiveType* primType = new PrimitiveType();
+            primType->type = PrimitiveType::BOOLEAN;
+            node.resolvedType = primType;
         }
         else
         {

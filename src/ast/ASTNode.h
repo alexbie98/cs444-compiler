@@ -406,7 +406,9 @@ struct NullLiteral : public Expression
 
 struct NameExpression : public Expression
 {
+    // Only one or the other
     Name* name = nullptr;
+    FieldAccess* field = nullptr;
 
     virtual ~NameExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
