@@ -257,6 +257,8 @@ struct Expression : public ASTNode //abstract
 
 struct Statement : public ASTNode // abstract
 {
+    bool isTypeCorrect = false;
+
     virtual ~Statement() = default;
     virtual std::string toString(){ return "Statement"; }
 };

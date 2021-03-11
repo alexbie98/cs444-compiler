@@ -1549,6 +1549,160 @@ void TypeCheckingVisitor::leave(InstanceOfExpression& node)
     }
 }
 
+void TypeCheckingVisitor::leave(ExpressionStatement& node)
+{
+    if (node.expression->resolvedType)
+    {
+        node.isTypeCorrect = true;
+    }
+    else
+    {
+        cout << "Expression of expression statement does not have resolved type" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(EmptyStatement& node)
+{
+    node.isTypeCorrect = true;
+}
+
+void TypeCheckingVisitor::leave(ReturnStatement& node)
+{
+    if (node.expression)
+    {
+        if (node.expression->resolvedType)
+        {
+            if (isAssignable(returnType, node.expression->resolvedType))
+            {
+                node.isTypeCorrect = true;
+            }
+            else
+            {
+                cout << "Return expression is not assignable to return type" << endl;
+                exit(42);
+            }
+        }
+        else
+        {
+            cout << "Expression has not been resolved" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        if (isVoidType(returnType))
+        {
+            node.isTypeCorrect = true;
+        }
+        else
+        {
+            cout << "Can only use a return without an expression in a void func" << endl;
+            exit(42);
+        }
+    }
+}
+
+void TypeCheckingVisitor::leave(IfStatement& node)
+{
+    if (isBooleanType(node.ifCondition->resolvedType))
+    {
+        if (node.ifBody->isTypeCorrect)
+        {
+            if (node.elseBody)
+            {
+                if (node.elseBody->isTypeCorrect)
+                {
+                    node.isTypeCorrect = true;
+                }
+                else
+                {
+                    cout << "Else body is not type correct" << endl;
+                }
+            }
+            else
+            {
+                node.isTypeCorrect = true;
+            }
+        }
+        else
+        {
+            cout << "If body is not type correct" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        cout << "If condition is not resolved to boolean" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(ForStatement& node)
+{
+    if (node.forInit && node.forInit->resolvedType == nullptr)
+    {
+        cout << "ForInit does not resolve to a type" << endl;
+        exit(42);
+    }
+
+    if (node.forCheck && !isBooleanType(node.forCheck->resolvedType))
+    {
+        cout << "ForCheck does not resolve to a boolean type" << endl;
+        exit(42);
+    }
+
+    if (node.forUpdate && node.forUpdate->resolvedType == nullptr)
+    {
+        cout << "ForUpdate does not resolve to a type" << endl;
+        exit(42);
+    }
+
+    if (node.body->isTypeCorrect)
+    {
+        node.isTypeCorrect = true;
+    }
+    else
+    {
+        cout << "For body is not type correct" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(WhileStatement& node)
+{
+    if (isBooleanType(node.condition->resolvedType))
+    {
+        if (node.body->isTypeCorrect)
+        {
+            node.isTypeCorrect = true;
+        }
+        else
+        {
+            cout << "While body is not type correct" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        cout << "While condition is not resolved to boolean" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(Block& node)
+{
+    for (Statement* statement : node.statements->elements)
+    {
+        if (!statement->isTypeCorrect)
+        {
+            cout << "Statement within block is not type correct" << endl;
+            exit(42);
+        }
+    }
+    node.isTypeCorrect = true;
+}
+
 Environment resolveNames(std::vector<ASTNode*> asts)
 {
     // Create environments
@@ -1569,7 +1723,7 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
 
     TypeCheckingVisitor type_check_visitor(&global);
-    //for (ASTNode* ast : asts) ast->visitAll(type_check_visitor);
+    for (ASTNode* ast : asts) ast->visitAll(type_check_visitor);
 
     return global;
 }
