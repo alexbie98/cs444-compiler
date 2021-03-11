@@ -1285,6 +1285,24 @@ void TypeCheckingVisitor::leave(NameExpression& node)
         }
         else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
         {
+            if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(var->parent))
+            {
+                bool isStatic = false;
+                for (Modifier* modifier : field->modifiers->elements)
+                {
+                    if (modifier->type == Modifier::STATIC)
+                    {
+                        isStatic = true;
+                    }
+                }
+
+                if (!isStatic && isStaticMethod)
+                {
+                    cout << "Cannot use an implicit this in a static method (can only use static fields)" << endl;
+                    exit(42);
+                }
+            }
+
             node.resolvedType = cloneType(var->type);
         }
         else if (ClassDeclaration * type = dynamic_cast<ClassDeclaration*>(node.name->refers_to))
