@@ -688,7 +688,11 @@ bool DisambiguationVisitor::disambiguate(const std::vector<Name*>& exp)
             if(dynamic_cast<QualifiedName*>(name))
             {
                 exp[0]->refers_to = linkQualifedName(dynamic_cast<QualifiedName*>(name), global, package_name, asts);
-                if(exp[0]->refers_to) break;
+                if (exp[0]->refers_to) 
+                {
+                    name->refers_to = exp[0]->refers_to;
+                    break;
+                }
             }
         }
 
