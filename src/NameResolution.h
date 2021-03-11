@@ -78,6 +78,33 @@ public:
     virtual void leave(StringLiteral& node);
     virtual void leave(BooleanLiteral& node);
     virtual void leave(NullLiteral& node);
+    virtual void leave(NameExpression& node);
+    virtual void leave(BinaryOperation& node);
+    virtual void leave(PrefixOperation& node);
+    virtual void leave(CastExpression& node);
+    virtual void leave(AssignmentExpression& node);
+    virtual void leave(ParenthesizedExpression& node);
+    virtual void leave(ClassInstanceCreator& node);
+    virtual void leave(ArrayCreator& node);
+    virtual void leave(MethodCall& node);
+    virtual void leave(FieldAccess& node);
+    virtual void leave(ArrayAccess& node);
+    virtual void leave(ThisExpression& node);
+    virtual void leave(VariableDeclarationExpression& node);
+    virtual void leave(InstanceOfExpression& node);
+
+private:
+    bool isAssignable(Type* lhs, Type* rhs) const;
+    bool isDerived(TypeDeclaration* base, TypeDeclaration* derived) const;
+    bool isBooleanType(Type* type) const;
+    bool isVoidType(Type* type) const;
+    bool isNumericType(Type* type) const;
+    bool isStringType(Type* type) const;
+    bool isRefType(Type* type) const;
+    bool isNullType(Type* type) const;
+    bool isInterfaceType(Type* type) const;
+
+    bool isCastable(Type* baseType, Type* castType) const;
 };
 
 

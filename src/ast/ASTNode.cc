@@ -1083,3 +1083,11 @@ std::string PrimitiveType::getTypeName() const
     }
     return "";
 }
+
+Expression::~Expression()
+{
+    if (resolvedType)
+    {
+        delete resolvedType;
+    }
+}

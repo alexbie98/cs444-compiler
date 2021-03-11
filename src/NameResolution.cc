@@ -756,8 +756,269 @@ Type* cloneType(Type* type)
     return nullptr;
 }
 
+Type* typeFromDecl(ClassDeclaration* decl)
+{
+    SimpleName* name = new SimpleName();
+    name->id = decl->name->id;
+    name->refers_to = decl;
+    
+    QualifiedType* type = new QualifiedType();
+    type->name = name;
+    
+    return type;
+}
+
+bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
+{
+    if (lhs && rhs)
+    {
+        if (PrimitiveType * primLhs = dynamic_cast<PrimitiveType*>(lhs))
+        {
+            if (PrimitiveType * primRhs = dynamic_cast<PrimitiveType*>(rhs))
+            {
+                if (primLhs->type == primRhs->type)
+                {
+                    return true;
+                }
+
+                switch (primLhs->type)
+                {
+                case PrimitiveType::INT:
+                    if (primRhs->type == PrimitiveType::SHORT || primRhs->type == PrimitiveType::CHAR)
+                    {
+                        return true;
+                    }
+                case PrimitiveType::SHORT:
+                    if (primRhs->type == PrimitiveType::BYTE)
+                    {
+                        return true;
+                    }
+                    break;
+                }
+            }
+        }
+        else if (isRefType(lhs) && isNullType(rhs))
+        {
+            return true;
+        }
+        else if (QualifiedType * qualLhs = dynamic_cast<QualifiedType*>(lhs))
+        {
+            if (QualifiedType * qualRhs = dynamic_cast<QualifiedType*>(rhs))
+            {
+                TypeDeclaration* lhsType = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to);
+                TypeDeclaration* rhsType = dynamic_cast<TypeDeclaration*>(qualRhs->name->refers_to);
+                assert(lhsType != nullptr && rhsType != nullptr);
+                return (lhsType == rhsType) || isDerived(lhsType, rhsType);
+            }
+        }
+        else if (ArrayType * arrayLhs = dynamic_cast<ArrayType*>(lhs))
+        {
+            if (ArrayType * arrayRhs = dynamic_cast<ArrayType*>(rhs))
+            {
+                Type* lhsElemType = arrayLhs->elementType;
+                Type* rhsElemType = arrayRhs->elementType;
+                if (PrimitiveType * primLhs = dynamic_cast<PrimitiveType*>(lhsElemType))
+                {
+                    if (PrimitiveType * primRhs = dynamic_cast<PrimitiveType*>(rhsElemType))
+                    {
+                        return true;
+                    }
+                }
+                else if (QualifiedType * qualLhs = dynamic_cast<QualifiedType*>(lhsElemType))
+                {
+                    if (QualifiedType * qualRhs = dynamic_cast<QualifiedType*>(rhsElemType))
+                    {
+                        TypeDeclaration* lhsType = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to);
+                        TypeDeclaration* rhsType = dynamic_cast<TypeDeclaration*>(qualRhs->name->refers_to);
+                        assert(lhsType != nullptr && rhsType != nullptr);
+                        return (lhsType == rhsType) || isDerived(lhsType, rhsType);
+                    }
+                }
+            }
+        }
+
+    }
+    return false;
+}
+
+bool TypeCheckingVisitor::isDerived(TypeDeclaration* base, TypeDeclaration* derived) const
+{
+    if (base != nullptr)
+    {
+        if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(derived))
+        {
+            if (classDecl->baseClass == base) return true;
+            for (InterfaceDeclaration* inter : *classDecl->interfaces)
+            {
+                if (inter == base) return true;
+            }
+
+            if (classDecl->baseClass && isDerived(base, classDecl->baseClass))
+            {
+                return true;
+            }
+            for (InterfaceDeclaration* inter : *classDecl->interfaces)
+            {
+                if (isDerived(base, inter)) return true;
+            }
+        }
+        else if (InterfaceDeclaration * interDecl = dynamic_cast<InterfaceDeclaration*>(derived))
+        {
+            if (dynamic_cast<InterfaceDeclaration*>(base))
+            {
+                for (InterfaceDeclaration* inter : *interDecl->interfaces)
+                {
+                    if (inter == base) return true;
+                }
+                for (InterfaceDeclaration* inter : *interDecl->interfaces)
+                {
+                    if (isDerived(base, inter)) return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+bool TypeCheckingVisitor::isBooleanType(Type* type) const
+{
+    PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
+    return primType && primType->type == PrimitiveType::BOOLEAN;
+}
+
+bool TypeCheckingVisitor::isVoidType(Type* type) const
+{
+    PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
+    return primType && primType->type == PrimitiveType::VOID;
+}
+
+bool TypeCheckingVisitor::isStringType(Type* type) const
+{
+    QualifiedType* qualType = dynamic_cast<QualifiedType*>(type);
+    if (qualType)
+    {
+        return qualType->name->refers_to == globalEnvironment->classes["java.lang.String"];
+    }
+    return false;
+}
+
+bool TypeCheckingVisitor::isRefType(Type* type) const
+{
+    return dynamic_cast<QualifiedType*>(type) || dynamic_cast<ArrayType*>(type);
+}
+
+bool TypeCheckingVisitor::isNullType(Type* type) const
+{
+    PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
+    return primType && primType->type == PrimitiveType::NULL_TYPE;
+}
+
+bool TypeCheckingVisitor::isInterfaceType(Type* type) const
+{
+    QualifiedType* qualType = dynamic_cast<QualifiedType*>(type);
+    if (qualType)
+    {
+        return dynamic_cast<InterfaceDeclaration*>(qualType->name->refers_to);
+    }
+
+    return false;
+}
+
+bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
+{
+    if (isNumericType(baseType) && isNumericType(castType))
+    {
+        return true;
+    }
+    else if (PrimitiveType * primBase = dynamic_cast<PrimitiveType*>(baseType))
+    {
+        if (PrimitiveType * primCast = dynamic_cast<PrimitiveType*>(castType))
+        {
+            if (primBase->type == primCast->type)
+            {
+                return true;
+            }
+        }
+    }
+    else if (QualifiedType * qualBase = dynamic_cast<QualifiedType*>(baseType))
+    {
+        if (QualifiedType * qualCast = dynamic_cast<QualifiedType*>(baseType))
+        {
+            TypeDeclaration* baseDecl = dynamic_cast<TypeDeclaration*>(qualBase->name->refers_to);
+            TypeDeclaration* castDecl = dynamic_cast<TypeDeclaration*>(qualCast->name->refers_to);
+            assert(baseDecl != nullptr && castDecl != nullptr);
+
+            if (baseDecl == castDecl || isDerived(baseDecl, castDecl) || isDerived(castDecl, baseDecl))
+            {
+                return true;
+            }
+
+            InterfaceDeclaration* baseInter = dynamic_cast<InterfaceDeclaration*>(baseDecl);
+            InterfaceDeclaration* castInter = dynamic_cast<InterfaceDeclaration*>(castDecl);
+
+            if (baseInter && castInter)
+            {
+                return true;
+            }
+            
+            if (baseInter)
+            {
+                ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(castDecl);
+                for (Modifier* mod : classDecl->modifiers->elements)
+                {
+                    if (mod->type == Modifier::FINAL)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (castInter)
+            {
+                ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(baseDecl);
+                for (Modifier* mod : classDecl->modifiers->elements)
+                {
+                    if (mod->type == Modifier::FINAL)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+    }
+    else if (ArrayType * arrayBase = dynamic_cast<ArrayType*>(baseType))
+    {
+        if (ArrayType * arrayCast = dynamic_cast<ArrayType*>(castType))
+        {
+            return isCastable(arrayBase->elementType, arrayCast->elementType);
+        }
+    }
+
+    return false;
+}
+
+bool TypeCheckingVisitor::isNumericType(Type* type) const
+{
+    PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
+    if (primType)
+    {
+        switch (primType->type)
+        {
+        case PrimitiveType::BYTE:
+        case PrimitiveType::CHAR:
+        case PrimitiveType::INT:
+        case PrimitiveType::SHORT:
+            return true;
+        }
+    }
+    return false;
+}
+
 TypeCheckingVisitor::TypeCheckingVisitor(Environment* globalEnv)
-    :globalEnvironment(globalEnv)
+    :globalEnvironment(globalEnv), localEnvironment(nullptr), enclosingClass(nullptr), returnType(nullptr)
 {
 }
 
@@ -776,6 +1037,12 @@ void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
     PrimitiveType* voidType = new PrimitiveType();
     voidType->type = PrimitiveType::VOID;
     returnType = voidType;
+
+    if (node.id != enclosingClass->name->id)
+    {
+        cout << "Constructor name does not match class it was declared in" << endl;
+        exit(42);
+    }
 }
 
 void TypeCheckingVisitor::visit(Block& node)
@@ -821,15 +1088,456 @@ void TypeCheckingVisitor::leave(StringLiteral& node)
 void TypeCheckingVisitor::leave(BooleanLiteral& node)
 {
     PrimitiveType* type = new PrimitiveType();
-    type->type = PrimitiveType::INT;
+    type->type = PrimitiveType::BOOLEAN;
     node.resolvedType = type;
 }
 
 void TypeCheckingVisitor::leave(NullLiteral& node)
 {
     PrimitiveType* type = new PrimitiveType();
-    type->type = PrimitiveType::INT;
+    type->type = PrimitiveType::NULL_TYPE;
     node.resolvedType = type;
+}
+
+void TypeCheckingVisitor::leave(NameExpression& node)
+{
+    if (node.name->refers_to == nullptr)
+    {
+        cout << "Name should be resolved by now" << endl;
+        exit(42);
+    }
+
+    if (FormalParameter * param = dynamic_cast<FormalParameter*>(node.name->refers_to))
+    {
+        node.resolvedType = cloneType(param->type);
+    }
+    else if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(node.name->refers_to))
+    {
+        node.resolvedType = cloneType(field->declaration->type);
+    }
+    else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
+    {
+        node.resolvedType = cloneType(var->type);
+    }
+    else
+    {
+        cout << "Should refer to one of the above" << endl;
+        assert(false);
+    }
+}
+
+void TypeCheckingVisitor::leave(BinaryOperation& node)
+{
+    if (!node.lhs->resolvedType || !node.rhs->resolvedType)
+    {
+        cout << "Both sides of binary op must be type correct" << endl;
+        exit(42);
+    }
+
+    switch (node.op)
+    {
+    case BinaryOperation::PLUS:
+        // Special case because we can "add" strings
+        if (isStringType(node.lhs->resolvedType) && !isVoidType(node.rhs->resolvedType))
+        {
+            node.resolvedType = cloneType(node.lhs->resolvedType);
+            break;
+        }
+        else if (isStringType(node.rhs->resolvedType) && !isVoidType(node.lhs->resolvedType))
+        {
+            node.resolvedType = cloneType(node.rhs->resolvedType);
+            break;
+        }
+
+    case BinaryOperation::MINUS:
+    case BinaryOperation::TIMES:
+    case BinaryOperation::DIVIDE:
+    case BinaryOperation::REMAINDER:
+        if (isNumericType(node.lhs->resolvedType) && isNumericType(node.rhs->resolvedType))
+        {
+            PrimitiveType* numType = new PrimitiveType();
+            numType->type = PrimitiveType::INT;
+            node.resolvedType = numType;
+        }
+        else
+        {
+            cout << "Binary math operator requires 2 numeric operands" << endl;
+            exit(42);
+        }
+        break;
+    case BinaryOperation::LT:
+    case BinaryOperation::GT:
+    case BinaryOperation::GEQ:
+    case BinaryOperation::LEQ:
+        if (isNumericType(node.lhs->resolvedType) && isNumericType(node.rhs->resolvedType))
+        {
+            PrimitiveType* boolType = new PrimitiveType();
+            boolType->type = PrimitiveType::BOOLEAN;
+            node.resolvedType = boolType;
+        }
+        else
+        {
+            cout << "Binary relational op requires 2 numeric operands" << endl;
+            exit(42);
+        }
+        break;
+    case BinaryOperation::AND:
+    case BinaryOperation::OR:
+    case BinaryOperation::XOR:
+    case BinaryOperation::EAGER_AND:
+    case BinaryOperation::EAGER_OR:
+        if (isBooleanType(node.lhs->resolvedType) && isBooleanType(node.rhs->resolvedType))
+        {
+            PrimitiveType* boolType = new PrimitiveType();
+            boolType->type = PrimitiveType::BOOLEAN;
+            node.resolvedType = boolType;
+        }
+        else
+        {
+            cout << "Binary boolean op requires 2 boolean operands" << endl;
+            exit(42);
+        }
+        break;
+    case BinaryOperation::EQ:
+    case BinaryOperation::NEQ:
+        if ((isBooleanType(node.lhs->resolvedType) && isBooleanType(node.rhs->resolvedType)) || // bool types
+            (isNumericType(node.lhs->resolvedType) && isNumericType(node.rhs->resolvedType)) || // numeric types
+            ((isRefType(node.lhs->resolvedType) || isNullType(node.lhs->resolvedType)) &&
+            (isRefType(node.rhs->resolvedType) || isNullType(node.rhs->resolvedType))) // ref or null types
+            )
+        {
+            PrimitiveType* boolType = new PrimitiveType();
+            boolType->type = PrimitiveType::BOOLEAN;
+            node.resolvedType = boolType;
+        }
+        else
+        {
+            cout << "Equality op requires both boolean, numeric, or ref/null operands" << endl;
+            exit(42);
+        }
+    }
+}
+
+void TypeCheckingVisitor::leave(PrefixOperation& node)
+{
+    if (node.operand->resolvedType == nullptr)
+    {
+        cout << "Operand of prefix expression was not type checked" << endl;
+        exit(42);
+    }
+
+    switch (node.op)
+    {
+    case PrefixOperation::NOT:
+        if (isBooleanType(node.operand->resolvedType))
+        {
+            node.resolvedType = cloneType(node.operand->resolvedType);
+        }
+        else
+        {
+            cout << "Operand of not expression is not a boolean expression" << endl;
+            exit(42);
+        }
+        break;
+    case PrefixOperation::MINUS:
+        if (isNumericType(node.operand->resolvedType))
+        {
+            node.resolvedType = cloneType(node.operand->resolvedType);
+        }
+        else
+        {
+            cout << "Operand of minus expression is not a numeric expression" << endl;
+            exit(42);
+        }
+    }
+}
+
+void TypeCheckingVisitor::leave(CastExpression& node)
+{
+    if (isCastable(node.expression->resolvedType, node.castType))
+    {
+        node.resolvedType = cloneType(node.castType);
+    }
+    else
+    {
+        cout << "Type is not castable in cast expression" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(AssignmentExpression& node)
+{
+    if (node.lhs->resolvedType == nullptr)
+    {
+        cout << "LHS of assignment was not type checked" << endl;
+        exit(42);
+    }
+
+    if (node.rhs->resolvedType == nullptr)
+    {
+        cout << "RHS of assignment was not type checked" << endl;
+        exit(42);
+    }
+
+    if (isAssignable(node.lhs->resolvedType, node.rhs->resolvedType))
+    {
+        node.resolvedType = cloneType(node.lhs->resolvedType);
+    }
+    else
+    {
+        cout << "RHS was not assignable to LHS of assignment epxresion" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(ParenthesizedExpression& node)
+{
+    node.resolvedType = cloneType(node.expr->resolvedType);
+}
+
+void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
+{
+    for (Expression* expression : node.arguments->elements)
+    {
+        if (expression->resolvedType == nullptr)
+        {
+            cout << "An argument type has not been resolved in a constructor call" << endl;
+            exit(42);
+        }
+    }
+
+    if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(node.type->name->refers_to))
+    {
+        for (MemberDeclaration* member : classDecl->classBody->elements)
+        {
+            if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
+            {
+                // check arguments
+                if (constructor->parameters->elements.size() == node.arguments->elements.size())
+                {
+                    bool match = true;
+                    for (size_t i = 0; i < constructor->parameters->elements.size(); i++)
+                    {
+                        if (constructor->parameters->elements[i]->type->getTypeName() != node.arguments->elements[i]->resolvedType->getTypeName())
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+                    
+                    if (match)
+                    {
+                        node.resolvedType = cloneType(node.type);
+                        return;
+                    }
+                }
+            }
+        }
+
+        cout << "Couldn't find a matching constructor" << endl;
+        exit(42);
+    }
+    else
+    {
+        cout << "Trying to construct non-class type" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(ArrayCreator& node)
+{
+    if (isNumericType(node.argument->resolvedType))
+    {
+        node.resolvedType = cloneType(node.type);
+    }
+    else
+    {
+        cout << "Array creator requires a numeric type argument" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(MethodCall& node)
+{
+    for (Expression* expression : node.arguments->elements)
+    {
+        if (expression->resolvedType == nullptr)
+        {
+            cout << "An argument type has not been resolved in a constructor call" << endl;
+            exit(42);
+        }
+    }
+
+    TypeDeclaration* callingType;
+    if (node.prevExpr)
+    {
+        if (node.prevExpr->resolvedType)
+        {
+            if (TypeDeclaration * typeDecl = dynamic_cast<TypeDeclaration*>(node.prevExpr->resolvedType))
+            {
+                callingType = typeDecl;
+            }
+            else
+            {
+                cout << "Prev expression to method call is not class/interface type" << endl;
+                exit(42);
+            }
+        }
+        else
+        {
+            cout << "Prev expression to method call has not been type checked" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        callingType = enclosingClass;
+    }
+
+
+    vector<MemberDeclaration*>* members;
+    if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(callingType))
+    {
+        members = &classDecl->classBody->elements;
+    }
+    else if (InterfaceDeclaration * interfaceDecl = dynamic_cast<InterfaceDeclaration*>(callingType))
+    {
+        members = &interfaceDecl->interfaceBody->elements;
+    }
+
+    for (pair<string, MethodDeclaration*> keyVal : *(callingType->containedMethods))
+    {
+        MethodDeclaration* method = keyVal.second;
+        if (method->name->id == node.name->id)
+        {
+            // check arguments
+            if (method->parameters->elements.size() == node.arguments->elements.size())
+            {
+                bool match = true;
+                for (size_t i = 0; i < method->parameters->elements.size(); i++)
+                {
+                    if (method->parameters->elements[i]->type->getTypeName() != node.arguments->elements[i]->resolvedType->getTypeName())
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    node.resolvedType = cloneType(method->type);
+                    return;
+                }
+            }
+        }
+    }
+
+    cout << "Couldn't find a matching method declaration" << endl;
+    exit(42);
+
+}
+
+void TypeCheckingVisitor::leave(FieldAccess& node)
+{
+    QualifiedType* qualType = dynamic_cast<QualifiedType*>(node.prevExpr->resolvedType);
+    if (qualType)
+    {
+        if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(qualType->name->refers_to))
+        {
+            if (classDecl->containedFields->find(node.name->id) != classDecl->containedFields->end())
+            {
+                FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
+                node.resolvedType = cloneType(field->declaration->type);
+            }
+            else
+            {
+                cout << "Trying to access a field " + node.name->id + " that does not exist in Class " + classDecl->fullyQualifiedName << endl;
+                exit(42);
+            }
+        }
+    }
+    else if (dynamic_cast<ArrayType*>(node.prevExpr->resolvedType))
+    {
+        if (node.name->id == "length")
+        {
+            PrimitiveType* primType = new PrimitiveType();
+            primType->type = PrimitiveType::INT;
+            node.resolvedType = primType;
+        }
+        else
+        {
+            cout << "Trying to call field of array type that isn't .length" << endl;
+            exit(42);
+        }
+    }
+    cout << "Prev expression of field access does not resolve to a Class" << endl;
+    exit(42);
+}
+
+void TypeCheckingVisitor::leave(ArrayAccess& node)
+{
+    if (ArrayType * arrayType = dynamic_cast<ArrayType*>(node.prevExpr->resolvedType))
+    {
+        if (isNumericType(node.indexExpr->resolvedType))
+        {
+            node.resolvedType = cloneType(arrayType->elementType);
+        }
+        else
+        {
+            cout << "Array access expression is not a numeric type" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        cout << "Trying to access element of non-array type" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(ThisExpression& node)
+{
+    node.resolvedType = typeFromDecl(enclosingClass);
+}
+
+void TypeCheckingVisitor::leave(VariableDeclarationExpression& node)
+{
+    if (node.initializer->resolvedType == nullptr)
+    {
+        cout << "Initializer of variable declaration was not type checked" << endl;
+        exit(42);
+    }
+
+    if (isAssignable(node.type, node.initializer->resolvedType))
+    {
+        node.resolvedType = cloneType(node.type);
+    }
+    else
+    {
+        cout << "Initializer was not assignable to variable declaration" << endl;
+        exit(42);
+    }
+}
+
+void TypeCheckingVisitor::leave(InstanceOfExpression& node)
+{
+    if ((isRefType(node.expression->resolvedType) || isNullType(node.expression->resolvedType)) && isRefType(node.type))
+    {
+        if (isCastable(node.expression->resolvedType, node.type))
+        {
+            node.resolvedType = cloneType(node.type);
+        }
+        else
+        {
+            cout << "Type is not castable in cast expression" << endl;
+            exit(42);
+        }
+    }
+    else
+    {
+        cout << "Instanceof must be between reference types" << endl;
+        exit(42);
+    }
 }
 
 Environment resolveNames(std::vector<ASTNode*> asts)
@@ -852,7 +1560,7 @@ Environment resolveNames(std::vector<ASTNode*> asts)
     for(ASTNode* ast: asts) ast->visitAll(disambiguation_visitor);
 
     TypeCheckingVisitor type_check_visitor(&global);
-    for (ASTNode* ast : asts) ast->visitAll(type_check_visitor);
+    //for (ASTNode* ast : asts) ast->visitAll(type_check_visitor);
 
     return global;
 }

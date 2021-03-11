@@ -478,6 +478,13 @@ ASTNode* buildAST(ParseTreeNode* node)
             ConstructorDeclaration* constructor = new ConstructorDeclaration();
             constructor->parameters = dynamic_cast<ASTNodeList<FormalParameter>*>(buildAST(node->children[1]));
             constructor->body = dynamic_cast<Block*>(buildAST(node->children[2]));
+            
+            if (SimpleName * name = dynamic_cast<SimpleName*>(buildAST(node->children[0])))
+            {
+                constructor->id = name->id;
+                delete name;
+            }
+
             return constructor;
         }
         case FORMAL_PARAMETERS:
@@ -695,7 +702,7 @@ ASTNode* buildAST(ParseTreeNode* node)
         case CLASS_INSTANCE_CREATION_EXPRESSION:
         {
             ClassInstanceCreator* classCreator = dynamic_cast<ClassInstanceCreator*>(buildAST(node->children[2]));
-            classCreator->type = dynamic_cast<Type*>(buildAST(node->children[1]));
+            classCreator->type = dynamic_cast<QualifiedType*>(buildAST(node->children[1]));
             return classCreator;
         }
         case ARRAY_CREATION_EXPRESSION:

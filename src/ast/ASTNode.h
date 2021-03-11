@@ -251,7 +251,7 @@ struct Expression : public ASTNode //abstract
 {
     Type* resolvedType = nullptr ;
 
-    virtual ~Expression() = default;
+    virtual ~Expression();
     virtual std::string toString(){ return "Expression"; }
 };
 
@@ -512,7 +512,7 @@ protected:
 
 struct ClassInstanceCreator : public Expression
 {
-    Type* type = nullptr;
+    QualifiedType* type = nullptr;
     ASTNodeList<Expression>* arguments = nullptr;
 
     virtual ~ClassInstanceCreator();
@@ -782,6 +782,9 @@ struct TypeDeclaration : public ASTNode // abstract
 
     std::string fullyQualifiedName;
 
+    std::unique_ptr<std::vector<InterfaceDeclaration*>> interfaces;
+    std::unique_ptr<std::unordered_map<std::string, MethodDeclaration*>> containedMethods;
+    std::unique_ptr<std::unordered_map<std::string, FieldDeclaration*>> containedFields; // TODO Populate
 protected:
     virtual void visitAllInner(ASTNodeVisitor& v) override;
 };
@@ -807,9 +810,6 @@ struct ClassDeclaration : public TypeDeclaration
     ASTNodeList<MemberDeclaration>* classBody = nullptr;
 
     ClassDeclaration * baseClass = nullptr;
-    std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
-    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
-    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
 
     virtual ~ClassDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -829,10 +829,6 @@ struct InterfaceDeclaration : public TypeDeclaration
     SimpleName* name = nullptr;
     ASTNodeList<Type>* extends = nullptr;
     ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
-
-    std::unique_ptr<std::vector<InterfaceDeclaration *>> interfaces;
-    std::unique_ptr<std::unordered_map<std::string,MethodDeclaration *>> containedMethods;
-    std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields; // TODO Populate
 
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -866,6 +862,7 @@ struct ConstructorDeclaration : public MemberDeclaration
 
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
+    std::string id; // Used to check if constructor name is correct
 
     virtual ~ConstructorDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -897,7 +894,7 @@ struct MethodDeclaration : public MemberDeclaration
     Environment environment;
 
     Type* type = nullptr;
-    Name* name = nullptr;
+    SimpleName* name = nullptr;
     ASTNodeList<FormalParameter>* parameters = nullptr;
     Block* body = nullptr;
 
