@@ -1145,6 +1145,10 @@ void TypeCheckingVisitor::leave(NameExpression& node)
     {
         node.resolvedType = cloneType(var->type);
     }
+    else if (ClassDeclaration * type = dynamic_cast<ClassDeclaration*>(node.name->refers_to))
+    {
+        node.resolvedType = typeFromDecl(type);
+    }
     else
     {
         cout << "Should refer to one of the above" << endl;
