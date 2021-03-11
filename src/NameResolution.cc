@@ -72,6 +72,7 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
     {
         environments.top()->classes[class_name] = &node;
         node.fullyQualifiedName = class_name;
+        node.packageName = package;
     }
     initEnvironment(&node);
 }
@@ -97,6 +98,7 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
     {
         environments.top()->interfaces[interface_name] = &node;
         node.fullyQualifiedName = interface_name;
+        node.packageName = package;
     }
     initEnvironment(&node);
 }
@@ -838,8 +840,7 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
                 TypeDeclaration* lhsType = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to);
                 TypeDeclaration* rhsType = dynamic_cast<TypeDeclaration*>(qualRhs->name->refers_to);
                 assert(lhsType != nullptr && rhsType != nullptr);
-                return (lhsType == rhsType) ||
-                    (lhsType->fullyQualifiedName == "java.lang.Object" && dynamic_cast<InterfaceDeclaration*>(rhsType)) ||
+                return (lhsType->fullyQualifiedName == "java.lang.Object" && dynamic_cast<InterfaceDeclaration*>(rhsType)) ||
                     isDerived(lhsType, rhsType);
             }
             else if (ArrayType * arrayRhs = dynamic_cast<ArrayType*>(rhs))
@@ -880,6 +881,10 @@ bool TypeCheckingVisitor::isDerived(TypeDeclaration* base, TypeDeclaration* deri
 {
     if (base != nullptr)
     {
+        if (base == derived)
+        {
+            return true;
+        }
         if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(derived))
         {
             if (classDecl->baseClass == base) return true;
@@ -985,7 +990,7 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
             TypeDeclaration* castDecl = dynamic_cast<TypeDeclaration*>(qualCast->name->refers_to);
             assert(baseDecl != nullptr && castDecl != nullptr);
 
-            if (baseDecl == castDecl || isDerived(baseDecl, castDecl) || isDerived(castDecl, baseDecl))
+            if (isDerived(baseDecl, castDecl) || isDerived(castDecl, baseDecl))
             {
                 return true;
             }
@@ -1045,6 +1050,52 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     return false;
 }
 
+bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessType, MemberDeclaration* member) const
+{
+    set<Modifier::ModifierType> mods;
+    for (Modifier* mod : member->modifiers->elements)
+    {
+        mods.insert(mod->type);
+    }
+
+    bool shouldBeStatic = false;
+    if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(prevExpr))
+    {
+        if (nameExpr->refersToType)
+        {
+            shouldBeStatic = true;
+        }
+    }
+
+    if (shouldBeStatic)
+    {
+        if(mods.find(Modifier::STATIC) == mods.end())
+        {
+            cout << "Accessing instance member when should be static member" << endl;
+            return false;
+        }
+    }
+    else
+    {
+        if(mods.find(Modifier::STATIC) != mods.end())
+        {
+            cout << "Accessing static member when should be instance member" << endl;
+            return false;
+        }
+    }
+
+    if (mods.find(Modifier::PROTECTED) != mods.end())
+    {
+        if (!isDerived(accessType, enclosingClass) && (accessType->packageName != enclosingClass->packageName))
+        {
+            cout << "Cannot access private member if not in a subtype or in same package" << endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool TypeCheckingVisitor::isNumericType(Type* type) const
 {
     PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
@@ -1087,6 +1138,27 @@ void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
     {
         cout << "Constructor name does not match class it was declared in" << endl;
         exit(42);
+    }
+
+    if (enclosingClass->fullyQualifiedName != "java.lang.Object")
+    {
+        bool superConstructorExists = false;
+        for (MemberDeclaration* member : enclosingClass->baseClass->classBody->elements)
+        {
+            if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
+            {
+                if (constructor->parameters->elements.size() == 0)
+                {
+                    superConstructorExists = true;
+                    break;
+                }
+            }
+        }
+        if (!superConstructorExists)
+        {
+            cout << "No 0 argument constructor in super class" << endl;
+            exit(42);
+        }
     }
 }
 
@@ -1395,6 +1467,15 @@ void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
 
     if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(node.type->name->refers_to))
     {
+        for (Modifier* modifier: classDecl->modifiers->elements)
+        {
+            if (modifier->type == Modifier::ABSTRACT)
+            {
+                cout << "Cannot create an instance of an abstract class" << endl;
+                exit(42);
+            }
+        }
+
         for (MemberDeclaration* member : classDecl->classBody->elements)
         {
             if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
@@ -1414,8 +1495,15 @@ void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
                     
                     if (match)
                     {
-                        node.resolvedType = cloneType(node.type);
-                        return;
+                        if (validateMemberAccess(nullptr, classDecl, constructor))
+                        {
+                            node.resolvedType = cloneType(node.type);
+                            return;
+                        }
+                        else
+                        {
+                            exit(42);
+                        }
                     }
                 }
             }
@@ -1506,58 +1594,13 @@ void TypeCheckingVisitor::leave(MethodCall& node)
 
     if (method)
     {
-        bool shouldBeStatic = false;
-        if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(node.prevExpr))
+        if (validateMemberAccess(node.prevExpr, callingType, method))
         {
-            if (nameExpr->refersToType)
-            {
-                shouldBeStatic = true;
-            }
-        }
-
-        if (shouldBeStatic)
-        {
-            bool isStatic = false;
-            for (Modifier* mod : method->modifiers->elements)
-            {
-                if (mod->type == Modifier::STATIC)
-                {
-                    isStatic = true;
-                    break;
-                }
-            }
-
-            if (isStatic)
-            {
-                node.resolvedType = cloneType(method->type);
-            }
-            else
-            {
-                cout << "Accessing instance method when should be static method" << endl;
-                exit(42);
-            }
+            node.resolvedType = cloneType(method->type);
         }
         else
         {
-            bool nonstatic = true;
-            for (Modifier* mod : method->modifiers->elements)
-            {
-                if (mod->type == Modifier::STATIC)
-                {
-                    nonstatic = false;
-                    break;
-                }
-            }
-
-            if (nonstatic)
-            {
-                node.resolvedType = cloneType(method->type);
-            }
-            else
-            {
-                cout << "Accessing static method when should be instance method" << endl;
-                exit(42);
-            }
+            exit(42);
         }
     }
     else
@@ -1578,58 +1621,13 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             {
                 FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
 
-                bool shouldBeStatic = false;
-                if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(node.prevExpr))
+                if (validateMemberAccess(node.prevExpr, classDecl, field))
                 {
-                    if (nameExpr->refersToType)
-                    {
-                        shouldBeStatic = true;
-                    }
-                }
-
-                if (shouldBeStatic)
-                {
-                    bool isStatic = false;
-                    for (Modifier* mod : field->modifiers->elements)
-                    {
-                        if (mod->type == Modifier::STATIC)
-                        {
-                            isStatic = true;
-                            break;
-                        }
-                    }
-
-                    if (isStatic)
-                    {
-                        node.resolvedType = cloneType(field->declaration->type);
-                    }
-                    else
-                    {
-                        cout << "Accessing instance field when should be static field" << endl;
-                        exit(42);
-                    }
+                    node.resolvedType = cloneType(field->declaration->type);
                 }
                 else
                 {
-                    bool nonstatic = true;
-                    for (Modifier* mod : field->modifiers->elements)
-                    {
-                        if (mod->type == Modifier::STATIC)
-                        {
-                            nonstatic = false;
-                            break;
-                        }
-                    }
-
-                    if (nonstatic)
-                    {
-                        node.resolvedType = cloneType(field->declaration->type);
-                    }
-                    else
-                    {
-                        cout << "Accessing static field when should be instance field" << endl;
-                        exit(42);
-                    }
+                    exit(42);
                 }
             }
             else

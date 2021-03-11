@@ -117,6 +117,8 @@ private:
     bool isInterfaceType(Type* type) const;
 
     bool isCastable(Type* baseType, Type* castType) const;
+
+    bool validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessType, MemberDeclaration* member) const;
 };
 
 

@@ -787,6 +787,7 @@ struct TypeDeclaration : public ASTNode // abstract
     virtual std::string toString() { return "TypeDeclaration"; }
 
     std::string fullyQualifiedName;
+    std::string packageName;
 
     std::unique_ptr<std::vector<InterfaceDeclaration*>> interfaces;
     std::unique_ptr<std::unordered_map<std::string, std::vector<MethodDeclaration*>>> containedAbstractMethods;
