@@ -1485,26 +1485,86 @@ void TypeCheckingVisitor::leave(MethodCall& node)
         callingType = enclosingClass;
     }
     
+    MethodDeclaration* method = nullptr;
     if (callingType->containedAbstractMethods->find(methodSig) != callingType->containedAbstractMethods->end())
     {
-        MethodDeclaration* method = callingType->containedAbstractMethods->at(methodSig)[0];
-        node.resolvedType = cloneType(method->type);
-        return;
+        method = callingType->containedAbstractMethods->at(methodSig)[0];
     }
 
-    if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(callingType))
+    if (!method)
     {
-        if (classDecl->containedConcreteMethods->find(methodSig) != classDecl->containedConcreteMethods->end())
+        if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(callingType))
         {
-            MethodDeclaration* method = classDecl->containedConcreteMethods->at(methodSig);
-            node.resolvedType = cloneType(method->type);
-            return;
+            if (classDecl->containedConcreteMethods->find(methodSig) != classDecl->containedConcreteMethods->end())
+            {
+                MethodDeclaration* method = classDecl->containedConcreteMethods->at(methodSig);
+                node.resolvedType = cloneType(method->type);
+                return;
+            }
         }
     }
 
-    cout << "Couldn't find a matching method declaration" << endl;
-    exit(42);
+    if (method)
+    {
+        bool shouldBeStatic = false;
+        if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(node.prevExpr))
+        {
+            if (nameExpr->refersToType)
+            {
+                shouldBeStatic = true;
+            }
+        }
 
+        if (shouldBeStatic)
+        {
+            bool isStatic = false;
+            for (Modifier* mod : method->modifiers->elements)
+            {
+                if (mod->type == Modifier::STATIC)
+                {
+                    isStatic = true;
+                    break;
+                }
+            }
+
+            if (isStatic)
+            {
+                node.resolvedType = cloneType(method->type);
+            }
+            else
+            {
+                cout << "Accessing instance method when should be static method" << endl;
+                exit(42);
+            }
+        }
+        else
+        {
+            bool nonstatic = true;
+            for (Modifier* mod : method->modifiers->elements)
+            {
+                if (mod->type == Modifier::STATIC)
+                {
+                    nonstatic = false;
+                    break;
+                }
+            }
+
+            if (nonstatic)
+            {
+                node.resolvedType = cloneType(method->type);
+            }
+            else
+            {
+                cout << "Accessing static method when should be instance method" << endl;
+                exit(42);
+            }
+        }
+    }
+    else
+    {
+        cout << "Couldn't find a matching method declaration" << endl;
+        exit(42);
+    }
 }
 
 void TypeCheckingVisitor::leave(FieldAccess& node)
