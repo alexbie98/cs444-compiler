@@ -838,7 +838,9 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
                 TypeDeclaration* lhsType = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to);
                 TypeDeclaration* rhsType = dynamic_cast<TypeDeclaration*>(qualRhs->name->refers_to);
                 assert(lhsType != nullptr && rhsType != nullptr);
-                return (lhsType == rhsType) || isDerived(lhsType, rhsType);
+                return (lhsType == rhsType) ||
+                    (lhsType->fullyQualifiedName == "java.lang.Object" && dynamic_cast<InterfaceDeclaration*>(rhsType)) ||
+                    isDerived(lhsType, rhsType);
             }
             else if (ArrayType * arrayRhs = dynamic_cast<ArrayType*>(rhs))
             {
