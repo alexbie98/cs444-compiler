@@ -1030,6 +1030,15 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
         {
             return isCastable(arrayBase->elementType, arrayCast->elementType);
         }
+        else if (QualifiedType * qualType = dynamic_cast<QualifiedType*>(castType))
+        {
+            if (TypeDeclaration * type = dynamic_cast<TypeDeclaration*>(qualType->name->refers_to))
+            {
+                return type->fullyQualifiedName == "java.lang.Object" ||
+                    type->fullyQualifiedName == "java.lang.Cloneable" ||
+                    type->fullyQualifiedName == "java.io.Serializable";
+            }
+        }
     }
 
     return false;
@@ -1654,7 +1663,7 @@ void TypeCheckingVisitor::leave(InstanceOfExpression& node)
         }
         else
         {
-            cout << "Type is not castable in cast expression" << endl;
+            cout << "Type is not castable in instanceof expression" << endl;
             exit(42);
         }
     }
