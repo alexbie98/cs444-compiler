@@ -1483,8 +1483,11 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             exit(42);
         }
     }
-    cout << "Prev expression of field access does not resolve to a Class" << endl;
-    exit(42);
+    else
+    {
+        cout << "Prev expression of field access does not resolve to a Class" << endl;
+        exit(42);
+    }
 }
 
 void TypeCheckingVisitor::leave(ArrayAccess& node)
