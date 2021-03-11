@@ -184,7 +184,7 @@ unordered_map<string, vector<MethodDeclaration *>> replace(
             }
             else{
                 size_t count = 0;
-                MethodDeclaration *concrete;
+                MethodDeclaration *concrete = nullptr;
                 for (auto *m : ms){
                     if(!modifiersContains(m->modifiers->elements, Modifier::ABSTRACT)){
                         count++;

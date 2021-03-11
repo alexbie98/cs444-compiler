@@ -527,10 +527,16 @@ void checkTypeLinking(Environment* global, std::vector<ASTNode*> asts)
                         std::string other_package = cunit->packageDecl->name->getString();
 
                         // If package name is a prefix and the type is in the package
-                        auto res = std::mismatch(package_name.begin(), package_name.end(), other_package.begin());
-                        if(cunit->packageDecl && res.first == package_name.end() && 
-                           (other_package.size() == package_name.size() || other_package[package_name.size()] == '.')) // package prefix ends at a '.'
-                            package_found = true;
+                        if (package_name.size() <= other_package.size())
+                        {
+                            if (package_name == other_package.substr(0, package_name.size()))
+                            {
+                                if (package_name.size() == other_package.size() || other_package[package_name.size()] == '.')
+                                {
+                                    package_found = true;
+                                }
+                            }
+                        }
                     }
 
                     // Every import-on-demand declaration must refer to a package declared in some file listed on the Joos command line.
@@ -1379,6 +1385,8 @@ void TypeCheckingVisitor::leave(ArrayCreator& node)
 
 void TypeCheckingVisitor::leave(MethodCall& node)
 {
+    string methodSig = node.name->getString() + "(";
+
     for (Expression* expression : node.arguments->elements)
     {
         if (expression->resolvedType == nullptr)
@@ -1386,7 +1394,9 @@ void TypeCheckingVisitor::leave(MethodCall& node)
             cout << "An argument type has not been resolved in a constructor call" << endl;
             exit(42);
         }
+        methodSig += expression->resolvedType->getTypeName() + " ";
     }
+    methodSig += ")";
 
     TypeDeclaration* callingType;
     if (node.prevExpr)
@@ -1413,42 +1423,21 @@ void TypeCheckingVisitor::leave(MethodCall& node)
     {
         callingType = enclosingClass;
     }
+    
+    if (callingType->containedAbstractMethods->find(methodSig) != callingType->containedAbstractMethods->end())
+    {
+        MethodDeclaration* method = callingType->containedAbstractMethods->at(methodSig)[0];
+        node.resolvedType = cloneType(method->type);
+        return;
+    }
 
-
-    vector<MemberDeclaration*>* members;
     if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(callingType))
     {
-        members = &classDecl->classBody->elements;
-    }
-    else if (InterfaceDeclaration * interfaceDecl = dynamic_cast<InterfaceDeclaration*>(callingType))
-    {
-        members = &interfaceDecl->interfaceBody->elements;
-    }
-
-    for (pair<string, MethodDeclaration*> keyVal : *(callingType->containedMethods))
-    {
-        MethodDeclaration* method = keyVal.second;
-        if (method->name->id == node.name->id)
+        if (classDecl->containedConcreteMethods->find(methodSig) != classDecl->containedConcreteMethods->end())
         {
-            // check arguments
-            if (method->parameters->elements.size() == node.arguments->elements.size())
-            {
-                bool match = true;
-                for (size_t i = 0; i < method->parameters->elements.size(); i++)
-                {
-                    if (method->parameters->elements[i]->type->getTypeName() != node.arguments->elements[i]->resolvedType->getTypeName())
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
-                {
-                    node.resolvedType = cloneType(method->type);
-                    return;
-                }
-            }
+            MethodDeclaration* method = classDecl->containedConcreteMethods->at(methodSig);
+            node.resolvedType = cloneType(method->type);
+            return;
         }
     }
 
