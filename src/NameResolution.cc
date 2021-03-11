@@ -199,6 +199,7 @@ ASTNode* linkQualifedName(QualifiedName* node, Environment* global, std::string 
     ASTNode* result = nullptr;
     std::string type_name = node->getString();
 
+    // TODO Fix imports occuring without import statements!
     if(global->classes.find(type_name) != global->classes.end())
     {
         result = global->classes[type_name];
