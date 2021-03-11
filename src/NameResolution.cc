@@ -1515,20 +1515,27 @@ void TypeCheckingVisitor::leave(ThisExpression& node)
 
 void TypeCheckingVisitor::leave(VariableDeclarationExpression& node)
 {
-    if (node.initializer->resolvedType == nullptr)
+    if (node.initializer)
     {
-        cout << "Initializer of variable declaration was not type checked" << endl;
-        exit(42);
-    }
+        if (node.initializer->resolvedType == nullptr)
+        {
+            cout << "Initializer of variable declaration was not type checked" << endl;
+            exit(42);
+        }
 
-    if (isAssignable(node.type, node.initializer->resolvedType))
-    {
-        node.resolvedType = cloneType(node.type);
+        if (isAssignable(node.type, node.initializer->resolvedType))
+        {
+            node.resolvedType = cloneType(node.type);
+        }
+        else
+        {
+            cout << "Initializer was not assignable to variable declaration" << endl;
+            exit(42);
+        }
     }
     else
     {
-        cout << "Initializer was not assignable to variable declaration" << endl;
-        exit(42);
+        node.resolvedType = cloneType(node.type);
     }
 }
 
