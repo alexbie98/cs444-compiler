@@ -68,6 +68,7 @@ class TypeCheckingVisitor : public ASTNodeVisitor
     Environment* localEnvironment;
     ClassDeclaration* enclosingClass;
     Type* returnType;
+    bool isStaticMethod;
 public:
     TypeCheckingVisitor(Environment* globalEnv);
 

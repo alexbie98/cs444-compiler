@@ -1126,6 +1126,15 @@ void TypeCheckingVisitor::visit(ClassDeclaration& node)
 void TypeCheckingVisitor::visit(MethodDeclaration & node)
 {
     returnType = node.type;
+
+    isStaticMethod = false;
+    for (Modifier* modifier : node.modifiers->elements)
+    {
+        if (modifier->type == Modifier::STATIC)
+        {
+            isStaticMethod = true;
+        }
+    }
 }
 
 void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
@@ -1133,6 +1142,7 @@ void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
     PrimitiveType* voidType = new PrimitiveType();
     voidType->type = PrimitiveType::VOID;
     returnType = voidType;
+    isStaticMethod = false;
 
     if (node.id != enclosingClass->name->id)
     {
@@ -1254,7 +1264,24 @@ void TypeCheckingVisitor::leave(NameExpression& node)
         }
         else if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(node.name->refers_to))
         {
-            node.resolvedType = cloneType(field->declaration->type);
+            bool isStatic = false;
+            for (Modifier* modifier : field->modifiers->elements)
+            {
+                if (modifier->type == Modifier::STATIC)
+                {
+                    isStatic = true;
+                }
+            }
+
+            if (!isStatic && isStaticMethod)
+            {
+                cout << "Cannot use an implicit this in a static method (can only use static fields)" << endl;
+                exit(42);
+            }
+            else
+            {
+                node.resolvedType = cloneType(field->declaration->type);
+            }
         }
         else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
         {
@@ -1681,7 +1708,15 @@ void TypeCheckingVisitor::leave(ArrayAccess& node)
 
 void TypeCheckingVisitor::leave(ThisExpression& node)
 {
-    node.resolvedType = typeFromDecl(enclosingClass);
+    if (!isStaticMethod)
+    {
+        node.resolvedType = typeFromDecl(enclosingClass);
+    }
+    else
+    {
+        cout << "Cannot use a this expression in a static method" << endl;
+        exit(42);
+    }
 }
 
 void TypeCheckingVisitor::leave(VariableDeclarationExpression& node)
