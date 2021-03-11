@@ -819,6 +819,7 @@ ASTNode* buildAST(ParseTreeNode* node)
                 case MINUS: prefix->op = PrefixOperation::MINUS;
                 case NOT:   prefix->op = PrefixOperation::NOT;
                 }
+                prefix->operand = dynamic_cast<Expression*>(buildAST(node->children[1]));
                 return prefix;
             }
             else if (node->children[0]->symbol == NAME)
