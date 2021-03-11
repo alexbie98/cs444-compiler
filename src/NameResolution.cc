@@ -842,9 +842,11 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
             }
             else if (ArrayType * arrayRhs = dynamic_cast<ArrayType*>(rhs))
             {
-                if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(qualLhs->name->refers_to))
+                if (TypeDeclaration * type = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to))
                 {
-                    return classDecl->fullyQualifiedName == "java.lang.Object";
+                    return type->fullyQualifiedName == "java.lang.Object" ||
+                        type->fullyQualifiedName == "java.lang.Cloneable" ||
+                        type->fullyQualifiedName == "java.io.Serializable";
                 }
             }
         }
@@ -858,18 +860,12 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
                 {
                     if (PrimitiveType * primRhs = dynamic_cast<PrimitiveType*>(rhsElemType))
                     {
-                        return true;
+                        return primLhs->type == primLhs->type;
                     }
                 }
-                else if (QualifiedType * qualLhs = dynamic_cast<QualifiedType*>(lhsElemType))
+                else if (dynamic_cast<QualifiedType*>(lhsElemType) && dynamic_cast<QualifiedType*>(rhsElemType))
                 {
-                    if (QualifiedType * qualRhs = dynamic_cast<QualifiedType*>(rhsElemType))
-                    {
-                        TypeDeclaration* lhsType = dynamic_cast<TypeDeclaration*>(qualLhs->name->refers_to);
-                        TypeDeclaration* rhsType = dynamic_cast<TypeDeclaration*>(qualRhs->name->refers_to);
-                        assert(lhsType != nullptr && rhsType != nullptr);
-                        return (lhsType == rhsType) || isDerived(lhsType, rhsType);
-                    }
+                    return isAssignable(lhsElemType, rhsElemType);
                 }
             }
         }
