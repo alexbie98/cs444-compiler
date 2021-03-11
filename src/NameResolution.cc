@@ -1407,9 +1407,9 @@ void TypeCheckingVisitor::leave(MethodCall& node)
     {
         if (node.prevExpr->resolvedType)
         {
-            if (TypeDeclaration * typeDecl = dynamic_cast<TypeDeclaration*>(node.prevExpr->resolvedType))
+            if (QualifiedType * typeDecl = dynamic_cast<QualifiedType*>(node.prevExpr->resolvedType))
             {
-                callingType = typeDecl;
+                callingType = dynamic_cast<TypeDeclaration*>(typeDecl->name->refers_to);
             }
             else
             {
