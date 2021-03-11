@@ -50,12 +50,16 @@ public:
 class DisambiguationVisitor: public ASTNodeVisitor
 {
     Environment* global;
+    const std::vector<ASTNode*>& asts;
+    CompilerUnit* ast_root;
+    std::string package_name = UNNAMED_PACKAGE;
+    ASTNodeList<ImportDeclaration>* imports;
 
-    bool disambiguate(const std::vector<SimpleName*>& exp);
-
+    bool disambiguate(const std::vector<Name*>& exp);
 public:
-    DisambiguationVisitor(Environment* global): global{global} {}
+    DisambiguationVisitor(Environment* global, const std::vector<ASTNode*>& asts): global{global}, asts{asts} {}
     virtual void visit(NameExpression& node);
+    virtual void visit(CompilerUnit& node);
 };
 
 class TypeCheckingVisitor : public ASTNodeVisitor
