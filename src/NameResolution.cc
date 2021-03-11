@@ -1183,6 +1183,7 @@ void TypeCheckingVisitor::leave(NameExpression& node)
         else if (ClassDeclaration * type = dynamic_cast<ClassDeclaration*>(node.name->refers_to))
         {
             node.resolvedType = typeFromDecl(type);
+            node.refersToType = true;
         }
         else
         {
@@ -1508,24 +1509,59 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             if (classDecl->containedFields->find(node.name->id) != classDecl->containedFields->end())
             {
                 FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
-                bool nonstatic = true;
-                for (Modifier* mod : field->modifiers->elements)
+
+                bool shouldBeStatic = false;
+                if (NameExpression * nameExpr = dynamic_cast<NameExpression*>(node.prevExpr))
                 {
-                    if (mod->type == Modifier::STATIC)
+                    if (nameExpr->refersToType)
                     {
-                        nonstatic = false;
-                        break;
+                        shouldBeStatic = true;
                     }
                 }
 
-                if (nonstatic)
+                if (shouldBeStatic)
                 {
-                    node.resolvedType = cloneType(field->declaration->type);
+                    bool isStatic = false;
+                    for (Modifier* mod : field->modifiers->elements)
+                    {
+                        if (mod->type == Modifier::STATIC)
+                        {
+                            isStatic = true;
+                            break;
+                        }
+                    }
+
+                    if (isStatic)
+                    {
+                        node.resolvedType = cloneType(field->declaration->type);
+                    }
+                    else
+                    {
+                        cout << "Accessing instance field when should be static field" << endl;
+                        exit(42);
+                    }
                 }
                 else
                 {
-                    cout << "Accessing static field when should be instance field" << endl;
-                    exit(42);
+                    bool nonstatic = true;
+                    for (Modifier* mod : field->modifiers->elements)
+                    {
+                        if (mod->type == Modifier::STATIC)
+                        {
+                            nonstatic = false;
+                            break;
+                        }
+                    }
+
+                    if (nonstatic)
+                    {
+                        node.resolvedType = cloneType(field->declaration->type);
+                    }
+                    else
+                    {
+                        cout << "Accessing static field when should be instance field" << endl;
+                        exit(42);
+                    }
                 }
             }
             else

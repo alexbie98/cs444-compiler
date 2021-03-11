@@ -410,6 +410,8 @@ struct NameExpression : public Expression
     Name* name = nullptr;
     FieldAccess* field = nullptr;
 
+    bool refersToType = false;
+
     virtual ~NameExpression();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
