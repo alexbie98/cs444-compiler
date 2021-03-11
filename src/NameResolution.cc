@@ -840,6 +840,13 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
                 assert(lhsType != nullptr && rhsType != nullptr);
                 return (lhsType == rhsType) || isDerived(lhsType, rhsType);
             }
+            else if (ArrayType * arrayRhs = dynamic_cast<ArrayType*>(rhs))
+            {
+                if (ClassDeclaration * classDecl = dynamic_cast<ClassDeclaration*>(qualLhs->name->refers_to))
+                {
+                    return classDecl->fullyQualifiedName == "java.lang.Object";
+                }
+            }
         }
         else if (ArrayType * arrayLhs = dynamic_cast<ArrayType*>(lhs))
         {
@@ -1501,7 +1508,25 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             if (classDecl->containedFields->find(node.name->id) != classDecl->containedFields->end())
             {
                 FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
-                node.resolvedType = cloneType(field->declaration->type);
+                bool nonstatic = true;
+                for (Modifier* mod : field->modifiers->elements)
+                {
+                    if (mod->type == Modifier::STATIC)
+                    {
+                        nonstatic = false;
+                        break;
+                    }
+                }
+
+                if (nonstatic)
+                {
+                    node.resolvedType = cloneType(field->declaration->type);
+                }
+                else
+                {
+                    cout << "Accessing static field when should be instance field" << endl;
+                    exit(42);
+                }
             }
             else
             {
