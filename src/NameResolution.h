@@ -118,7 +118,7 @@ private:
 
     bool isCastable(Type* baseType, Type* castType) const;
 
-    bool validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessType, MemberDeclaration* member) const;
+    bool validateMemberAccess(Expression* prevExpr, MemberDeclaration* member) const;
 };
 
 

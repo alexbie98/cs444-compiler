@@ -374,6 +374,11 @@ ASTNode* buildAST(ParseTreeNode* node)
             classDecl->implements = dynamic_cast<ASTNodeList<Type>*>(buildAST(node->children[3]));
             classDecl->classBody = dynamic_cast<ASTNodeList<MemberDeclaration>*>(buildAST(node->children[4]));
 
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                member->originatingClass = classDecl;
+            }
+
             return classDecl;
         }
         case INTERFACE_DECLARATION:
@@ -382,6 +387,11 @@ ASTNode* buildAST(ParseTreeNode* node)
             interfaceDecl->name = dynamic_cast<SimpleName*>(buildAST(node->children[1]));
             interfaceDecl->extends = dynamic_cast<ASTNodeList<Type>*>(buildAST(node->children[2]));
             interfaceDecl->interfaceBody = dynamic_cast<ASTNodeList<MemberDeclaration>*>(buildAST(node->children[3]));
+
+            for (MemberDeclaration* member : interfaceDecl->interfaceBody->elements)
+            {
+                member->originatingClass = interfaceDecl;
+            }
 
             return interfaceDecl;
         }

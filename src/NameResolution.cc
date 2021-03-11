@@ -1050,7 +1050,7 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     return false;
 }
 
-bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessType, MemberDeclaration* member) const
+bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDeclaration* member) const
 {
     set<Modifier::ModifierType> mods;
     for (Modifier* mod : member->modifiers->elements)
@@ -1086,9 +1086,9 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclara
 
     if (mods.find(Modifier::PROTECTED) != mods.end())
     {
-        if (!isDerived(accessType, enclosingClass) && (accessType->packageName != enclosingClass->packageName))
+        if (!isDerived(member->originatingClass, enclosingClass) && (member->originatingClass->packageName != enclosingClass->packageName))
         {
-            cout << "Cannot access private member if not in a subtype or in same package" << endl;
+            cout << "Cannot access protected member if not in a subtype or in same package" << endl;
             return false;
         }
     }
@@ -1495,7 +1495,7 @@ void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
                     
                     if (match)
                     {
-                        if (validateMemberAccess(nullptr, classDecl, constructor))
+                        if (validateMemberAccess(nullptr, constructor))
                         {
                             node.resolvedType = cloneType(node.type);
                             return;
@@ -1594,7 +1594,7 @@ void TypeCheckingVisitor::leave(MethodCall& node)
 
     if (method)
     {
-        if (validateMemberAccess(node.prevExpr, callingType, method))
+        if (validateMemberAccess(node.prevExpr, method))
         {
             node.resolvedType = cloneType(method->type);
         }
@@ -1621,7 +1621,7 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             {
                 FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
 
-                if (validateMemberAccess(node.prevExpr, classDecl, field))
+                if (validateMemberAccess(node.prevExpr, field))
                 {
                     node.resolvedType = cloneType(field->declaration->type);
                 }
