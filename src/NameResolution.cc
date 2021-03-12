@@ -1066,6 +1066,10 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDecla
             shouldBeStatic = true;
         }
     }
+    else if (prevExpr == nullptr && isStaticMethod)
+    {
+        shouldBeStatic = true;
+    }
 
     if (shouldBeStatic)
     {
@@ -1635,9 +1639,7 @@ void TypeCheckingVisitor::leave(MethodCall& node)
         {
             if (classDecl->containedConcreteMethods->find(methodSig) != classDecl->containedConcreteMethods->end())
             {
-                MethodDeclaration* method = classDecl->containedConcreteMethods->at(methodSig);
-                node.resolvedType = cloneType(method->type);
-                return;
+                method = classDecl->containedConcreteMethods->at(methodSig);
             }
         }
     }
