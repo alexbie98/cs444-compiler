@@ -1072,9 +1072,16 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclara
             shouldBeStatic = true;
         }
     }
-    else if (prevExpr == nullptr && isStaticMethod)
+    else if (prevExpr == nullptr)
     {
-        shouldBeStatic = true;
+        if (isStaticContext)
+        {
+            cout << "Cannot use an implicit this in a static context" << endl;
+            return false;
+        }
+
+        // Implicit this is always non static
+        shouldBeStatic = false;
     }
 
     if (shouldBeStatic)
@@ -1158,7 +1165,7 @@ bool TypeCheckingVisitor::isNumericType(Type* type) const
 }
 
 TypeCheckingVisitor::TypeCheckingVisitor(Environment* globalEnv)
-    :globalEnvironment(globalEnv), localEnvironment(nullptr), enclosingClass(nullptr), returnType(nullptr), isStaticMethod(false)
+    :globalEnvironment(globalEnv), localEnvironment(nullptr), enclosingClass(nullptr), returnType(nullptr), isStaticContext(false)
 {
 }
 
@@ -1171,12 +1178,12 @@ void TypeCheckingVisitor::visit(MethodDeclaration & node)
 {
     returnType = node.type;
 
-    isStaticMethod = false;
+    isStaticContext = false;
     for (Modifier* modifier : node.modifiers->elements)
     {
         if (modifier->type == Modifier::STATIC)
         {
-            isStaticMethod = true;
+            isStaticContext = true;
         }
     }
 }
@@ -1186,7 +1193,7 @@ void TypeCheckingVisitor::visit(ConstructorDeclaration& node)
     PrimitiveType* voidType = new PrimitiveType();
     voidType->type = PrimitiveType::VOID;
     returnType = voidType;
-    isStaticMethod = false;
+    isStaticContext = false;
 
     if (node.id != enclosingClass->name->id)
     {
@@ -1242,10 +1249,26 @@ void TypeCheckingVisitor::visit(NameExpression& node)
         node.name = nullptr;
     }
 }
+void TypeCheckingVisitor::visit(FieldDeclaration& node)
+{
+    isStaticContext = false;
+    for (Modifier* modifier : node.modifiers->elements)
+    {
+        if (modifier->type == Modifier::STATIC)
+        {
+            isStaticContext = true;
+        }
+    }
+}
+
+void TypeCheckingVisitor::leave(FieldDeclaration& node)
+{
+    isStaticContext = false;
+}
 
 void TypeCheckingVisitor::leave(MethodDeclaration& node)
 {
-    isStaticMethod = false;
+    isStaticContext = false;
 }
 
 void TypeCheckingVisitor::leave(ConstructorDeclaration& node)
@@ -1322,9 +1345,9 @@ void TypeCheckingVisitor::leave(NameExpression& node)
                 }
             }
 
-            if (!isStatic && isStaticMethod)
+            if (!isStatic && isStaticContext)
             {
-                cout << "Cannot use an implicit this in a static method (can only use static fields)" << endl;
+                cout << "Cannot use an implicit this in a static context (can only use static fields)" << endl;
                 exit(42);
             }
             else
@@ -1345,9 +1368,9 @@ void TypeCheckingVisitor::leave(NameExpression& node)
                     }
                 }
 
-                if (!isStatic && isStaticMethod)
+                if (!isStatic && isStaticContext)
                 {
-                    cout << "Cannot use an implicit this in a static method (can only use static fields)" << endl;
+                    cout << "Cannot use an implicit this in a static context (can only use static fields)" << endl;
                     exit(42);
                 }
             }
@@ -1850,13 +1873,13 @@ void TypeCheckingVisitor::leave(ArrayAccess& node)
 
 void TypeCheckingVisitor::leave(ThisExpression& node)
 {
-    if (!isStaticMethod)
+    if (!isStaticContext)
     {
         node.resolvedType = typeFromDecl(enclosingClass);
     }
     else
     {
-        cout << "Cannot use a this expression in a static method" << endl;
+        cout << "Cannot use a this expression in a static context" << endl;
         exit(42);
     }
 }

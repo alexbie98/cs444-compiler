@@ -68,7 +68,8 @@ class TypeCheckingVisitor : public ASTNodeVisitor
     Environment* localEnvironment;
     ClassDeclaration* enclosingClass;
     Type* returnType;
-    bool isStaticMethod;
+
+    bool isStaticContext;
 public:
     TypeCheckingVisitor(Environment* globalEnv);
 
@@ -77,6 +78,10 @@ public:
     virtual void visit(ConstructorDeclaration& node);
     virtual void visit(Block& node);
     virtual void visit(NameExpression& node);
+    virtual void visit(FieldDeclaration& node);
+
+    virtual void leave(FieldDeclaration& node);
+
 
     virtual void leave(MethodDeclaration& node);
     virtual void leave(ConstructorDeclaration& node);
