@@ -1029,6 +1029,12 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
                 return true;
             }
         }
+        else if (dynamic_cast<ArrayType*>(castType))
+        {
+            TypeDeclaration* baseDecl = dynamic_cast<TypeDeclaration*>(qualBase->name->refers_to);
+
+            return baseDecl->fullyQualifiedName == "java.lang.Object";
+        }
     }
     else if (ArrayType * arrayBase = dynamic_cast<ArrayType*>(baseType))
     {
