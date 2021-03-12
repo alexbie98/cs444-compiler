@@ -1644,6 +1644,15 @@ void TypeCheckingVisitor::leave(AssignmentExpression& node)
 
 void TypeCheckingVisitor::leave(ParenthesizedExpression& node)
 {
+    if (NameExpression * name = dynamic_cast<NameExpression*>(node.expr))
+    {
+        if (name->refersToType)
+        {
+            cout << "Cannot have a type name in a parenthesized expression" << endl;
+            exit(42);
+        }
+    }
+
     node.resolvedType = cloneType(node.expr->resolvedType);
 }
 

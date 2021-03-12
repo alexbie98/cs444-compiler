@@ -705,7 +705,9 @@ ASTNode* buildAST(ParseTreeNode* node)
         {
             if (node->children.size() == 3)
             {
-                return buildAST(node->children[1]);
+                ParenthesizedExpression* parExpr = new ParenthesizedExpression();
+                parExpr->expr = dynamic_cast<Expression*>(buildAST(node->children[1]));
+                return parExpr;
             }
             return buildAST(node->children[0]);
         }
