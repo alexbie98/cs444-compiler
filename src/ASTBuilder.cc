@@ -542,6 +542,7 @@ ASTNode* buildAST(ParseTreeNode* node)
             block->statements->elements.clear();
 
             // Skip the first statement in the block if its already a VariableDeclarationExpression
+            // to avoid creating uneccessary blocks.
             if(original_statements.size() > 0 && 
                dynamic_cast<ExpressionStatement*>(original_statements[0]) &&
                dynamic_cast<VariableDeclarationExpression*>(dynamic_cast<ExpressionStatement*>(original_statements[0])->expression))
@@ -551,24 +552,22 @@ ASTNode* buildAST(ParseTreeNode* node)
                }
 
             for(Statement* statement: original_statements)
-            {
+            {   
                 ExpressionStatement* exp_statement = dynamic_cast<ExpressionStatement*>(statement);
                 if(exp_statement)
                 {
-                    VariableDeclarationExpression* var_exp = dynamic_cast<VariableDeclarationExpression*>(exp_statement);
+                    VariableDeclarationExpression* var_exp = dynamic_cast<VariableDeclarationExpression*>(exp_statement->expression);
                     if(var_exp)
                     {
-                        // Create a new block with the variable declaration at the start and add it to the current blocks statements
+                        // Create a new block and add it to the current blocks statements
                         Block* new_block = new Block();
-                        ExpressionStatement* var_statement = new ExpressionStatement();
-                        var_statement->expression = var_exp;
-                        new_block->statements->elements.push_back(var_statement);
+                        new_block->statements = new ASTNodeList<Statement>();
+                        
                         current_block->statements->elements.push_back(new_block);
-
-                        // Set the current block to the new block to continue inserting statements into the deepest block
+                        
+                        // Set the current block to the new block to continue inserting statements into the deepest block,
+                        // including the current variable declaration.
                         current_block = new_block;
-
-                        continue;
                     }
                 }
                 current_block->statements->elements.push_back(statement);
