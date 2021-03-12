@@ -626,25 +626,26 @@ ClassDeclaration* getEnclosingClass(ASTNode* node)
 }
 
 // Returns true if name is in the expression namespace, false otherwise.
-bool resolveExpression(SimpleName* name)
+bool resolveExpression(SimpleName* name, FieldDeclaration * currentField, bool & simpleNameUseBeforeDecl)
 {
-    // If local var/ parameter exists in scope
-    Environment* scanner = getClosestScope(name);
-    while(scanner)
-    {
-        if(scanner->variables.find(name->id) != scanner->variables.end())
+    if (currentField == nullptr){
+        Environment* scanner = getClosestScope(name);
+        while(scanner)
         {
-            name->refers_to = scanner->variables[name->id];
-            return true;
-        }
-        if(scanner->formal_params.find(name->id) != scanner->formal_params.end())
-        {
-            name->refers_to = scanner->formal_params[name->id];
-            return true;
-        }
-        // a_2, ..., a_n are instance fields
+            if(scanner->variables.find(name->id) != scanner->variables.end())
+            {
+                name->refers_to = scanner->variables[name->id];
+                return true;
+            }
+            if(scanner->formal_params.find(name->id) != scanner->formal_params.end())
+            {
+                name->refers_to = scanner->formal_params[name->id];
+                return true;
+            }
+            // a_2, ..., a_n are instance fields
 
-        scanner = scanner->parent;
+            scanner = scanner->parent;
+        }
     }
 
     // If field is in contain set of current class
@@ -654,6 +655,21 @@ bool resolveExpression(SimpleName* name)
     {
         name->refers_to = (*enclosing_class->containedFields)[name->id];
         // a_2, ..., a_n are instance fields
+
+        if (currentField){ // inside a field initialization
+            // check field usage is of a field that has already been declared
+            auto *usage = dynamic_cast<FieldDeclaration *>(name->refers_to);
+            assert(usage);
+            // cout << enclosing_class->name->getString() << endl;
+            // cout << "usage: " << name->id << enclosing_class->containedFieldsOrder[usage] << endl;
+            // cout << "field: " << currentField->declaration->name->getString() << enclosing_class->containedFieldsOrder[currentField] << endl;
+
+            if (enclosing_class->containedFieldsOrder[usage] 
+                >= enclosing_class->containedFieldsOrder[currentField]){
+                simpleNameUseBeforeDecl = true;
+            }
+        }
+
         return true;
     }
 
@@ -675,7 +691,7 @@ bool DisambiguationVisitor::disambiguate(const std::vector<Name*>& exp)
 
     // If local var/ parameter exists in scope
     // If field a1 is in contain set of current class (Done after in resolve Expression)
-    resolveExpression(exp_base);
+    resolveExpression(exp_base, currentField, simpleNameUseBeforeDecl);
 
     // Shortest prefix that's a valid class
     if(!exp[0]->refers_to)
@@ -718,6 +734,30 @@ bool DisambiguationVisitor::disambiguate(const std::vector<Name*>& exp)
     }
 
     return true;
+}
+void DisambiguationVisitor::leave(Expression& e){
+    auto *assignExprParent = dynamic_cast<AssignmentExpression *>(e.parent);
+    if (assignExprParent){
+        if (assignExprParent->lhs == &e && simpleNameUseBeforeDecl){
+            if (dynamic_cast<NameExpression*>(&e)){
+                simpleNameUseBeforeDecl = false;
+            }
+        }
+    }
+}
+
+void DisambiguationVisitor::visit(FieldDeclaration& f){
+    currentField = &f;
+    // cout << "enter field " << currentField->declaration->name->getString() << endl;
+}
+
+void DisambiguationVisitor::leave(FieldDeclaration& c){
+    // cout << "exit field " << currentField->declaration->name->getString() << endl;
+    currentField = nullptr;
+    if (simpleNameUseBeforeDecl){
+        cout << "invalid field usage before declaration" << endl;
+        exit(42);
+    }
 }
 
 void DisambiguationVisitor::visit(NameExpression& node)

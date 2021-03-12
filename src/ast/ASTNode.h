@@ -824,7 +824,8 @@ struct ClassDeclaration : public TypeDeclaration
 
     std::unique_ptr<std::unordered_map<std::string, MethodDeclaration *>> containedConcreteMethods;
     std::unique_ptr<std::unordered_map<std::string,FieldDeclaration *>> containedFields;
-    
+    std::unordered_map<FieldDeclaration *, size_t> containedFieldsOrder;
+
     std::unique_ptr<std::unordered_map<FieldDeclaration *, FieldDeclaration *>> replaceFields;
 
     virtual ~ClassDeclaration();

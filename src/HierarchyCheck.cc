@@ -424,6 +424,7 @@ void linkTypeMemberFieldsHierarchy(ClassDeclaration* classDecl)
             superFields = *classDecl->baseClass->containedFields;
         }
 
+        size_t order = 1;
         auto declaredFields = unordered_map<string, FieldDeclaration *>{};
         for (auto* member: classDecl->classBody->elements){
             auto * f= dynamic_cast<FieldDeclaration *>(member);
@@ -435,19 +436,24 @@ void linkTypeMemberFieldsHierarchy(ClassDeclaration* classDecl)
                     exit(42);
                 }
                 declaredFields[name] = f;
+                classDecl->containedFieldsOrder[f] = order;
+                order++;
             }
         }
 
-        for (const auto& [name, f]: declaredFields){
+        for (const auto &[name, f] : declaredFields)
+        {
             if (superFields.find(name) != superFields.end()){
                 assert(classDecl->replaceFields->find(f) == classDecl->replaceFields->end());
                 (*classDecl->replaceFields)[f] = superFields[name];
             }
             (*classDecl->containedFields)[name] = f;
+            order++;
         }
         for (const auto& [name, f]: superFields){
             if (declaredFields.find(name) == declaredFields.end()){
                 (*classDecl->containedFields)[name] = f;
+                classDecl->containedFieldsOrder[f] = 0;
             }
         }
     }

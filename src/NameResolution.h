@@ -56,10 +56,18 @@ class DisambiguationVisitor: public ASTNodeVisitor
     ASTNodeList<ImportDeclaration>* imports;
 
     bool disambiguate(const std::vector<Name*>& exp);
+
+    FieldDeclaration *currentField =  nullptr;
+    bool simpleNameUseBeforeDecl = false;
+
+
 public:
     DisambiguationVisitor(Environment* global, const std::vector<ASTNode*>& asts): global{global}, asts{asts} {}
     virtual void visit(NameExpression& node);
     virtual void visit(CompilerUnit& node);
+    virtual void visit(FieldDeclaration& f);
+    virtual void leave(FieldDeclaration& f);
+    virtual void leave(Expression& e);
 };
 
 class TypeCheckingVisitor : public ASTNodeVisitor
