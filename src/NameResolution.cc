@@ -1066,7 +1066,7 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDecla
             shouldBeStatic = true;
         }
     }
-    else if (prevExpr == nullptr && isStaticMethod)
+    else if (prevExpr == nullptr && isStaticMethod && !dynamic_cast<ConstructorDeclaration*>(member))
     {
         shouldBeStatic = true;
     }
