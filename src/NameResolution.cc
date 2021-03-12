@@ -1108,7 +1108,7 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclara
 
         if (samePackage || deriveClass)
         {
-            if (!shouldBeStatic)
+            if (!samePackage && !shouldBeStatic)
             {
                 if (!isDerived(enclosingClass, accessingType))
                 {
