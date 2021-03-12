@@ -1050,7 +1050,7 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     return false;
 }
 
-bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDeclaration* member) const
+bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessingType, MemberDeclaration* member) const
 {
     set<Modifier::ModifierType> mods;
     for (Modifier* mod : member->modifiers->elements)
@@ -1066,7 +1066,7 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDecla
             shouldBeStatic = true;
         }
     }
-    else if (prevExpr == nullptr && isStaticMethod && !dynamic_cast<ConstructorDeclaration*>(member))
+    else if (prevExpr == nullptr && isStaticMethod)
     {
         shouldBeStatic = true;
     }
@@ -1090,9 +1090,43 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, MemberDecla
 
     if (mods.find(Modifier::PROTECTED) != mods.end())
     {
-        if (!isDerived(member->originatingClass, enclosingClass) && (member->originatingClass->packageName != enclosingClass->packageName))
+        bool samePackage = member->originatingClass->packageName == enclosingClass->packageName;
+        bool deriveClass = isDerived(member->originatingClass, enclosingClass);
+
+        if (samePackage && deriveClass)
+        {
+            if (!shouldBeStatic)
+            {
+                if (!isDerived(enclosingClass, accessingType))
+                {
+                    cout << "For instance member the accessing type must be a subclass of enclosing type" << endl;
+                    return false;
+                }
+            }
+        }
+        else
         {
             cout << "Cannot access protected member if not in a subtype or in same package" << endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool TypeCheckingVisitor::validateConstructorAccess(ConstructorDeclaration* member) const
+{
+    set<Modifier::ModifierType> mods;
+    for (Modifier* mod : member->modifiers->elements)
+    {
+        mods.insert(mod->type);
+    }
+
+    if (mods.find(Modifier::PROTECTED) != mods.end())
+    {
+        if (member->originatingClass->packageName != enclosingClass->packageName)
+        {
+            cout << "Cannot access protected Constructor if not in same package" << endl;
             return false;
         }
     }
@@ -1549,7 +1583,7 @@ void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
                     
                     if (match)
                     {
-                        if (validateMemberAccess(nullptr, constructor))
+                        if (validateConstructorAccess(constructor))
                         {
                             node.resolvedType = cloneType(node.type);
                             return;
@@ -1646,7 +1680,7 @@ void TypeCheckingVisitor::leave(MethodCall& node)
 
     if (method)
     {
-        if (validateMemberAccess(node.prevExpr, method))
+        if (validateMemberAccess(node.prevExpr, callingType, method))
         {
             node.resolvedType = cloneType(method->type);
         }
@@ -1673,7 +1707,7 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
             {
                 FieldDeclaration* field = classDecl->containedFields->at(node.name->id);
 
-                if (validateMemberAccess(node.prevExpr, field))
+                if (validateMemberAccess(node.prevExpr, classDecl, field))
                 {
                     node.resolvedType = cloneType(field->declaration->type);
                 }
