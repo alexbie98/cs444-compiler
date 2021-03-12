@@ -1114,7 +1114,7 @@ bool TypeCheckingVisitor::isNumericType(Type* type) const
 }
 
 TypeCheckingVisitor::TypeCheckingVisitor(Environment* globalEnv)
-    :globalEnvironment(globalEnv), localEnvironment(nullptr), enclosingClass(nullptr), returnType(nullptr)
+    :globalEnvironment(globalEnv), localEnvironment(nullptr), enclosingClass(nullptr), returnType(nullptr), isStaticMethod(false)
 {
 }
 
