@@ -77,6 +77,8 @@ public:
     virtual void visit(ConstructorDeclaration& node);
     virtual void visit(Block& node);
     virtual void visit(NameExpression& node);
+
+    virtual void leave(MethodDeclaration& node);
     virtual void leave(ConstructorDeclaration& node);
     virtual void leave(IntLiteral& node);
     virtual void leave(CharLiteral& node);

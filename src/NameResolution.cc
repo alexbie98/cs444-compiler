@@ -1199,6 +1199,11 @@ void TypeCheckingVisitor::visit(NameExpression& node)
     }
 }
 
+void TypeCheckingVisitor::leave(MethodDeclaration& node)
+{
+    isStaticMethod = false;
+}
+
 void TypeCheckingVisitor::leave(ConstructorDeclaration& node)
 {
     delete returnType;
