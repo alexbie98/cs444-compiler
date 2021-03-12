@@ -984,7 +984,7 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     }
     else if (QualifiedType * qualBase = dynamic_cast<QualifiedType*>(baseType))
     {
-        if (QualifiedType * qualCast = dynamic_cast<QualifiedType*>(baseType))
+        if (QualifiedType * qualCast = dynamic_cast<QualifiedType*>(castType))
         {
             TypeDeclaration* baseDecl = dynamic_cast<TypeDeclaration*>(qualBase->name->refers_to);
             TypeDeclaration* castDecl = dynamic_cast<TypeDeclaration*>(qualCast->name->refers_to);
@@ -1447,11 +1447,15 @@ void TypeCheckingVisitor::leave(BinaryOperation& node)
         break;
     case BinaryOperation::EQ:
     case BinaryOperation::NEQ:
-        if ((isBooleanType(node.lhs->resolvedType) && isBooleanType(node.rhs->resolvedType)) || // bool types
-            (isNumericType(node.lhs->resolvedType) && isNumericType(node.rhs->resolvedType)) || // numeric types
-            ((isRefType(node.lhs->resolvedType) || isNullType(node.lhs->resolvedType)) &&
-            (isRefType(node.rhs->resolvedType) || isNullType(node.rhs->resolvedType))) // ref or null types
-            )
+
+        bool isBoolComp = isBooleanType(node.lhs->resolvedType) && isBooleanType(node.rhs->resolvedType);
+        bool isNumComp = isNumericType(node.lhs->resolvedType) && isNumericType(node.rhs->resolvedType);
+
+        bool lhsRefOrNull = isRefType(node.lhs->resolvedType) || isNullType(node.lhs->resolvedType);
+        bool rhsRefOrNull = isRefType(node.rhs->resolvedType) || isNullType(node.rhs->resolvedType);
+        bool isObjectComp = lhsRefOrNull && rhsRefOrNull && (isCastable(node.lhs->resolvedType, node.rhs->resolvedType) || isCastable(node.rhs->resolvedType, node.lhs->resolvedType));
+
+        if (isBoolComp || isNumComp || isObjectComp)
         {
             PrimitiveType* boolType = new PrimitiveType();
             boolType->type = PrimitiveType::BOOLEAN;
@@ -1459,7 +1463,7 @@ void TypeCheckingVisitor::leave(BinaryOperation& node)
         }
         else
         {
-            cout << "Equality op requires both boolean, numeric, or ref/null operands" << endl;
+            cout << "Equality op requires both boolean, numeric, or ref/null operands of castable type" << endl;
             exit(42);
         }
     }
