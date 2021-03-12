@@ -541,6 +541,15 @@ ASTNode* buildAST(ParseTreeNode* node)
             Block* current_block = block;
             block->statements->elements.clear();
 
+            // Skip the first statement in the block if its already a VariableDeclarationExpression
+            if(original_statements.size() > 0 && 
+               dynamic_cast<ExpressionStatement*>(original_statements[0]) &&
+               dynamic_cast<VariableDeclarationExpression*>(dynamic_cast<ExpressionStatement*>(original_statements[0])->expression))
+               {
+                   current_block->statements->elements.push_back(original_statements[0]);
+                   original_statements.erase(original_statements.begin());
+               }
+
             for(Statement* statement: original_statements)
             {   
                 ExpressionStatement* exp_statement = dynamic_cast<ExpressionStatement*>(statement);
