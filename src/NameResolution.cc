@@ -1528,6 +1528,78 @@ void TypeCheckingVisitor::leave(AssignmentExpression& node)
 
     if (isAssignable(node.lhs->resolvedType, node.rhs->resolvedType))
     {
+        if (NameExpression * nameLhs = dynamic_cast<NameExpression*>(node.lhs))
+        {
+            if (nameLhs->name)
+            {
+                if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(nameLhs->name->refers_to))
+                {
+                    for (Modifier* mod : field->modifiers->elements)
+                    {
+                        if (mod->type == Modifier::FINAL)
+                        {
+                            cout << "Cannot assign to a final field" << endl;
+                            exit(42);
+                        }
+                    }
+                }
+                else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(nameLhs->name->refers_to))
+                {
+                    if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(var->parent))
+                    {
+                        for (Modifier* mod : field->modifiers->elements)
+                        {
+                            if (mod->type == Modifier::FINAL)
+                            {
+                                cout << "Cannot assign to a final field" << endl;
+                                exit(42);
+                            }
+                        }
+                    }
+
+                    node.resolvedType = cloneType(var->type);
+                }
+            }
+            else
+            {
+                if (nameLhs->field->refersTo)
+                {
+                    for (Modifier* mod : nameLhs->field->refersTo->modifiers->elements)
+                    {
+                        if (mod->type == Modifier::FINAL)
+                        {
+                            cout << "Cannot assign to a final field" << endl;
+                            exit(42);
+                        }
+                    }
+                }
+                else
+                {
+                    cout << "Cannot assign to length field of array" << endl;
+                    exit(42);
+                }
+            }
+        }
+        else if (FieldAccess * fieldLhs = dynamic_cast<FieldAccess*>(node.lhs))
+        {
+            if (fieldLhs->refersTo)
+            {
+                for (Modifier* mod : fieldLhs->refersTo->modifiers->elements)
+                {
+                    if (mod->type == Modifier::FINAL)
+                    {
+                        cout << "Cannot assign to a final field" << endl;
+                        exit(42);
+                    }
+                }
+            }
+            else
+            {
+                cout << "Cannot assign to length field of array" << endl;
+                exit(42);
+            }
+        }
+
         node.resolvedType = cloneType(node.lhs->resolvedType);
     }
     else
@@ -1710,6 +1782,7 @@ void TypeCheckingVisitor::leave(FieldAccess& node)
                 if (validateMemberAccess(node.prevExpr, classDecl, field))
                 {
                     node.resolvedType = cloneType(field->declaration->type);
+                    node.refersTo = field;
                 }
                 else
                 {

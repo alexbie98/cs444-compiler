@@ -573,6 +573,8 @@ struct FieldAccess : public ChainableExpression
 {
     SimpleName* name = nullptr;
 
+    FieldDeclaration* refersTo = nullptr;
+
     virtual ~FieldAccess();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
