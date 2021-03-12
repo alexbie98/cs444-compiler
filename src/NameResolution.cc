@@ -863,7 +863,7 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
                 {
                     if (PrimitiveType * primRhs = dynamic_cast<PrimitiveType*>(rhsElemType))
                     {
-                        return primLhs->type == primLhs->type;
+                        return primLhs->type == primRhs->type;
                     }
                 }
                 else if (dynamic_cast<QualifiedType*>(lhsElemType) && dynamic_cast<QualifiedType*>(rhsElemType))
@@ -1932,21 +1932,29 @@ void TypeCheckingVisitor::leave(ReturnStatement& node)
 {
     if (node.expression)
     {
-        if (node.expression->resolvedType)
+        if (!isVoidType(returnType))
         {
-            if (isAssignable(returnType, node.expression->resolvedType))
+            if (node.expression->resolvedType)
             {
-                node.isTypeCorrect = true;
+                if (isAssignable(returnType, node.expression->resolvedType))
+                {
+                    node.isTypeCorrect = true;
+                }
+                else
+                {
+                    cout << "Return expression is not assignable to return type" << endl;
+                    exit(42);
+                }
             }
             else
             {
-                cout << "Return expression is not assignable to return type" << endl;
+                cout << "Expression has not been resolved" << endl;
                 exit(42);
             }
         }
         else
         {
-            cout << "Expression has not been resolved" << endl;
+            cout << "Cannot return expression in a void func" << endl;
             exit(42);
         }
     }
