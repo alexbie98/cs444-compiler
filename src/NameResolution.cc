@@ -143,6 +143,8 @@ void EnvironmentVisitor::visit(FormalParameter& node)
 
 void EnvironmentVisitor::visit(VariableDeclarationExpression& node) 
 {  
+    // Class FieldDeclarations always use VariableDeclarationExpressions internally. 
+    // Thus, fields will be recorded in both the class scope's fields AND variables.
     const std::string& name = node.name->getString();
 
     // Check outter scopes for duplicates
