@@ -1093,7 +1093,7 @@ bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclara
         bool samePackage = member->originatingClass->packageName == enclosingClass->packageName;
         bool deriveClass = isDerived(member->originatingClass, enclosingClass);
 
-        if (samePackage && deriveClass)
+        if (samePackage || deriveClass)
         {
             if (!shouldBeStatic)
             {
