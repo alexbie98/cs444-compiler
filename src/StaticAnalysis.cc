@@ -11,8 +11,7 @@ void ReachabilityVisitor::leave(MethodDeclaration& node)
 {
     PrimitiveType* return_type = dynamic_cast<PrimitiveType*>(node.type);
     if(node.body
-       && return_type 
-       && return_type->type != PrimitiveType::VOID
+       && (!return_type || return_type->type != PrimitiveType::VOID)
        && (out.find(node.body) == out.end() || out[node.body] == MAYBE))
        {
             std::cout << "Missing return statement in \"" << node.name->getString() << "\" " << std::endl;
@@ -79,7 +78,7 @@ void ReachabilityVisitor::leave(IfStatement& node)
         assert(out.find(node.elseBody) != out.end());
         assert(out.find(node.ifBody) != out.end());
 
-        out[&node] = (out[node.ifBody] == MAYBE || out[node.elseBody] == MAYBE) ? MAYBE : NO;
+        out[&node] = ((out[node.ifBody] == MAYBE || out[node.elseBody] == MAYBE) ? MAYBE : NO);
     }
 }
 
