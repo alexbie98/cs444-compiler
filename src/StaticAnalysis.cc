@@ -7,6 +7,19 @@ void ReachabilityVisitor::visit(MethodDeclaration& node)
     in[node.body] = MAYBE;
 }
 
+void ReachabilityVisitor::leave(MethodDeclaration& node)
+{
+    PrimitiveType* return_type = dynamic_cast<PrimitiveType*>(node.type);
+    if(node.body
+       && return_type 
+       && return_type->type != PrimitiveType::VOID
+       && (out.find(node.body) == out.end() || out[node.body] == MAYBE))
+       {
+            std::cout << "Missing return statement in \"" << node.name->getString() << "\" " << std::endl;
+            exit(42);
+       }
+}
+
 void ReachabilityVisitor::visit(ConstructorDeclaration& node)
 {
     in[node.body] = MAYBE;

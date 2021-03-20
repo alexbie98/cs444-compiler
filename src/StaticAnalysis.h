@@ -41,6 +41,7 @@ public:
     virtual void visit(Block& node);
     virtual void visit(ReturnStatement& node);
 
+    virtual void leave(MethodDeclaration& node);
     virtual void leave(IfStatement& node);
     virtual void leave(Block& node);
     virtual void leave(CompilerUnit& node);
