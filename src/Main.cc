@@ -11,6 +11,7 @@
 #include "ASTBuilder.h"
 #include "NameResolution.h"
 #include "HierarchyCheck.h"
+#include "StaticAnalysis.h"
 
 using namespace std;
 
@@ -86,6 +87,10 @@ int main(int argc, char *argv[])
     removeDuplicateImports(asts);
     
     Environment globalEnv = resolveNames(asts);
+
+    // Perform reachability analysis
+    ReachabilityVisitor reachability_visitor;
+    for (ASTNode* ast : asts) ast->visitAll(reachability_visitor);
 
     if (verbose){
         printEnvironment(globalEnv);
