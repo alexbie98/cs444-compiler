@@ -16,6 +16,8 @@ std::vector<Token> munch(const std::string &s);
  */
 void preprocess(std::string &s);
 
+std::pair<char, size_t> processEscape(const std::string &prefix);
+
 /**
  * Performs postprocessing on scanned tokens 
  * 1. filter out WS, COMMENT tokens

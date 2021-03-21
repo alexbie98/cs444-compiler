@@ -368,7 +368,7 @@ struct IntLiteral : public Expression
 
 struct CharLiteral : public Expression
 {
-    char value;
+    char16_t value;
 
     virtual ~CharLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
@@ -378,7 +378,7 @@ struct CharLiteral : public Expression
 
 struct StringLiteral : public Expression
 {
-    std::string value;
+    std::u16string value;
 
     virtual ~StringLiteral() = default;
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }

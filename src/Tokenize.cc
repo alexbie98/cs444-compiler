@@ -147,24 +147,91 @@ Token& processToken(Token& t){
         }
     }
     else if (t.first == CHAR_LIT){
-        // do nothing for now
+        string stripped = t.second.substr(1, t.second.length() - 2);
+        if (stripped[0] == '\\'){
+            auto [c, l] = processEscape(stripped.substr(1));
+            t.second = string{c};
+        }
     }
     else if (t.first == STRING_LIT){
-        // do nothing for now
+        string stripped = t.second.substr(1, t.second.length() - 2);
+        vector<char> cs;
+        size_t i = 0;
+        while (i < stripped.length()){
+            if (stripped[i] == '\\'){
+                auto [c, l] = processEscape(stripped.substr(i+1));
+                cs.push_back(c);
+                i += (l + 1);
+            }
+            else{
+                cs.push_back(stripped[i]);
+                i++;
+            }
+        }
+        t.second = string{cs.begin(), cs.end()};
     }
 
     return t;
 }
+/**
+ * prefix: 1 or more characters that follow \ of a valid escape sequence
+ * 
+ **/
+pair<char, size_t> processEscape(const string& prefix){
+    char res;
+    size_t length = 1;
+    //cout << prefix.length() << endl;
+
+    switch (prefix[0]) {
+        case 'b': res = '\b'; break;
+        case 't': res = '\t'; break;
+        case 'n': res = '\n'; break;
+        case 'f': res = '\f'; break;
+        case 'r': res = '\r'; break;
+        case '"': res = '"'; break;
+        case '\'': res = '\''; break;
+        case '\\': res = '\\'; break;
+        default:
+            // must be oct
+            if (prefix.length() >= 3 && 
+                prefix[0]-'0' >= 0 && prefix[0]-'0' <= 3 &&
+                prefix[1]-'0' >= 0 && prefix[1]-'0' <= 7 &&
+                prefix[2]-'0' >= 0 && prefix[2]-'0' <= 7){
+
+                length = 3;
+                res = (char) ((prefix[0] - '0') * 64 + (prefix[1] - '0') * 8 + (prefix[2] - '0'));
+                //cout << (int) res << endl;
+            }
+            else if (prefix.length() >= 2 && 
+                prefix[0]-'0' >= 0 && prefix[0]-'0' <= 7 &&
+                prefix[1]-'0' >= 0 && prefix[1]-'0' <= 7){
+
+                length = 2;
+                res = (char)((prefix[0] - '0') * 8 + (prefix[1] - '0'));
+            }
+            else if (
+                prefix[0]-'0' >= 0 && prefix[0]-'0' <= 7){
+
+                res = (char) (prefix[0] - '0');
+            }
+            else{
+                cout << "unrecognized escape sequence in string/char literal" << endl;
+            }
+    }
+    return {res, length};
+}
 
 void postprocess(vector<Token>& tokens){
 
-    for (const Token& t: tokens){
-        if(isUnsupported(t.first)){
-            cout << "unsupported token ";
-            printToken(t);
-            exit(42);
-        }
-    }
+    for (const Token& t: tokens)
+            {
+                if (isUnsupported(t.first))
+                {
+                    cout << "unsupported token ";
+                    printToken(t);
+                    exit(42);
+                }
+            }
 
     // 1. filter WS, COMMENT tokens
     auto it = remove_if(tokens.begin(), tokens.end(),
@@ -172,4 +239,4 @@ void postprocess(vector<Token>& tokens){
     tokens.erase(it, tokens.end());
 
     transform(tokens.begin(), tokens.end(), tokens.begin(), processToken);
-}
+        }
