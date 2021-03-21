@@ -1,6 +1,7 @@
 #include "StaticAnalysis.h"
 #include <assert.h>
 #include <iostream>
+#include <functional>
 
 void ReachabilityVisitor::visit(MethodDeclaration& node)
 {
@@ -229,48 +230,101 @@ void ConstantExpressionVisitor::leave(BooleanLiteral& node)
 
 void ConstantExpressionVisitor::leave(BinaryOperation& node)
 { 
+    using integer_type = decltype(Expression::ConstantValue::ConstantValueContents::_int);
+
     if(node.rhs->constant_value && node.lhs->constant_value)
     {
         bool both_bool = node.lhs->constant_value->type == Expression::ConstantValue::BOOL
                          && node.rhs->constant_value->type == Expression::ConstantValue::BOOL;
         bool both_numeric = node.lhs->constant_value->isNumeric() && node.rhs->constant_value->isNumeric();
 
-        decltype(Expression::ConstantValue::ConstantValueContents::_int) a;
-        decltype(Expression::ConstantValue::ConstantValueContents::_int) b;
-
         Expression::ConstantValue result;
+
+        std::function<int(int,int)> arithmetic = nullptr;
+        std::function<bool(int,int)> int_comparison = nullptr;
+        std::function<bool(bool,bool)> bool_comparison = nullptr;
 
         switch(node.op)
         {
             // Conditional AND and OR (Not Eager) do not short circuit during constant expression evaluation.
             // (true || (a == 1)) does not evaluate to true during constant expression evaluation if a is not final.
             case BinaryOperation::AND: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
                 break;
             case BinaryOperation::EAGER_AND: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
                 break;
             case BinaryOperation::OR: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
                 break;
             case BinaryOperation::EAGER_OR: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                break;
+            case BinaryOperation::XOR:
+                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool }};
                 break;
             case BinaryOperation::PLUS:
-                // Section 15.18.2/5.6.2 Binary numeric promotion is performed, promoting both operands to ints (done for all additive and multiplicative operators)
-                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() + node.rhs->constant_value->asInt() }};
+                arithmetic = std::plus<integer_type>();
                 break;
             case BinaryOperation::MINUS:
-                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() - node.rhs->constant_value->asInt() }};
+                arithmetic = std::minus<integer_type>();
                 break;
             case BinaryOperation::TIMES:
-                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() * node.rhs->constant_value->asInt() }};
+                arithmetic = std::multiplies<integer_type>();
                 break;
             case BinaryOperation::DIVIDE:
-                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() / node.rhs->constant_value->asInt() }};
+                arithmetic = std::divides<integer_type>();
                 break;
             case BinaryOperation::REMAINDER:
-                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() % node.rhs->constant_value->asInt() }};
+                arithmetic = std::modulus<integer_type>();
+                break;
+            case BinaryOperation::EQ:
+                if(both_bool) bool_comparison = std::equal_to<bool>();
+                else int_comparison = std::equal_to<integer_type>();
+                break;
+            case BinaryOperation::NEQ:
+                if(both_bool) bool_comparison = std::not_equal_to<bool>();
+                else int_comparison = std::not_equal_to<integer_type>();
+                break;
+            case BinaryOperation::LEQ:
+                int_comparison = std::less_equal<integer_type>();
+                break;
+            case BinaryOperation::GEQ:
+                int_comparison = std::greater_equal<integer_type>();
+                break;
+            case BinaryOperation::LT:
+                int_comparison = std::less<integer_type>();
+                break;
+            case BinaryOperation::GT:
+                int_comparison = std::greater<integer_type>();
+                break;
+        }
+
+        if(arithmetic)
+            // Section 15.18.2/5.6.2 Binary numeric promotion is performed, promoting both operands to ints (done for all additive and multiplicative operators)
+            result = {Expression::ConstantValue::INT, {_int: arithmetic(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt()) }};
+        else if (int_comparison)
+            result = {Expression::ConstantValue::BOOL, {_bool: int_comparison(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt()) }};
+        else if (bool_comparison)
+            result = {Expression::ConstantValue::BOOL, {_bool: bool_comparison(node.lhs->constant_value->value._bool, node.rhs->constant_value->value._bool) }};
+
+        node.constant_value = new Expression::ConstantValue(result);
+    }
+}
+
+void ConstantExpressionVisitor::leave(PrefixOperation& node)
+{
+    if(node.operand->constant_value)
+    {
+        Expression::ConstantValue result;
+
+        switch(node.op)
+        {
+            case PrefixOperation::NOT: 
+                result = {Expression::ConstantValue::BOOL, {_bool: !node.operand->constant_value->value._bool }};
+                break;
+            case PrefixOperation::MINUS: 
+                result = {Expression::ConstantValue::INT, {_int: -node.operand->constant_value->asInt() }};
                 break;
         }
 
