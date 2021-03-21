@@ -258,7 +258,8 @@ struct Expression : public ASTNode //abstract
             SHORT,
             INT,
             CHAR,
-            STRING,
+            // For Joos, we are not required to implement strings as constant literals for the purpose of constant expressions in the sense of JLS 15.28.
+            STRING, // UNUSED
             BOOL
         };
 
