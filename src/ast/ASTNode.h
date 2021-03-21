@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <assert.h>
 
 #define UNNAMED_PACKAGE "UNNAMED():.{}"
 
@@ -249,7 +250,52 @@ protected:
 
 struct Expression : public ASTNode //abstract
 {
-    Type* resolvedType = nullptr ;
+    struct ConstantValue 
+    {
+        enum ConstantValueType
+        {
+            BYTE,
+            SHORT,
+            INT,
+            CHAR,
+            STRING,
+            BOOL
+        };
+
+        union ConstantValueContents 
+        {
+            char _byte;
+            short _short;
+            int _int;
+            char16_t _char;
+            StringLiteral* _string; 
+            bool _bool;
+        };
+
+        ConstantValueType type;
+        ConstantValueContents value;
+
+        bool isNumeric()
+        {
+            return type != STRING && type != BOOL;
+        }
+
+        int asInt()
+        {
+            switch(type) 
+            {
+                case BYTE: return value._byte;
+                case SHORT: return value._short;
+                case INT: return value._int;
+                case CHAR: return value._char;
+                default:
+                    assert(false);
+            }
+        }
+    };
+
+    Type* resolvedType = nullptr;
+    ConstantValue* constant_value = nullptr;
 
     virtual ~Expression();
     virtual std::string toString(){ return "Expression"; }
@@ -309,11 +355,14 @@ struct PrimitiveType : public Type
 {
     enum BasicType
     {
+        // Primitive Types
         BYTE,
         SHORT,
         INT,
         CHAR,
         BOOLEAN,
+
+        // Other
         VOID,
         NULL_TYPE
     };

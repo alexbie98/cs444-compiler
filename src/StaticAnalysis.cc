@@ -87,8 +87,31 @@ void ReachabilityVisitor::visit(ForStatement& node)
     ASTNodeVisitor::visit(node);
     assert(in.find(&node) != in.end());
 
-    in[node.body] = in[&node];
-    out[&node] = in[&node];
+    if(node.forCheck)
+    {
+        ConstantExpressionVisitor v;
+        node.forCheck->visitAll(v);
+    }
+
+    // No forCheck is equivalent to forCheck == true
+    if(!node.forCheck || node.forCheck->constant_value)
+    {
+        if(!node.forCheck || node.forCheck->constant_value->value._bool == true)
+        {
+            if(node.body) in[node.body] = in[&node];
+            out[&node] = NO;
+        }
+        else
+        {
+            if(node.body) in[node.body] = NO;
+            out[&node] = in[&node];
+        }
+    }
+    else
+    {
+        if(node.body) in[node.body] = in[&node];
+        out[&node] = in[&node];
+    }
 }
 
 void ReachabilityVisitor::visit(WhileStatement& node)
@@ -96,8 +119,27 @@ void ReachabilityVisitor::visit(WhileStatement& node)
     ASTNodeVisitor::visit(node);
     assert(in.find(&node) != in.end());
 
-    in[node.body] = in[&node];
-    out[&node] = in[&node];
+    ConstantExpressionVisitor v;
+    node.condition->visitAll(v);
+
+    if(node.condition->constant_value)
+    {
+        if(node.condition->constant_value->value._bool == true)
+        {
+            if(node.body) in[node.body] = in[&node];
+            out[&node] = NO;
+        }
+        else
+        {
+            if(node.body) in[node.body] = NO;
+            out[&node] = in[&node];
+        }
+    }
+    else
+    {
+        if(node.body) in[node.body] = in[&node];
+        out[&node] = in[&node];
+    }
 }
 
 void ReachabilityVisitor::visit(Block& node)
@@ -144,4 +186,99 @@ void ReachabilityVisitor::leave(CompilerUnit& node)
             exit(42);
         }
     }
+}
+
+void ReachabilityVisitor::visit(VariableDeclarationExpression& node)
+{
+    current_variable_decl = &node;
+}
+
+void ReachabilityVisitor::leave(VariableDeclarationExpression& node)
+{
+    current_variable_decl = nullptr;
+}
+
+void ReachabilityVisitor::visit(NameExpression& node)
+{
+    if(node.name && current_variable_decl && node.name->refers_to == current_variable_decl)
+    {
+        std::cout << "Local variable \"" << current_variable_decl->name->getString() << "\" occurs in its own initializer." << std::endl;
+        exit(42);
+    }
+}
+
+void ConstantExpressionVisitor::leave(IntLiteral& node)
+{
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: node.value}});
+}
+
+void ConstantExpressionVisitor::leave(CharLiteral& node)
+{
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: node.value}});
+}
+
+void ConstantExpressionVisitor::leave(StringLiteral& node)
+{
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::STRING, {_string: &node}});
+}
+
+void ConstantExpressionVisitor::leave(BooleanLiteral& node)
+{
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BOOL, {_bool: node.value}});
+}
+
+void ConstantExpressionVisitor::leave(BinaryOperation& node)
+{ 
+    if(node.rhs->constant_value && node.lhs->constant_value)
+    {
+        bool both_bool = node.lhs->constant_value->type == Expression::ConstantValue::BOOL
+                         && node.rhs->constant_value->type == Expression::ConstantValue::BOOL;
+        bool both_numeric = node.lhs->constant_value->isNumeric() && node.rhs->constant_value->isNumeric();
+
+        decltype(Expression::ConstantValue::ConstantValueContents::_int) a;
+        decltype(Expression::ConstantValue::ConstantValueContents::_int) b;
+
+        Expression::ConstantValue result;
+
+        switch(node.op)
+        {
+            // Conditional AND and OR (Not Eager) do not short circuit during constant expression evaluation.
+            // (true || (a == 1)) does not evaluate to true during constant expression evaluation if a is not final.
+            case BinaryOperation::AND: 
+                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                break;
+            case BinaryOperation::EAGER_AND: 
+                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                break;
+            case BinaryOperation::OR: 
+                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                break;
+            case BinaryOperation::EAGER_OR: 
+                result = {Expression::ConstantValue::BOOL, {_bool: node.rhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                break;
+            case BinaryOperation::PLUS:
+                // Section 15.18.2/5.6.2 Binary numeric promotion is performed, promoting both operands to ints (done for all additive and multiplicative operators)
+                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() + node.rhs->constant_value->asInt() }};
+                break;
+            case BinaryOperation::MINUS:
+                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() - node.rhs->constant_value->asInt() }};
+                break;
+            case BinaryOperation::TIMES:
+                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() * node.rhs->constant_value->asInt() }};
+                break;
+            case BinaryOperation::DIVIDE:
+                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() / node.rhs->constant_value->asInt() }};
+                break;
+            case BinaryOperation::REMAINDER:
+                result = {Expression::ConstantValue::INT, {_int: node.rhs->constant_value->asInt() % node.rhs->constant_value->asInt() }};
+                break;
+        }
+
+        node.constant_value = new Expression::ConstantValue(result);
+    }
+}
+
+void ConstantExpressionVisitor::leave(ParenthesizedExpression& node)
+{
+    node.constant_value = node.expr->constant_value;
 }

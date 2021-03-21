@@ -18,6 +18,7 @@ class ReachabilityVisitor: public ASTNodeVisitor
     std::unordered_map<Statement*, Reachable> out;
 
     std::vector<Statement*> block_statements;
+    VariableDeclarationExpression* current_variable_decl = nullptr;
 
     Statement* lastStatement(Statement* current)
     {
@@ -46,6 +47,24 @@ public:
     virtual void leave(Block& node);
     virtual void leave(CompilerUnit& node);
 
-    // virtual void leave(ExpressionStatement& node);
-    // virtual void leave(EmptyStatement& node);
+    // For initializer check
+    virtual void visit(VariableDeclarationExpression& node);
+    virtual void leave(VariableDeclarationExpression& node);
+    virtual void visit(NameExpression& node);
+};
+
+class ConstantExpressionVisitor: public ASTNodeVisitor
+{
+public: 
+    virtual void leave(IntLiteral& node);
+    virtual void leave(CharLiteral& node);
+    virtual void leave(StringLiteral& node);
+    virtual void leave(BooleanLiteral& node);
+    // virtual void leave(NameExpression& node);
+    virtual void leave(BinaryOperation& node);
+    // virtual void leave(PrefixOperation& node);
+    // virtual void leave(CastExpression& node);
+    virtual void leave(ParenthesizedExpression& node);
+    // virtual void leave(ChainableExpression& node);
+    // virtual void leave(ThisExpression& node);
 };
