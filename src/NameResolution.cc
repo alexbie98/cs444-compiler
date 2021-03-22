@@ -1009,6 +1009,11 @@ bool TypeCheckingVisitor::isInterfaceType(Type* type) const
 
 bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
 {
+    if (isNullType(castType))
+    {
+        return false;
+    }
+
     if (isNumericType(baseType) && isNumericType(castType))
     {
         return true;
