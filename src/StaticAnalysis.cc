@@ -308,6 +308,7 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
         else if (bool_comparison)
             result = {Expression::ConstantValue::BOOL, {_bool: bool_comparison(node.lhs->constant_value->value._bool, node.rhs->constant_value->value._bool) }};
 
+        // TODO Correct default behaviour due to type checking?
         node.constant_value = new Expression::ConstantValue(result);
     }
 }
@@ -329,6 +330,37 @@ void ConstantExpressionVisitor::leave(PrefixOperation& node)
         }
 
         node.constant_value = new Expression::ConstantValue(result);
+    }
+}
+
+void ConstantExpressionVisitor::leave(CastExpression& node)
+{
+    PrimitiveType* primitive = dynamic_cast<PrimitiveType*>(node.castType);
+
+    if(node.expression->constant_value && primitive)
+    {
+        switch(primitive->type)
+        {
+            case PrimitiveType::BYTE:
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, {_byte: node.expression->constant_value->asInt() }});
+                break;
+            case PrimitiveType::SHORT:
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, {_short: node.expression->constant_value->asInt() }});
+                break;
+            case PrimitiveType::INT:
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: node.expression->constant_value->asInt() }});
+                break;
+            case PrimitiveType::CHAR:
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: node.expression->constant_value->asInt() }});
+                break;
+            case PrimitiveType::BOOLEAN:
+                // Must be identity conversion
+                node.constant_value = new Expression::ConstantValue(*node.expression->constant_value);
+                break;
+            default:
+                assert(false);
+                break;
+        }
     }
 }
 

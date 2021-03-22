@@ -64,7 +64,7 @@ public:
     virtual void leave(BinaryOperation& node);
     virtual void leave(PrefixOperation& node);
     // virtual void leave(PrefixOperation& node);
-    // virtual void leave(CastExpression& node);
+    virtual void leave(CastExpression& node);
     virtual void leave(ParenthesizedExpression& node);
     // virtual void leave(ChainableExpression& node);
     // virtual void leave(ThisExpression& node);
