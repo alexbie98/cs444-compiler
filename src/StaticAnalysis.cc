@@ -210,7 +210,7 @@ void ReachabilityVisitor::visit(NameExpression& node)
 
 void ConstantExpressionVisitor::leave(IntLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: node.value}});
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: (int) node.value}});
 }
 
 void ConstantExpressionVisitor::leave(CharLiteral& node)
@@ -342,16 +342,16 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
         switch(primitive->type)
         {
             case PrimitiveType::BYTE:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, {_byte: node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, {_byte: (char) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::SHORT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, {_short: node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, {_short: (short) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::INT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: (int) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::CHAR:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: (char16_t) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::BOOLEAN:
                 // Must be identity conversion
