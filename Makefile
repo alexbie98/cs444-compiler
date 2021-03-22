@@ -1,5 +1,5 @@
 CXX = $(shell if [ -x "$$(command -v g++-9)" ]; then echo "g++-9"; else echo "g++"; fi)
-CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label
+CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label -Wno-gnu-designator -Wno-inconsistent-missing-override
 
 BUILDDIR = build
 SRCDIR = src

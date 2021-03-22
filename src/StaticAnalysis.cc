@@ -210,7 +210,8 @@ void ReachabilityVisitor::visit(NameExpression& node)
 
 void ConstantExpressionVisitor::leave(IntLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: (int) node.value}});
+    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, 
+        {_int:  (decltype(Expression::ConstantValue::ConstantValueContents::_int)) node.value}});
 }
 
 void ConstantExpressionVisitor::leave(CharLiteral& node)
@@ -339,19 +340,23 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
 
     if(node.expression->constant_value && primitive)
     {
-        switch(primitive->type)
+        switch (primitive->type)
         {
             case PrimitiveType::BYTE:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, {_byte: (char) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, 
+                    {_byte: (decltype(Expression::ConstantValue::ConstantValueContents::_byte)) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::SHORT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, {_short: (short) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, 
+                    {_short: (decltype(Expression::ConstantValue::ConstantValueContents::_short)) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::INT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, {_int: (int) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, 
+                    {_int: (decltype(Expression::ConstantValue::ConstantValueContents::_int)) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::CHAR:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: (char16_t) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, 
+                    {_char: (decltype(Expression::ConstantValue::ConstantValueContents::_char)) node.expression->constant_value->asInt() }});
                 break;
             case PrimitiveType::BOOLEAN:
                 // Must be identity conversion
