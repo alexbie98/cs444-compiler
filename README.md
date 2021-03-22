@@ -14,7 +14,9 @@
 - `make test`
 - `./test` to test the latest assignment
 - `./test a2` to test a2
-- `./test a4r` to test a4, running regression on a1...a3
+- `./test constexpr` to test all the cases in `custom_testcases/constexpr`
+- `./test a4 r` to test a4, running regression on a1...a3, plus all custom test cases and unit tests
+- `./test constexpr r` to test all custom test cases and unit tests
 
 ### Notes
 - If you add a new `.cc` file, add it to line 7 `OBJECTS = ...` of the `Makefile` (line 10 `TEST_OBJECTS = ...` for test files)
