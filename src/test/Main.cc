@@ -4,6 +4,8 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
+#include <sstream>
+#include <fstream>
 
 #include "Test.h"
 #include "LexTest.h"
@@ -39,7 +41,7 @@ vector<string> getSourceFiles(const string& path){
 
 
 pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool regress = false){
-	cout << "| Running marmoset tests at: " << "\'" << path << "\'" << endl;
+	cout << "| Running tests at: " << "\'" << path << "\'" << endl;
 
 	vector<string> libSourceFiles;
 	if (libPath != "")
@@ -79,12 +81,42 @@ void runUnitTests(){
 }
 
 
+string get_stdlib(const string& current, const vector<string>& libPaths){
+	string lib;
+
+	if (filesystem::exists(current + "/stdlib.txt")){
+		ifstream ts(current + "/stdlib.txt");
+		stringstream buffer;
+		buffer << ts.rdbuf();
+		lib = buffer.str();
+		if (lib[lib.length()-1] == '\n'){
+			lib = lib.substr(0, lib.length() - 1);
+		}
+		lib = "stdlib/" + lib;
+	}
+	else{
+		auto i = current.rfind("/");
+		string ver = current.substr(i + 2);
+		ver = ver == "1" ? "2" : ver;
+		lib = "stdlib/" + ver + ".0";
+	}
+	assert(find(libPaths.begin(), libPaths.end(), lib) != libPaths.end());
+
+	return lib;
+}
+
 // TODO Add multi assignment check
 int main(int argc, char *argv[]){
 
 	auto paths = ls("assignment_testcases");
-	cout << "| Marmoset test cases found at: "<< endl;
+	cout << "| Assignment test cases found at: "<< endl;
 	for (const string& path: paths){
+		cout << "| " << path << endl;
+	}
+
+	auto custom_paths = ls("custom_testcases");
+	cout << "| Custom test cases found at: "<< endl;
+	for (const string& path: custom_paths){
 		cout << "| " << path << endl;
 	}
 
@@ -94,40 +126,76 @@ int main(int argc, char *argv[]){
 		cout << "| " << path << endl;
 	}
 	libPaths.insert(libPaths.begin(), libPaths[0]);
-	//libPaths.insert(libPaths.begin(), "");
 
-	assert(argc <= 2);
-	size_t current = 1;
+	assert(argc <= 3);
+	string current = "a4";
 	bool regress = false;
-	if (argc == 2)
+	if (argc == 3)
 	{
-		if (argv[1][0] == 'a' && (argv[1][2] == 0 || (argv[1][2] == 'r' && argv[1][3] == 0)))
-		{
-			current = argv[1][1] - '1';
-			regress = ('r' == argv[1][2]);
-		}
+		assert(string(argv[2])  == "r");
+		regress = true;
+		cout << "| Running regression tests" << endl;
+	}
+	if (argc != 1){
+		current = argv[1];
 	}
 
-	vector<pair<int, int>> regRes;
+	if (find(paths.begin(), paths.end(), "assignment_testcases/" + current) != paths.end())
+	{
+		current = "assignment_testcases/" + current;
+	}
+	else if (find(custom_paths.begin(), custom_paths.end(), "custom_testcases/" + current) != custom_paths.end()){
+		current = "custom_testcases/" + current;
+	}
+	else{
+		cout << "Provided test suite not found" << endl;
+	}
+
+	vector<pair<string, string>> tests;
 
 	if (regress){
-
-
-		for (size_t i = 0; i < current; i++)
+		for (auto custom_path : custom_paths)
 		{
-			regRes.push_back(runMarmosetTests(paths[i], libPaths[i], true));
+			cout << current << endl;
+			cout << custom_path << endl;
+			if (custom_path != current)
+			{
+				tests.push_back({custom_path, get_stdlib(custom_path, libPaths)});
+			}
+		}
+		if (current[0] == 'a'){
+			for (auto path: paths){
+				if (path != current){
+					tests.push_back({path, get_stdlib(path, libPaths)});
+				}
+				else{
+					break;
+				}
+			}
 		}
 	}
-	auto res = runMarmosetTests(paths[current], libPaths[current]);
 
+	tests.push_back({current, get_stdlib(current, libPaths)});
+
+
+	vector<pair<int, int>> res;
+
+
+	for (auto [path, stdlib]: tests)
+	{
+		bool hide = path != current;
+		res.push_back(runMarmosetTests(path, stdlib, hide));
+	}
+	
 	if (regress){
 		cout << "| Running unit tests" << endl;
 		runUnitTests();
 	}
 
-	for (int i = 0; i <regRes.size(); i++){
-		cout << "| " << paths[i] <<" tests complete: " << regRes[i].first << "/" << regRes[i].second << " passed" << endl;
+	for (size_t i = 0; i < tests.size();i++)
+	{
+		cout << "| " << tests[i].first <<" tests complete: " << res[i].first << "/" << res[i].second << " passed" << endl;
 	}
-	cout << "| " << paths[current] <<" tests complete: " << res.first << "/" << res.second << " passed" << endl;
+
 }
 
