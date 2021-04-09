@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label -Wno-gnu-designator -Wno-i
 BUILDDIR = build
 SRCDIR = src
 
-OBJECTS = ${addprefix ${BUILDDIR}/, DFA.o ParseTable.o Tokenize.o Token.o Parser.o Weeder.o ASTBuilder.o ast/ASTNode.o NameResolution.o HierarchyCheck.o StaticAnalysis.o}
+OBJECTS = ${addprefix ${BUILDDIR}/, DFA.o ParseTable.o Tokenize.o Token.o Parser.o Weeder.o ASTBuilder.o ast/ASTNode.o NameResolution.o HierarchyCheck.o StaticAnalysis.o CodeGeneration.o}
 DEPENDS = ${OBJECTS:.o=.d}
 
 LEX_OBJECTS = ${addprefix ${BUILDDIR}/, lex/RegexProcessor.o lex/FA.o}
