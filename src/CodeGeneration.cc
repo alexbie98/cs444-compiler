@@ -115,12 +115,13 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
         // Create empty SIT column
         sit_table[it.second] = std::vector<MethodDeclaration*>(sit_column_size, nullptr);
 
-        for(MemberDeclaration* member: it.second->classBody->elements)
+        if(it.second->containedConcreteMethods)
         {
-            MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-
-            if(method)
+            for(auto member_it: *it.second->containedConcreteMethods)
             {
+                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member_it.second);
+                assert(method);
+
                 if(unique_method_signatures.find(method->getSignature()) != unique_method_signatures.end())
                 {
                     // If method is a plausable interface method, add to method -> index mapping and SIT table
