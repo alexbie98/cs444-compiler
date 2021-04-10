@@ -73,8 +73,10 @@ bool runIOTest(const string& testName,
         assert(expectFile == "");
     }
 
-    system("rm -rf output");
-    system("mkdir output");
+    if (runCode){
+        system("rm -rf output");
+        system("mkdir output");
+    }
 
     // build the command
     string command = "./joosc ";

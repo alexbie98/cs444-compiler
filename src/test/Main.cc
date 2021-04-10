@@ -33,7 +33,7 @@ vector<string> getSourceFiles(const string& path){
 }
 
 
-pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool regress = false){
+pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool runCode, bool regress = false){
 	cout << "| Running tests at: " << "\'" << path << "\'" << endl;
 
 	vector<string> libSourceFiles;
@@ -90,7 +90,7 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 								libSourceFiles,
 								libAssemblyFiles,
 								expect,
-								path == "assignment_testcases/a5" || path == "custom_testcases/example",
+								runCode,
 								expectFile,
 								!regress && PRINT_PASSES);
 
@@ -211,8 +211,15 @@ int main(int argc, char *argv[]){
 
 	for (auto [path, stdlib]: tests)
 	{
-		bool hide = path != current;
-		res.push_back(runMarmosetTests(path, stdlib, hide));
+		bool regress = path != current;
+		res.push_back(
+			runMarmosetTests(
+				path, 
+				stdlib,
+				path == "assignment_testcases/a5" || path == "custom_testcases/example", 
+				regress
+			)
+		);
 	}
 	
 	if (regress){
