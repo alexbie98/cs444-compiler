@@ -108,6 +108,18 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
         }
     }
 
+    // All interfaces implicitly define abstract versions of Object's methods
+    assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
+    for(MemberDeclaration* member: globalEnv.classes["java.lang.Object"]->classBody->elements)
+    {
+        MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+        if(method && unique_method_signatures.find(method->getSignature()) == unique_method_signatures.end())
+        {
+            unique_method_signatures[method->getSignature()] = sit_column_size;
+            sit_column_size++;
+        }
+    }
+
     // Add all methods that match an interface signature, regardless of whether they did in fact implement an interface method.
     // Type checking should have already not allowed an interface method access from a class that doesnt implement that interface.
     for(auto it: globalEnv.classes)
@@ -215,7 +227,6 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
 
     // Create array SIT columns
     // The interfaces java.io.Serializable and Cloneable are implemented by arrays
-    // All interfaces implicitly define abstract versions of Object's methods
     // Since Serializable and Cloneable are empty, SIT column for all arrays is identical to Object's SIT column
     assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
     array_sit_column = sit_table[globalEnv.classes["java.lang.Object"]];
