@@ -281,7 +281,42 @@ std::string CodeGenerator::generateCommon()
     return common_asm;
 }
 
-std::string CodeGenerator::generateFileCode(ASTNode* root)
+std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    return "";
+    std::string class_asm;
+
+    class_asm += labelAsm(sitColumnLabel(root));
+
+    std::vector<MethodDeclaration *>& column = sit_table[root];
+
+    for(MethodDeclaration* method: column)
+    {
+        if(method)
+        {
+            if(containingType(method) != root)
+            {
+                class_asm += externAsm(classMethodLabel(method));
+            }
+            class_asm += wordAsm(classMethodLabel(method));
+        }
+        else
+        {
+            class_asm += wordAsm(0);
+        }
+    }
+    
+    ClassInfo& class_info = class_infos[root];
+
+    // TEMP Define label for each method
+    for(MemberDeclaration* member: root->classBody->elements)
+    {
+        MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+        if(method)
+        {
+            class_asm += globalAsm(classMethodLabel(method));
+            class_asm += labelAsm(classMethodLabel(method));
+        }
+    }
+
+    return class_asm;
 }

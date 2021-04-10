@@ -189,7 +189,7 @@ ArrayType::~ArrayType()
 
 std::string ArrayType::getTypeName() const
 {
-    return elementType->getTypeName() + "[]";
+    return elementType->getTypeName() + "_array";
 }
 
 void ArrayType::visitChildren(ASTNodeVisitor& v)
@@ -941,12 +941,11 @@ ConstructorDeclaration::~ConstructorDeclaration()
 
 std::string ConstructorDeclaration::getSignature() const
 {
-    std::string ret = "(";
+    std::string ret = "constructor_args_";
     for (FormalParameter* param : parameters->elements)
     {
-        ret += param->type->getTypeName() + " ";
+        ret += "_" + param->type->getTypeName();
     }
-    ret += ")";
     return ret;
 }
 
@@ -1008,12 +1007,12 @@ MethodDeclaration::~MethodDeclaration()
 
 std::string MethodDeclaration::getSignature() const
 {
-    std::string ret = name->getString() + "(";
+    // To be complient with NASM labels, use letters, numbers, _, $, #, @, ~, ., and ? and start with letter
+    std::string ret = "method_" + name->getString() + "_args";
     for (FormalParameter* param : parameters->elements)
     {
-        ret += param->type->getTypeName() + " ";
+        ret += "_" + param->type->getTypeName();
     }
-    ret += ")";
     return ret;
 }
 

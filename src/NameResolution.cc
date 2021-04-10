@@ -1783,7 +1783,7 @@ void TypeCheckingVisitor::leave(ArrayCreator& node)
 
 void TypeCheckingVisitor::leave(MethodCall& node)
 {
-    string methodSig = node.name->getString() + "(";
+    string methodSig = "method_" + node.name->getString() + "_args";
 
     for (Expression* expression : node.arguments->elements)
     {
@@ -1792,9 +1792,8 @@ void TypeCheckingVisitor::leave(MethodCall& node)
             cout << "An argument type has not been resolved in a constructor call" << endl;
             exit(42);
         }
-        methodSig += expression->resolvedType->getTypeName() + " ";
+        methodSig += "_" + expression->resolvedType->getTypeName();
     }
-    methodSig += ")";
 
     TypeDeclaration* callingType;
     if (node.prevExpr)

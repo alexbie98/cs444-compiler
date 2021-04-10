@@ -100,11 +100,19 @@ int main(int argc, char *argv[])
 
     CodeGenerator code_generator(globalEnv);
 
-    // Generate assemlby file containing common structures
+    // Generate assembly file containing common structures
     ofstream common_asm;
     common_asm.open ("output/common.s");
     common_asm << code_generator.generateCommon();
     common_asm.close();
+
+    for(auto it: globalEnv.classes)
+    {
+        ofstream class_asm;
+        class_asm.open ("output/" + it.second->getName()->getString() + ".s");
+        class_asm << code_generator.generateClassCode(it.second);
+        class_asm.close();
+    }
 
     // clean up extras in environment
     for (auto it: globalEnv.extras){

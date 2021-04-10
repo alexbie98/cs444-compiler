@@ -64,11 +64,31 @@ class CodeGenerator
     std::string labelAsm(std::string id){ return id + ":\n"; }
     std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
     std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
+    std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
     std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
+
+    std::string externAsm(std::string id){ return "extern " + id + "\n"; }
+    std::string globalAsm(std::string id){ return "global " + id + "\n"; }
+
+    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->getName()->getString(); }
+    // TODO Make helpers for generating assembly to access class data members
+    std::string classMethodLabel(MethodDeclaration* method)
+    { 
+        ClassDeclaration* containing_class = dynamic_cast<ClassDeclaration*>(containingType(method));
+        assert(containing_class);
+        return method->getSignature() + "_class_" + containing_class->getName()->getString(); 
+    }
+    std::string sitColumnLabel(ClassDeclaration* decl){ return "sit_column_" + decl->getName()->getString(); }
+
+    TypeDeclaration* containingType(MethodDeclaration* method)
+    {
+        assert(dynamic_cast<TypeDeclaration*>(method->parent->parent));
+        return dynamic_cast<TypeDeclaration*>(method->parent->parent);
+    }
     
 public:
     CodeGenerator(Environment& globalEnv);
 
     std::string generateCommon();
-    std::string generateFileCode(ASTNode* root);
+    std::string generateClassCode(ClassDeclaration* root);
 };
