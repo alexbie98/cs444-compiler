@@ -106,20 +106,25 @@ bool runIOTest(const string& testName,
     }
     auto files = ls("output");
     for (const auto& f: files){
-        if (WEXITSTATUS(system(("/u/cs444/bin/nasm -O1 -f elf -g -F dwarf " + f).c_str())) !=0){
+        result = system(("/u/cs444/bin/nasm -O1 -f elf -g -F dwarf " + f).c_str());
+        if (WEXITSTATUS(result) != 0)
+        {
             printLinkAssembleFailMsg(testName);
             cout << f << " filed to assemble" << endl;
             throw;
         }
     }
-    if (WEXITSTATUS(system("ld -melf_i386 -o output/main output/*.o")) !=0){
+    result = system("ld -melf_i386 -o output/main output/*.o");
+    if (WEXITSTATUS(result) != 0)
+    {
         printLinkAssembleFailMsg(testName);
         cout << " failed to link" << endl;
         throw;
     }
 
-    result = WEXITSTATUS(system("./output/main > output/out.txt"));
-    if (result!= 123){
+    result = system("./output/main > output/out.txt");
+    if (WEXITSTATUS(result) != 123)
+    {
         printRuntimeReturnCodeFailMsg(testName, result, 123);
         return false;
     }
