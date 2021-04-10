@@ -4,6 +4,8 @@
 
 struct ClassInfo
 {
+    // SIT column can be obtained using sit_table map in CodeGenerator 
+    // TODO Link it here?
     // std::string sit_column; // Label corresponding to address of column
     size_t subtype_column; // Index of subtype column in the subtype table
 
@@ -26,7 +28,10 @@ class CodeGenerator
     // Structures to be turned into code during generation
     size_t sit_column_size = 0;
     std::unordered_map<ClassDeclaration*, std::vector<MethodDeclaration*> > sit_table;
+    std::vector<MethodDeclaration*> array_sit_column;
     std::unordered_map<ClassDeclaration*, ClassInfo> class_infos;
+    std::unordered_map<ClassDeclaration*, ClassInfo> array_class_infos;
+    std::unordered_map<PrimitiveType::BasicType, ClassInfo> primitive_array_class_infos;
     size_t subtype_column_count = 0;
     std::vector< std::vector<bool> > subtype_table; // Interfaces in columns are not used, first index is columns.
     // Columns/rows are classes, interfaces (column unused), class arrays, interface arrays (column unused), primitive arrays in that order

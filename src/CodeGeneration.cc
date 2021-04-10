@@ -212,6 +212,39 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
             }
         }
     }
+
+    // Create array SIT columns
+    // The interfaces java.io.Serializable and Cloneable are implemented by arrays
+    // All interfaces implicitly define abstract versions of Object's methods
+    // Since Serializable and Cloneable are empty, SIT column for all arrays is identical to Object's SIT column
+    assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
+    array_sit_column = sit_table[globalEnv.classes["java.lang.Object"]];
+    
+    // Create ClassInfos for object arrays
+    for(auto it: globalEnv.classes)
+    {
+        ClassDeclaration* class_decl = it.second;
+        array_class_infos.insert({class_decl, ClassInfo()});
+        ClassInfo& class_info = array_class_infos[class_decl];
+
+        class_info.subtype_column = getArraySubtypeIndex(class_decl);
+        class_info.methods_prefix = class_infos[globalEnv.classes["java.lang.Object"]].methods_prefix;
+        // Array prefixes will need the lenght and data fields added on during code gen
+    }
+
+    // Create ClassInfos for primitive arrays
+    for(PrimitiveType::BasicType t: std::vector<PrimitiveType::BasicType>{PrimitiveType::BOOLEAN, 
+                                                                          PrimitiveType::BYTE , 
+                                                                          PrimitiveType::SHORT, 
+                                                                          PrimitiveType::CHAR, 
+                                                                          PrimitiveType::INT})
+    {
+        primitive_array_class_infos.insert({t, ClassInfo()});
+        ClassInfo& class_info = primitive_array_class_infos[t];
+
+        class_info.subtype_column = getPrimitiveArraySubtypeIndex(t);
+        class_info.methods_prefix = class_infos[globalEnv.classes["java.lang.Object"]].methods_prefix;
+    }
 }
 
 std::string generateCommon()
