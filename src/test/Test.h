@@ -3,12 +3,13 @@
 #include <string>
 #include <vector>
 
-bool runIOTest(const std::string& testName,
-               const std::vector<std::string>& testSourceFiles, 
-               const std::vector<std::string>& libSourceFiles,
-               int expect, bool regress);
+bool runIOTest(const std::string &testName,
+               const std::vector<std::string> &testSourceFiles,
+               const std::vector<std::string> &libSourceFiles,
+               const std::vector<std::string> &libAssemblyFiles,
+               int expect,
+               bool runCode,
+               std::string expectFile,
+               bool printPasses);
 
-void printTestMsg(const std::string &testName, bool passed, const std::string &result, const std::string &expect);
-
-void printTestMsg(const std::string &testName, bool passed);
-
+std::vector<std::string> ls(const std::string &path);

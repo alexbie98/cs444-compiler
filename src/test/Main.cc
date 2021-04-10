@@ -10,16 +10,9 @@
 #include "Test.h"
 #include "LexTest.h"
 
-using namespace std;
+#define PRINT_PASSES false
 
-vector<string> ls(const string& path){
-	vector<string> paths;
-	for (const auto & entry : filesystem::directory_iterator(path)){
-		paths.push_back(entry.path());
-	}
-	sort(paths.begin(), paths.end());
-	return paths;
-}
+using namespace std;
 
 vector<string> getSourceFiles(const string& path){
 	vector<string> sourceFiles;
@@ -54,16 +47,52 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 	}
 
 	auto testPaths = ls(path);
+	testPaths.erase(
+		remove_if(testPaths.begin(), testPaths.end(),
+				  [](const string &p) {
+					  return p.substr(p.length() - 4, 4) == ".txt";
+				  }),
+		testPaths.end()
+	);
+
 	auto numTests = testPaths.size();
 	cout <<"| "<< numTests << " tests(s) in total:" << endl;
-	
+
+	auto libAssemblyFiles = ls(libPath);
+	libAssemblyFiles.erase(
+		remove_if(libAssemblyFiles.begin(), libAssemblyFiles.end(),
+				  [](const string &p) {
+					  if (filesystem::is_directory(p)){
+						  return true;
+					  }
+					  return p.substr(p.length() - 2, 2) != ".s";
+				  }),
+		libAssemblyFiles.end()
+	);
+
 	int numPassedTests = 0;
 	for (const string &t : testPaths){
 		auto testName = t.substr(t.rfind("/") + 1);
 		size_t index = testName.find("_");
 		int expect = testName[index - 1] == 'e' ? 42 : 0;
 
-		auto passed = runIOTest(testName, getSourceFiles(t), libSourceFiles, expect, regress);
+		string expectFile = "";
+
+		if (filesystem::is_directory(t)){
+			if (filesystem::exists(t+"/expect.txt")){
+				expectFile = t + "/expect.txt";
+			}
+		}
+
+
+		auto passed = runIOTest(testName,
+								getSourceFiles(t),
+								libSourceFiles,
+								libAssemblyFiles,
+								expect,
+								path == "assignment_testcases/a5" || path == "custom_testcases/example",
+								expectFile,
+								!regress && PRINT_PASSES);
 
 		if (passed){
 			numPassedTests++;
@@ -71,7 +100,6 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 	}
 
 	return {numPassedTests, numTests};
-
 }
 
 void runUnitTests(){

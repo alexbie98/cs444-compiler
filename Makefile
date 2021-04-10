@@ -1,5 +1,5 @@
 CXX = $(shell if [ -x "$$(command -v g++-9)" ]; then echo "g++-9"; else echo "g++"; fi)
-CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label -Wno-gnu-designator -Wno-inconsistent-missing-override
+CXXFLAGS = -std=c++17 -Wall -MMD -g -Wno-unused-label
 
 BUILDDIR = build
 SRCDIR = src
@@ -53,7 +53,7 @@ test: lex joosc parseTable ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 .PHONY: clean zip
 
 clean:
-	rm -r ${BUILDDIR} joosc lex test parseTable submit.zip
+	rm -rf ${BUILDDIR} joosc lex test parseTable submit.zip output
 
 zip:
 	rm -f submit.zip
