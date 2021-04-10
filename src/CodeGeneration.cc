@@ -10,14 +10,14 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
         ClassInfo& class_info = class_infos[class_decl];
 
         // If class extends another class, ensure its method and field prefixes are defined, then copy its method and field prefixes
-        if(class_decl->extends)
+        if(class_decl->baseClass)
         {
-            ClassDeclaration* extends = dynamic_cast<ClassDeclaration*>(class_decl->extends);
-            assert(extends);
-            createMethodAndFieldPrefixes(extends);
+            ClassDeclaration* baseClass = dynamic_cast<ClassDeclaration*>(class_decl->baseClass);
+            assert(baseClass);
+            createMethodAndFieldPrefixes(baseClass);
 
-            class_info.methods_prefix = class_infos[extends].methods_prefix;
-            class_info.fields_prefix = class_infos[extends].fields_prefix;
+            class_info.methods_prefix = class_infos[baseClass].methods_prefix;
+            class_info.fields_prefix = class_infos[baseClass].fields_prefix;
 
             for(MemberDeclaration* member: class_decl->classBody->elements)
             {
@@ -71,6 +71,25 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
     }
 }
 
+void CodeGenerator::createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclaration* subtype)
+{
+    if(subtype == nullptr) return;
+
+    ClassDeclaration* class_subtype = dynamic_cast<ClassDeclaration*>(subtype);
+    subtype_table[getObjectSubtypeIndex(class_decl)][getObjectSubtypeIndex(subtype)] = true;
+    subtype_table[getArraySubtypeIndex(class_decl)][getArraySubtypeIndex(subtype)] = true;
+
+    if(class_subtype)
+    {
+        createSubtypeInfo(class_decl, class_subtype->baseClass);
+    }
+
+    for(InterfaceDeclaration* interface: *subtype->interfaces)
+    {
+        createSubtypeInfo(class_decl, interface);
+    } 
+}
+
 CodeGenerator::CodeGenerator(Environment& globalEnv)
 {
     // Generate SIT indices
@@ -117,6 +136,52 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
     for(auto it: globalEnv.classes)
     {
         createMethodAndFieldPrefixes(it.second);
+    }
+
+    // Generate subtype info
+    for(auto it: globalEnv.classes)
+    {
+        subtype_table_object_index[it.second] = subtype_table_object_index.size();
+    }
+    for(auto it: globalEnv.interfaces)
+    {
+        subtype_table_object_index[it.second] = subtype_table_object_index.size();
+    }
+    // Make room for arrays with (* 2)
+    // TODO Only make for arrays that are actually used?
+    subtype_column_count = subtype_table_object_index.size() * 2;
+
+    subtype_table_primitive_array_index[PrimitiveType::BYTE] = subtype_column_count++; 
+    subtype_table_primitive_array_index[PrimitiveType::SHORT] = subtype_column_count++;
+    subtype_table_primitive_array_index[PrimitiveType::INT] = subtype_column_count++;
+    subtype_table_primitive_array_index[PrimitiveType::CHAR] = subtype_column_count++;
+    subtype_table_primitive_array_index[PrimitiveType::BOOLEAN] = subtype_column_count++;
+
+    for(size_t i = 0; i < subtype_column_count; i++)
+    {
+        // Allocate space in subtype_table_index
+        subtype_table.push_back(std::vector<bool>(subtype_column_count, false));
+    }
+
+    for(auto it: globalEnv.classes)
+    {
+        createSubtypeInfo(it.second, it.second);
+    }
+
+    subtype_table[getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)][getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)] = true;
+
+    for(PrimitiveType::BasicType t: std::vector<PrimitiveType::BasicType>{PrimitiveType::BYTE , PrimitiveType::SHORT, PrimitiveType::CHAR, PrimitiveType::INT})
+    {
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::SHORT)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::CHAR)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::INT)] = true;
+    }
+
+    // Add subtype column index to each ClassInfo
+    for(auto it: class_infos)
+    {
+        it.second.subtype_column = getObjectSubtypeIndex(it.first);
     }
 }
 

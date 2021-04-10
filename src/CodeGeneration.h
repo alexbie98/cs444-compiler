@@ -27,10 +27,23 @@ class CodeGenerator
     size_t sit_column_size = 0;
     std::unordered_map<ClassDeclaration*, std::vector<MethodDeclaration*> > sit_table;
     std::unordered_map<ClassDeclaration*, ClassInfo> class_infos;
+    size_t subtype_column_count = 0;
+    std::vector< std::vector<bool> > subtype_table; // Interfaces in columns are not used, first index is columns.
+    // Columns/rows are classes, interfaces (column unused), class arrays, interface arrays (column unused), primitive arrays in that order
+    // Table is square for simplicity
+
+    // Mappings from objects, arrays of objects, and arrays of primitives to their indices in the subtype_table
+    std::unordered_map<TypeDeclaration*, size_t > subtype_table_object_index;
+    std::unordered_map<PrimitiveType::BasicType, size_t > subtype_table_primitive_array_index;
 
     // Also creates ClassInfos
-    void createMethodAndFieldPrefixes(ClassDeclaration* class_decl);
+    void createMethodAndFieldPrefixes(ClassDeclaration* decl);
 
+    void createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclaration* subtype);
+    size_t getArraySubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type] + subtype_table_object_index.size(); }
+    size_t getObjectSubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type]; }
+    size_t getPrimitiveArraySubtypeIndex(PrimitiveType::BasicType type){ return subtype_table_primitive_array_index[type]; }
+    
 public:
     CodeGenerator(Environment& globalEnv);
 
