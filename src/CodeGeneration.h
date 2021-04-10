@@ -1,3 +1,5 @@
+#pragma once
+
 #include <unordered_map>
 #include <vector>
 #include "ast/ASTNode.h"
@@ -51,6 +53,18 @@ class CodeGenerator
 
     std::unordered_map<FieldDeclaration*, ClassDeclaration*> static_fields;
     std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
+
+    // Assembly helpers
+    const std::string SUBTYPE_COLUMN_COUNT_LABEL = labelAsm("SUBTYPE_COLUMN_COUNT");
+    const std::string SUBTYPE_TABLE_LABEL = labelAsm("SUBTYPE_TABLE");
+
+    const std::string TEXT_DIR = directiveAsm("text");
+    const std::string DATA_DIR = directiveAsm("data");
+
+    std::string labelAsm(std::string id){ return id + ":\n"; }
+    std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
+    std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
+    std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
     
 public:
     CodeGenerator(Environment& globalEnv);

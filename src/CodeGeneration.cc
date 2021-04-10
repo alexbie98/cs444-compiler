@@ -258,12 +258,30 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
     }
 }
 
-std::string generateCommon()
+std::string CodeGenerator::generateCommon()
 {
-    return "";
+    std::string common_asm;
+
+    common_asm += TEXT_DIR;
+
+    common_asm += SUBTYPE_COLUMN_COUNT_LABEL;
+    common_asm += wordAsm(subtype_column_count);
+
+    common_asm += SUBTYPE_TABLE_LABEL;
+    for(const std::vector<bool>& column: subtype_table)
+    {
+        for(bool b: column) 
+        {
+            common_asm += byteAsm(b);
+        }
+
+        common_asm += "\n";
+    }
+
+    return common_asm;
 }
 
-std::string generateFileCode(ASTNode* root)
+std::string CodeGenerator::generateFileCode(ASTNode* root)
 {
     return "";
 }

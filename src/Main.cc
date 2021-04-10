@@ -12,6 +12,7 @@
 #include "NameResolution.h"
 #include "HierarchyCheck.h"
 #include "StaticAnalysis.h"
+#include "CodeGeneration.h"
 
 using namespace std;
 
@@ -96,6 +97,14 @@ int main(int argc, char *argv[])
         printEnvironment(globalEnv);
         cout << "---------------------------------------" << endl;
     }
+
+    CodeGenerator code_generator(globalEnv);
+
+    // Generate assemlby file containing common structures
+    ofstream common_asm;
+    common_asm.open ("output/common.s");
+    common_asm << code_generator.generateCommon();
+    common_asm.close();
 
     // clean up extras in environment
     for (auto it: globalEnv.extras){

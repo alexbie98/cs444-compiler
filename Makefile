@@ -53,7 +53,7 @@ test: lex joosc parseTable ${BUILDDIR}/test/Main.o ${TEST_OBJECTS}
 .PHONY: clean zip
 
 clean:
-	rm -rf ${BUILDDIR} joosc lex test parseTable submit.zip output
+	rm -rf ${BUILDDIR} joosc lex test parseTable submit.zip
 
 zip:
 	rm -f submit.zip
