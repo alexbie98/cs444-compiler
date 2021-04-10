@@ -43,6 +43,9 @@ class CodeGenerator
     size_t getArraySubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type] + subtype_table_object_index.size(); }
     size_t getObjectSubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type]; }
     size_t getPrimitiveArraySubtypeIndex(PrimitiveType::BasicType type){ return subtype_table_primitive_array_index[type]; }
+
+    std::unordered_map<FieldDeclaration*, ClassDeclaration*> static_fields;
+    std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
     
 public:
     CodeGenerator(Environment& globalEnv);

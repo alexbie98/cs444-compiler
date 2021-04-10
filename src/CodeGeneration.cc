@@ -183,6 +183,34 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
     {
         it.second.subtype_column = getObjectSubtypeIndex(it.first);
     }
+
+    // Get static fields and methods
+    for(auto it: globalEnv.classes)
+    {
+        for(MemberDeclaration* member: it.second->classBody->elements)
+        {
+            bool is_static = false;
+            for(Modifier* modifier: member->modifiers->elements)
+            {
+                if(modifier->type == Modifier::ModifierType::STATIC) is_static = true;
+            }
+
+            if(is_static)
+            {
+                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+                FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(member);
+
+                if(method)
+                {
+                    static_methods[method] = it.second;
+                }
+                else if(field)
+                {
+                    static_fields[field] = it.second;
+                }
+            }
+        }
+    }
 }
 
 std::string generateCommon()
