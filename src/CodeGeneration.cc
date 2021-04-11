@@ -320,3 +320,23 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 
     return class_asm;
 }
+
+void CodeGenVisitor::leave(IntLiteral& node)
+{
+    node.code = "mov eax, " + std::to_string(node.value);
+}
+
+void CodeGenVisitor::leave(CharLiteral& node)
+{
+    node.code = "mov eax, " + std::to_string(node.value);
+}
+
+void CodeGenVisitor::leave(BooleanLiteral& node)
+{
+    node.code = "mov eax, " + node.value ? "1" : "0";
+}
+
+void CodeGenVisitor::leave(NullLiteral& node)
+{
+    node.code = "mov eax, 0";
+}

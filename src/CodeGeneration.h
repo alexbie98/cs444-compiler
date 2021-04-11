@@ -92,3 +92,42 @@ public:
     std::string generateCommon();
     std::string generateClassCode(ClassDeclaration* root);
 };
+
+
+class CodeGenVisitor : public ASTNodeVisitor
+{
+public:
+    virtual void leave(IntLiteral& node);
+    virtual void leave(CharLiteral& node);
+    virtual void leave(StringLiteral& node);
+    virtual void leave(BooleanLiteral& node);
+    virtual void leave(NullLiteral& node);
+    virtual void leave(NameExpression& node);
+    virtual void leave(BinaryOperation& node);
+    virtual void leave(PrefixOperation& node);
+    virtual void leave(CastExpression& node);
+    virtual void leave(AssignmentExpression& node);
+    virtual void leave(ParenthesizedExpression& node);
+    virtual void leave(ClassInstanceCreator& node);
+    virtual void leave(ArrayCreator& node);
+    virtual void leave(MethodCall& node);
+    virtual void leave(FieldAccess& node);
+    virtual void leave(ArrayAccess& node);
+    virtual void leave(ThisExpression& node);
+    virtual void leave(VariableDeclarationExpression& node);
+    virtual void leave(InstanceOfExpression& node);
+    virtual void leave(ExpressionStatement& node);
+    virtual void leave(EmptyStatement& node);
+    virtual void leave(ReturnStatement& node);
+    virtual void leave(IfStatement& node);
+    virtual void leave(ForStatement& node);
+    virtual void leave(WhileStatement& node);
+    virtual void leave(Block& node);
+    virtual void leave(ClassDeclaration& node);
+    virtual void leave(InterfaceDeclaration& node);
+    virtual void leave(FormalParameter& node);
+    virtual void leave(ConstructorDeclaration& node);
+    virtual void leave(FieldDeclaration& node);
+    virtual void leave(MethodDeclaration& node);
+    virtual void leave(CompilerUnit& node);
+};

@@ -219,6 +219,9 @@ struct ASTNode // Abstract
     virtual Environment* getEnvironment() { return nullptr; }
     virtual std::string toString() { return "ASTNode"; }
 
+    std::string code = "";
+    std::string addr = "";
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v);
 };
