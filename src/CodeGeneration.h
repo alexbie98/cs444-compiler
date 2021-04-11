@@ -55,8 +55,8 @@ class CodeGenerator
     std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
 
     // Assembly helpers
-    const std::string SUBTYPE_COLUMN_COUNT_LABEL = labelAsm("SUBTYPE_COLUMN_COUNT");
-    const std::string SUBTYPE_TABLE_LABEL = labelAsm("SUBTYPE_TABLE");
+    const std::string SUBTYPE_COLUMN_COUNT_LABEL = "SUBTYPE_COLUMN_COUNT";
+    const std::string SUBTYPE_TABLE_LABEL = "SUBTYPE_TABLE";
 
     const std::string TEXT_DIR = directiveAsm("text");
     const std::string DATA_DIR = directiveAsm("data");
@@ -66,6 +66,7 @@ class CodeGenerator
     std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
     std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
     std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
+    std::string commentAsm(std::string comment){ return "; " + comment; }
 
     std::string externAsm(std::string id){ return "extern " + id + "\n"; }
     std::string globalAsm(std::string id){ return "global " + id + "\n"; }

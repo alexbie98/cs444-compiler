@@ -1,6 +1,8 @@
 #include "CodeGeneration.h"
 
 #include <unordered_map>
+#include <iostream>
+#include <set>
 
 void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
 {
@@ -19,12 +21,14 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
             class_info.methods_prefix = class_infos[baseClass].methods_prefix;
             class_info.fields_prefix = class_infos[baseClass].fields_prefix;
 
-            for(MemberDeclaration* member: class_decl->classBody->elements)
+            if(class_decl->containedConcreteMethods)
             {
-                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-                if(method)
+                for(auto member_it: *class_decl->containedConcreteMethods)
                 {
-                    if(class_info.methods_prefix.find(method->getSignature()) == class_info.methods_prefix.end())
+                    MethodDeclaration* method = member_it.second;
+                    assert(method);
+                    
+                    if(class_info.methods_prefix.find(method->getSignature()) != class_info.methods_prefix.end())
                     {
                         // Replace existing method in method prefix, so index remains the same
                         method_prefix_indices[method] = class_info.methods_prefix[method->getSignature()].second;
@@ -42,12 +46,13 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
         }
         else
         {
-            for(MemberDeclaration* member: class_decl->classBody->elements)
+            if(class_decl->containedConcreteMethods)
             {
-                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-
-                if(method)
+                for(auto member_it: *class_decl->containedConcreteMethods)
                 {
+                    MethodDeclaration* method = member_it.second;
+                    assert(method);
+                    
                     // Add new method to method prefix
                     size_t index = class_info.methods_prefix.size();
                     method_prefix_indices[method] = index;
@@ -264,10 +269,10 @@ std::string CodeGenerator::generateCommon()
 
     common_asm += TEXT_DIR;
 
-    common_asm += SUBTYPE_COLUMN_COUNT_LABEL;
+    common_asm += labelAsm(SUBTYPE_COLUMN_COUNT_LABEL);
     common_asm += wordAsm(subtype_column_count);
 
-    common_asm += SUBTYPE_TABLE_LABEL;
+    common_asm += labelAsm(SUBTYPE_TABLE_LABEL);
     for(const std::vector<bool>& column: subtype_table)
     {
         for(bool b: column) 
@@ -285,6 +290,8 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
     std::string class_asm;
 
+    std::set<std::string> externed_labels;
+
     class_asm += labelAsm(sitColumnLabel(root));
 
     std::vector<MethodDeclaration *>& column = sit_table[root];
@@ -293,9 +300,10 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
     {
         if(method)
         {
-            if(containingType(method) != root)
+            if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
             {
                 class_asm += externAsm(classMethodLabel(method));
+                externed_labels.insert(classMethodLabel(method));
             }
             class_asm += wordAsm(classMethodLabel(method));
         }
@@ -316,6 +324,33 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
             class_asm += globalAsm(classMethodLabel(method));
             class_asm += labelAsm(classMethodLabel(method));
         }
+    }
+
+    class_asm += "\n";
+    class_asm += externAsm(SUBTYPE_COLUMN_COUNT_LABEL);
+    class_asm += externAsm(SUBTYPE_TABLE_LABEL);
+
+    class_asm += labelAsm(classDataLabel(root));
+    class_asm += wordAsm(sitColumnLabel(root));
+    class_asm += wordAsm(getObjectSubtypeIndex(root));
+
+    size_t prefix_size = class_info.methods_prefix.size();
+
+    std::vector<MethodDeclaration*> expanded_method_prefix(prefix_size, nullptr);
+    for(auto it: class_info.methods_prefix)
+    {
+        assert(it.second.first);
+        expanded_method_prefix[it.second.second] = it.second.first;
+    }
+
+    for(MethodDeclaration* method: expanded_method_prefix)
+    {
+        assert(method);
+        if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
+        {
+            class_asm += externAsm(classMethodLabel(method));
+        }
+        class_asm += wordAsm(classMethodLabel(method));
     }
 
     return class_asm;
