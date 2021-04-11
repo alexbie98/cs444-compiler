@@ -258,6 +258,8 @@ void BinaryOperation::visitChildren(ASTNodeVisitor& v)
     }
 }
 
+int BinaryOperation::LABEL_NUM = 0;
+
 PrefixOperation::~PrefixOperation()
 {
     if (operand)
@@ -646,6 +648,8 @@ void IfStatement::visitChildren(ASTNodeVisitor& v)
     }
 }
 
+int IfStatement::LABEL_NUM = 0;
+
 ForStatement::~ForStatement()
 {
     if (forInit)
@@ -694,6 +698,8 @@ void ForStatement::visitChildren(ASTNodeVisitor& v)
     }  
 }
 
+int ForStatement::LABEL_NUM = 0;
+
 WhileStatement::~WhileStatement()
 {
     if (condition)
@@ -721,6 +727,8 @@ void WhileStatement::visitChildren(ASTNodeVisitor& v)
         body->visitAll(v);
     } 
 }
+
+int WhileStatement::LABEL_NUM = 0;
 
 Block::~Block()
 {

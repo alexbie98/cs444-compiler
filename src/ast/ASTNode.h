@@ -521,6 +521,8 @@ struct BinaryOperation : public Expression
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "BinaryOperation"; }
 
+    static int LABEL_NUM;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };
@@ -753,6 +755,8 @@ struct IfStatement : public Statement
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "IfStatement"; }
 
+    static int LABEL_NUM;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };
@@ -769,6 +773,8 @@ struct ForStatement : public Statement
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "ForStatement"; }
 
+    static int LABEL_NUM;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };
@@ -783,6 +789,7 @@ struct WhileStatement : public Statement
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "WhileStatement"; }
 
+    static int LABEL_NUM;
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };

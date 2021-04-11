@@ -291,8 +291,8 @@ std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType
     // TODO Change to defined_labels and make neccessary changes below
     std::set<std::string> externed_labels = {sitColumnClassLabel(object_class_decl)};
 
-    std::vector<MethodDeclaration *>* column;
-    ClassInfo* class_info;
+    std::vector<MethodDeclaration*>* column = nullptr;
+    ClassInfo* class_info = nullptr;
     std::string column_label;
     std::string class_data_label;
     size_t subtype_index;
@@ -419,20 +419,287 @@ std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType t
 
 void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
 {
-    node.code = "mov eax, " + std::to_string(node.value);
+    node.code += "mov eax, " + std::to_string(node.value) + " ; IntLiteral\n";
 }
 
 void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
 {
-    node.code = "mov eax, " + std::to_string(node.value);
+    node.code = "mov eax, " + std::to_string(node.value) + " ; CharLiteral\n";
 }
 
 void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
 {
-    node.code = "mov eax, " + node.value ? "1" : "0";
+    node.code = "mov eax, ";
+    
+    if (node.value) node.code += '1';
+    else node.code += '0';
+
+    node.code += " ; BooleanLiteral\n";
 }
 
 void CodeGenerator::CodeGenVisitor::leave(NullLiteral& node)
 {
-    node.code = "mov eax, 0";
+    node.code = "mov eax, 0 ; NullLiteral\n";
+}
+
+void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
+{
+    node.code = "; BinaryOperation Begin\n";
+
+    switch (node.op)
+    {
+        case BinaryOperation::PLUS:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "add eax, ebx\n";
+            break;
+        case BinaryOperation::MINUS:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "sub ebx, eax\n";
+            node.code += "mov eax, ebx\n";
+            break;
+        case BinaryOperation::TIMES:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "imul eax, ebx\n";
+            break;
+        case BinaryOperation::DIVIDE:
+        case BinaryOperation::REMAINDER:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "mov ecx, eax\n";
+            node.code += "mov eax, ebx\n";
+            node.code += "cdq\n";
+            node.code += "idiv ecx\n";
+            if (node.op == BinaryOperation::DIVIDE) break;
+            // Move remainder
+            node.code += "mov eax, edx\n";
+            break;
+        case BinaryOperation::AND:
+        {
+            std::string andLabel = "andEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+            node.code += ifFalse(*node.lhs, andLabel);
+            node.code += node.rhs->code;
+            node.code += setLabel(andLabel);
+        }
+        break;
+        case BinaryOperation::OR:
+        {
+            std::string orLabel = "orEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+            node.code += ifTrue(*node.lhs, orLabel);
+            node.code += node.rhs->code;
+            node.code += setLabel(orLabel);
+        }
+        break;
+        case BinaryOperation::EAGER_AND:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "and eax, ebx\n";
+            break;
+        case BinaryOperation::EAGER_OR:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "or eax, ebx\n";
+            break;
+        case BinaryOperation::XOR:
+            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "xor eax, ebx\n";
+            break;
+        case BinaryOperation::EQ:
+        {
+            std::string eqLabel = "eqTrue." + std::to_string(node.LABEL_NUM);
+            std::string eqLabelEnd = "eqEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "je", eqLabel, eqLabelEnd);
+        }
+        break;
+        case BinaryOperation::NEQ:
+        {
+            std::string neqLabel = "neqTrue." + std::to_string(node.LABEL_NUM);
+            std::string neqLabelEnd = "neqEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "jne", neqLabel, neqLabelEnd);
+        }
+        break;
+        case BinaryOperation::LEQ:
+        {
+            std::string leqLabel = "leqTrue." + std::to_string(node.LABEL_NUM);
+            std::string leqLabelEnd = "leqEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "jle", leqLabel, leqLabelEnd);
+        }
+        break;
+        case BinaryOperation::GEQ:
+        {
+            std::string geqLabel = "geqTrue." + std::to_string(node.LABEL_NUM);
+            std::string geqLabelEnd = "geqEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "jge", geqLabel, geqLabelEnd);
+        }
+        break;
+        case BinaryOperation::LT:
+        {
+            std::string ltLabel = "gtTrue." + std::to_string(node.LABEL_NUM);
+            std::string ltLabelEnd = "gtEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "jl", ltLabel, ltLabelEnd);
+        }
+        break;
+        case BinaryOperation::GT:
+        {
+            std::string gtLabel = "gtTrue." + std::to_string(node.LABEL_NUM);
+            std::string gtLabelEnd = "gtEnd." + std::to_string(node.LABEL_NUM);
+            node.LABEL_NUM++;
+
+            node.code += cmpOperation(*node.lhs, *node.rhs, "jg", gtLabel, gtLabelEnd);
+        }
+        break;
+    }
+
+    node.code += "; BinaryOperation End\n";
+}
+
+void CodeGenerator::CodeGenVisitor::leave(PrefixOperation& node)
+{
+    node.code = "; PrefixOperation Begin\n";
+
+    node.code += node.operand->code;
+
+    switch (node.op)
+    {
+    case PrefixOperation::MINUS:
+        node.code += "mov ebx, -1\n";
+        node.code += "imul eax, ebx\n";
+        break;
+    case PrefixOperation::NOT:
+        node.code += "xor eax, 1\n";
+        break;
+    }
+
+    node.code += "; PrefixOperation End\n";
+
+}
+
+void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
+{
+    node.code = "; AssignmentExpression Begin\n";
+    node.code += node.lhs->addr;
+    node.code += "push eax\n";
+    node.code += node.rhs->code;
+    node.code += "pop ebx\n";
+
+    if (dynamic_cast<ArrayType*>(node.lhs->resolvedType))
+    {
+        // Todo type check code for runtime assignability of array element
+    }
+
+    node.code += "mov [ebx], eax\n";
+    node.code += "mov eax, ebx\n";
+    node.code = "; AssignmentExpression End\n";
+}
+
+void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
+{
+    std::string elseLabel = "else." + std::to_string(node.LABEL_NUM);
+    std::string endLabel = "end." + std::to_string(node.LABEL_NUM);
+    node.LABEL_NUM++;
+
+    node.code = "; IfStatement Begin\n";
+    node.code += ifFalse(*node.ifCondition, elseLabel);
+    node.code += node.ifBody->code;
+    node.code += "jmp " + endLabel + "\n";
+    node.code += setLabel(elseLabel);
+    
+    if (node.elseBody) node.code += node.elseBody->code;
+
+    node.code += setLabel(endLabel);
+    node.code += "; IfStatement End\n";
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
+{
+    std::string forBeginLabel = "forBegin." + std::to_string(node.LABEL_NUM);
+    std::string forEndLabel = "forEnd." + std::to_string(node.LABEL_NUM);
+
+    node.LABEL_NUM++;
+
+    node.code = "; ForStatement Begin\n";
+
+    if (node.forInit) node.code += node.forInit->code;
+    
+    node.code += setLabel(forBeginLabel);
+
+    if (node.forCheck) node.code += ifFalse(*node.forCheck, forEndLabel);
+
+    node.code += node.body->code;
+
+    if (node.forUpdate) node.code += node.forUpdate->code;
+
+    node.code += "jmp " + forBeginLabel;
+    node.code += setLabel(forEndLabel);
+    node.code += "; ForStatement End\n";
+}
+
+void CodeGenerator::CodeGenVisitor::leave(WhileStatement& node)
+{
+    std::string whileBeginLabel = "whileBegin." + std::to_string(node.LABEL_NUM);
+    std::string whileEndLabel = "whileEnd." + std::to_string(node.LABEL_NUM);
+
+    node.LABEL_NUM++;
+
+    node.code = "; WhileStatement Begin\n";
+    node.code += setLabel(whileBeginLabel);
+    node.code += ifFalse(*node.condition, whileEndLabel);
+    node.code += node.body->code;
+    node.code += "jmp " + whileBeginLabel;
+    node.code += setLabel(whileEndLabel);
+    node.code += "; WhileStatement End\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::ifFalse(ASTNode& node, const std::string& label)
+{
+    std::string ret = node.code;
+    ret += "cmp eax, 0\n";
+    ret += "je " + label + '\n';
+
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::ifTrue(ASTNode& node, const std::string& label)
+{
+    std::string ret = node.code;
+    ret += "cmp eax, 0\n";
+    ret += "jne " + label + '\n';
+
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::setLabel(const std::string& label)
+{
+    return label + ":\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs)
+{
+    std::string ret = lhs.code;
+    ret += "push eax\n";
+    ret += rhs.code;
+    ret += "pop ebx\n";
+
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB)
+{
+    std::string ret = evaluateTwoNodes(lhs, rhs);
+    ret += "cmp eax, ebx\n";
+    ret += cmpJump + " " + labelA + "\n";
+    ret += "mov eax, 0\n";
+    ret += "jmp " + labelB + "\n";
+    ret += setLabel(labelA);
+    ret += "mov eax, 1\n";
+    ret += setLabel(labelB);
+    return ret;
 }

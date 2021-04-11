@@ -253,23 +253,23 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
             // Conditional AND and OR (Not Eager) do not short circuit during constant expression evaluation.
             // (true || (a == 1)) does not evaluate to true during constant expression evaluation if a is not final.
             case BinaryOperation::AND: 
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::EAGER_AND: 
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::OR: 
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::EAGER_OR: 
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::XOR:
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::PLUS:
@@ -312,17 +312,17 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
         if (arithmetic)
         {
             // Section 15.18.2/5.6.2 Binary numeric promotion is performed, promoting both operands to ints (done for all additive and multiplicative operators)
-            result = { Expression::ConstantValue::INT };
+            result.type = Expression::ConstantValue::INT;
             result.value._int = arithmetic(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt());
         }
         else if (int_comparison)
         {
-            result = { Expression::ConstantValue::BOOL };
+            result.type = Expression::ConstantValue::BOOL;
             result.value._bool = int_comparison(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt());
         }
         else if (bool_comparison)
         {
-            result = { Expression::ConstantValue::BOOL };
+            result.type = Expression::ConstantValue::BOOL;
             result.value._bool = bool_comparison(node.lhs->constant_value->value._bool, node.rhs->constant_value->value._bool);
         }
 
@@ -340,11 +340,11 @@ void ConstantExpressionVisitor::leave(PrefixOperation& node)
         switch(node.op)
         {
             case PrefixOperation::NOT: 
-                result = { Expression::ConstantValue::BOOL };
+                result.type = Expression::ConstantValue::BOOL;
                 result.value._bool = !node.operand->constant_value->value._bool;
                 break;
             case PrefixOperation::MINUS: 
-                result = { Expression::ConstantValue::INT };
+                result.type = Expression::ConstantValue::INT;
                 result.value._int = -node.operand->constant_value->asInt();
                 break;
         }

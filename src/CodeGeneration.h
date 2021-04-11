@@ -114,10 +114,10 @@ public:
         virtual void leave(BooleanLiteral& node);
         virtual void leave(NullLiteral& node);
         // virtual void leave(NameExpression& node);
-        // virtual void leave(BinaryOperation& node);
-        // virtual void leave(PrefixOperation& node);
+        virtual void leave(BinaryOperation& node);
+        virtual void leave(PrefixOperation& node);
         // virtual void leave(CastExpression& node);
-        // virtual void leave(AssignmentExpression& node);
+        virtual void leave(AssignmentExpression& node);
         // virtual void leave(ParenthesizedExpression& node);
         // virtual void leave(ClassInstanceCreator& node);
         // virtual void leave(ArrayCreator& node);
@@ -130,9 +130,9 @@ public:
         // virtual void leave(ExpressionStatement& node);
         // virtual void leave(EmptyStatement& node);
         // virtual void leave(ReturnStatement& node);
-        // virtual void leave(IfStatement& node);
-        // virtual void leave(ForStatement& node);
-        // virtual void leave(WhileStatement& node);
+        virtual void leave(IfStatement& node);
+        virtual void leave(ForStatement& node);
+        virtual void leave(WhileStatement& node);
         // virtual void leave(Block& node);
         // virtual void leave(ClassDeclaration& node);
         // virtual void leave(InterfaceDeclaration& node);
@@ -140,7 +140,13 @@ public:
         // virtual void leave(ConstructorDeclaration& node);
         // virtual void leave(FieldDeclaration& node);
         // virtual void leave(MethodDeclaration& node);
-        // virtual void leave(CompilerUnit& node);
+
+    private:
+        std::string ifFalse(ASTNode& node, const std::string& label);
+        std::string ifTrue(ASTNode& node, const std::string& label);
+        std::string setLabel(const std::string& label);
+        std::string evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs); // lhs in ebx, rhs in eax
+        std::string cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB);
     };
 
     CodeGenerator(Environment& globalEnv);
