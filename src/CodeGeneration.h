@@ -20,6 +20,9 @@ struct ClassInfo
 
 class CodeGenerator
 {
+    Environment& global_env;
+    ClassDeclaration* object_class_decl;
+
     // Map from MethodDeclarations to the selector index they correspond to
     std::unordered_map<MethodDeclaration*, size_t> sit_indices;
 
@@ -66,69 +69,82 @@ class CodeGenerator
     std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
     std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
     std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
-    std::string commentAsm(std::string comment){ return "; " + comment; }
+    std::string commentAsm(std::string comment){ return "; " + comment + "\n"; }
 
     std::string externAsm(std::string id){ return "extern " + id + "\n"; }
     std::string globalAsm(std::string id){ return "global " + id + "\n"; }
 
-    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->getName()->getString(); }
     // TODO Make helpers for generating assembly to access class data members
+    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->getName()->getString(); }
+    std::string classArrayDataLabel(ClassDeclaration* decl){ return "carray_info_" + decl->getName()->getString(); }
+    std::string primitiveArrayDataLabel(PrimitiveType::BasicType type){ return "parray_info_" + PrimitiveType::basicTypeToString(type); }
     std::string classMethodLabel(MethodDeclaration* method)
     { 
         ClassDeclaration* containing_class = dynamic_cast<ClassDeclaration*>(containingType(method));
         assert(containing_class);
         return method->getSignature() + "_class_" + containing_class->getName()->getString(); 
     }
-    std::string sitColumnLabel(ClassDeclaration* decl){ return "sit_column_" + decl->getName()->getString(); }
+    std::string sitColumnClassLabel(ClassDeclaration* decl){ return "c_sit_column_" + decl->getName()->getString(); }
+    std::string sitColumnClassArrayLabel(ClassDeclaration* decl){ return "carray_sit_column_" + decl->getName()->getString(); }
+    std::string sitColumnPrimArrayLabel(PrimitiveType::BasicType type){ return "parray_sit_column_" + PrimitiveType::basicTypeToString(type); }
 
     TypeDeclaration* containingType(MethodDeclaration* method)
     {
         assert(dynamic_cast<TypeDeclaration*>(method->parent->parent));
         return dynamic_cast<TypeDeclaration*>(method->parent->parent);
     }
+
+    enum class ObjectType
+    {
+        OBJECT,
+        OBJECT_ARRAY,
+        PRIMITIVE_ARRAY
+    };
+
+    std::string generateObjectCode(ClassDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
     
 public:
+
+    class CodeGenVisitor : public ASTNodeVisitor
+    {
+    public:
+        virtual void leave(IntLiteral& node);
+        virtual void leave(CharLiteral& node);
+        // virtual void leave(StringLiteral& node);
+        virtual void leave(BooleanLiteral& node);
+        virtual void leave(NullLiteral& node);
+        // virtual void leave(NameExpression& node);
+        // virtual void leave(BinaryOperation& node);
+        // virtual void leave(PrefixOperation& node);
+        // virtual void leave(CastExpression& node);
+        // virtual void leave(AssignmentExpression& node);
+        // virtual void leave(ParenthesizedExpression& node);
+        // virtual void leave(ClassInstanceCreator& node);
+        // virtual void leave(ArrayCreator& node);
+        // virtual void leave(MethodCall& node);
+        // virtual void leave(FieldAccess& node);
+        // virtual void leave(ArrayAccess& node);
+        // virtual void leave(ThisExpression& node);
+        // virtual void leave(VariableDeclarationExpression& node);
+        // virtual void leave(InstanceOfExpression& node);
+        // virtual void leave(ExpressionStatement& node);
+        // virtual void leave(EmptyStatement& node);
+        // virtual void leave(ReturnStatement& node);
+        // virtual void leave(IfStatement& node);
+        // virtual void leave(ForStatement& node);
+        // virtual void leave(WhileStatement& node);
+        // virtual void leave(Block& node);
+        // virtual void leave(ClassDeclaration& node);
+        // virtual void leave(InterfaceDeclaration& node);
+        // virtual void leave(FormalParameter& node);
+        // virtual void leave(ConstructorDeclaration& node);
+        // virtual void leave(FieldDeclaration& node);
+        // virtual void leave(MethodDeclaration& node);
+        // virtual void leave(CompilerUnit& node);
+    };
+
     CodeGenerator(Environment& globalEnv);
-
     std::string generateCommon();
-    std::string generateClassCode(ClassDeclaration* root);
-};
-
-
-class CodeGenVisitor : public ASTNodeVisitor
-{
-public:
-    virtual void leave(IntLiteral& node);
-    virtual void leave(CharLiteral& node);
-    virtual void leave(StringLiteral& node);
-    virtual void leave(BooleanLiteral& node);
-    virtual void leave(NullLiteral& node);
-    virtual void leave(NameExpression& node);
-    virtual void leave(BinaryOperation& node);
-    virtual void leave(PrefixOperation& node);
-    virtual void leave(CastExpression& node);
-    virtual void leave(AssignmentExpression& node);
-    virtual void leave(ParenthesizedExpression& node);
-    virtual void leave(ClassInstanceCreator& node);
-    virtual void leave(ArrayCreator& node);
-    virtual void leave(MethodCall& node);
-    virtual void leave(FieldAccess& node);
-    virtual void leave(ArrayAccess& node);
-    virtual void leave(ThisExpression& node);
-    virtual void leave(VariableDeclarationExpression& node);
-    virtual void leave(InstanceOfExpression& node);
-    virtual void leave(ExpressionStatement& node);
-    virtual void leave(EmptyStatement& node);
-    virtual void leave(ReturnStatement& node);
-    virtual void leave(IfStatement& node);
-    virtual void leave(ForStatement& node);
-    virtual void leave(WhileStatement& node);
-    virtual void leave(Block& node);
-    virtual void leave(ClassDeclaration& node);
-    virtual void leave(InterfaceDeclaration& node);
-    virtual void leave(FormalParameter& node);
-    virtual void leave(ConstructorDeclaration& node);
-    virtual void leave(FieldDeclaration& node);
-    virtual void leave(MethodDeclaration& node);
-    virtual void leave(CompilerUnit& node);
+    std::string generateClassCode(ClassDeclaration* root); // Generates code for object and it's array
+    std::string generatePrimitiveArrayCode(PrimitiveType::BasicType type);
 };

@@ -95,7 +95,7 @@ void CodeGenerator::createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclarat
     } 
 }
 
-CodeGenerator::CodeGenerator(Environment& globalEnv)
+CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
 {
     // Generate SIT indices
     std::unordered_map<std::string, size_t> unique_method_signatures;
@@ -115,7 +115,9 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
 
     // All interfaces implicitly define abstract versions of Object's methods
     assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
-    for(MemberDeclaration* member: globalEnv.classes["java.lang.Object"]->classBody->elements)
+    object_class_decl = globalEnv.classes["java.lang.Object"];
+
+    for(MemberDeclaration* member: object_class_decl->classBody->elements)
     {
         MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
         if(method && unique_method_signatures.find(method->getSignature()) == unique_method_signatures.end())
@@ -233,8 +235,7 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
     // Create array SIT columns
     // The interfaces java.io.Serializable and Cloneable are implemented by arrays
     // Since Serializable and Cloneable are empty, SIT column for all arrays is identical to Object's SIT column
-    assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
-    array_sit_column = sit_table[globalEnv.classes["java.lang.Object"]];
+    array_sit_column = sit_table[object_class_decl];
     
     // Create ClassInfos for object arrays
     for(auto it: globalEnv.classes)
@@ -244,22 +245,19 @@ CodeGenerator::CodeGenerator(Environment& globalEnv)
         ClassInfo& class_info = array_class_infos[class_decl];
 
         class_info.subtype_column = getArraySubtypeIndex(class_decl);
-        class_info.methods_prefix = class_infos[globalEnv.classes["java.lang.Object"]].methods_prefix;
+        class_info.methods_prefix = class_infos[object_class_decl].methods_prefix;
         // Array prefixes will need the lenght and data fields added on during code gen
     }
 
     // Create ClassInfos for primitive arrays
-    for(PrimitiveType::BasicType t: std::vector<PrimitiveType::BasicType>{PrimitiveType::BOOLEAN, 
-                                                                          PrimitiveType::BYTE , 
-                                                                          PrimitiveType::SHORT, 
-                                                                          PrimitiveType::CHAR, 
-                                                                          PrimitiveType::INT})
+    std::vector<PrimitiveType::BasicType> primitive_types = {PrimitiveType::BOOLEAN, PrimitiveType::BYTE , PrimitiveType::SHORT, PrimitiveType::CHAR, PrimitiveType::INT};
+    for(PrimitiveType::BasicType t: primitive_types)
     {
         primitive_array_class_infos.insert({t, ClassInfo()});
         ClassInfo& class_info = primitive_array_class_infos[t];
 
         class_info.subtype_column = getPrimitiveArraySubtypeIndex(t);
-        class_info.methods_prefix = class_infos[globalEnv.classes["java.lang.Object"]].methods_prefix;
+        class_info.methods_prefix = class_infos[object_class_decl].methods_prefix;
     }
 }
 
@@ -286,43 +284,71 @@ std::string CodeGenerator::generateCommon()
     return common_asm;
 }
 
-std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
+std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype)
 {
     std::string class_asm;
 
-    std::set<std::string> externed_labels;
+    // TODO Change to defined_labels and make neccessary changes below
+    std::set<std::string> externed_labels = {sitColumnClassLabel(object_class_decl)};
 
-    class_asm += labelAsm(sitColumnLabel(root));
+    std::vector<MethodDeclaration *>* column;
+    ClassInfo* class_info;
+    std::string column_label;
+    std::string class_data_label;
+    size_t subtype_index;
 
-    std::vector<MethodDeclaration *>& column = sit_table[root];
+    if(root != object_class_decl) class_asm += externAsm(sitColumnClassLabel(object_class_decl));
 
-    for(MethodDeclaration* method: column)
+    if(otype == ObjectType::OBJECT)
     {
-        if(method)
+        column_label = sitColumnClassLabel(root);
+        column = &sit_table[root];
+        class_info = &class_infos[root];
+        class_data_label = classDataLabel(root);
+        subtype_index = getObjectSubtypeIndex(root);
+        class_asm += "\n" + commentAsm("================== OBJECT INFORMATION ==================");
+    } 
+    else if(otype == ObjectType::OBJECT_ARRAY)
+    {
+        column_label = sitColumnClassLabel(object_class_decl);
+        column = &sit_table[object_class_decl];
+        class_info = &array_class_infos[root];
+        class_data_label = classArrayDataLabel(root);
+        subtype_index = getArraySubtypeIndex(root);
+
+        class_asm += "\n" + commentAsm("================== OBJECT ARRAY INFORMATION ==================");
+    } 
+    else if(otype == ObjectType::PRIMITIVE_ARRAY)
+    {
+        column_label = sitColumnClassLabel(object_class_decl);
+        column = &sit_table[object_class_decl];
+        class_info = &primitive_array_class_infos[ptype];
+        class_data_label = primitiveArrayDataLabel(ptype);
+        subtype_index = getPrimitiveArraySubtypeIndex(ptype);
+        class_asm += "\n" + commentAsm("================== PRIMITIVE ARRAY INFORMATION ==================");
+    } 
+    else assert(false);
+
+    // Generate SIT column if class
+    if(otype == ObjectType::OBJECT) 
+    {
+        class_asm += labelAsm(column_label);
+
+        for(MethodDeclaration* method: *column)
         {
-            if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
+            if(method)
             {
-                class_asm += externAsm(classMethodLabel(method));
-                externed_labels.insert(classMethodLabel(method));
+                if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
+                {
+                    class_asm += externAsm(classMethodLabel(method));
+                    externed_labels.insert(classMethodLabel(method));
+                }
+                class_asm += wordAsm(classMethodLabel(method));
             }
-            class_asm += wordAsm(classMethodLabel(method));
-        }
-        else
-        {
-            class_asm += wordAsm(0);
-        }
-    }
-    
-    ClassInfo& class_info = class_infos[root];
-
-    // TEMP Define label for each method
-    for(MemberDeclaration* member: root->classBody->elements)
-    {
-        MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-        if(method)
-        {
-            class_asm += globalAsm(classMethodLabel(method));
-            class_asm += labelAsm(classMethodLabel(method));
+            else
+            {
+                class_asm += wordAsm(0);
+            }
         }
     }
 
@@ -330,14 +356,13 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
     class_asm += externAsm(SUBTYPE_COLUMN_COUNT_LABEL);
     class_asm += externAsm(SUBTYPE_TABLE_LABEL);
 
-    class_asm += labelAsm(classDataLabel(root));
-    class_asm += wordAsm(sitColumnLabel(root));
-    class_asm += wordAsm(getObjectSubtypeIndex(root));
+    class_asm += labelAsm(class_data_label);
+    class_asm += wordAsm(column_label);
+    class_asm += wordAsm(subtype_index);
 
-    size_t prefix_size = class_info.methods_prefix.size();
-
+    size_t prefix_size = class_info->methods_prefix.size();
     std::vector<MethodDeclaration*> expanded_method_prefix(prefix_size, nullptr);
-    for(auto it: class_info.methods_prefix)
+    for(auto it: class_info->methods_prefix)
     {
         assert(it.second.first);
         expanded_method_prefix[it.second.second] = it.second.first;
@@ -353,25 +378,61 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
         class_asm += wordAsm(classMethodLabel(method));
     }
 
+    // Add entryType if object is an array
+    if(otype == ObjectType::OBJECT_ARRAY)
+    {
+        class_asm += wordAsm(classDataLabel(root));
+    } 
+    else if(otype == ObjectType::PRIMITIVE_ARRAY)
+    {
+        class_asm += wordAsm(0);
+    }
+
+    // TEMP Define label for each method
+    if(otype == ObjectType::OBJECT_ARRAY)
+    {
+        class_asm += "\n\n" + commentAsm("================== METHODS ==================");
+
+        for(MemberDeclaration* member: root->classBody->elements)
+        {
+            MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+            if(method)
+            {
+                class_asm += globalAsm(classMethodLabel(method));
+                class_asm += labelAsm(classMethodLabel(method));
+            }
+        }
+    }
+
     return class_asm;
 }
 
-void CodeGenVisitor::leave(IntLiteral& node)
+std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
+{
+    return generateObjectCode(root, ObjectType::OBJECT) + "\n\n" + commentAsm("Object Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
+}
+
+std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
+{
+    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
+}
+
+void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
 {
     node.code = "mov eax, " + std::to_string(node.value);
 }
 
-void CodeGenVisitor::leave(CharLiteral& node)
+void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
 {
     node.code = "mov eax, " + std::to_string(node.value);
 }
 
-void CodeGenVisitor::leave(BooleanLiteral& node)
+void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
 {
     node.code = "mov eax, " + node.value ? "1" : "0";
 }
 
-void CodeGenVisitor::leave(NullLiteral& node)
+void CodeGenerator::CodeGenVisitor::leave(NullLiteral& node)
 {
     node.code = "mov eax, 0";
 }

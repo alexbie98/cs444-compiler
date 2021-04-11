@@ -371,6 +371,22 @@ struct PrimitiveType : public Type
         NULL_TYPE
     };
 
+    static std::string basicTypeToString(BasicType type)
+    {
+        switch(type)
+        {
+            case BYTE: return "BYTE";
+            case SHORT: return "SHORT";
+            case INT: return "INT";
+            case CHAR: return "CHAR";
+            case BOOLEAN: return "BOOLEAN";
+            case VOID: return "VOID";
+            case NULL_TYPE: return "NULL_TYPE";
+        }
+        assert(false);
+        return "";
+    }
+
     BasicType type;
 
     virtual ~PrimitiveType() = default;

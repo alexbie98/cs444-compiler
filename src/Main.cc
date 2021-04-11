@@ -114,6 +114,20 @@ int main(int argc, char *argv[])
         class_asm.close();
     }
 
+    auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
+    {
+        ofstream parray_asm;
+        parray_asm.open ("output/" + file_name + ".s");
+        parray_asm << code_generator.generatePrimitiveArrayCode(type);
+        parray_asm.close();
+    };
+
+    generatePrimitiveArray(PrimitiveType::BOOLEAN, "BooleanArray"); 
+    generatePrimitiveArray(PrimitiveType::BYTE, "ByteArray"); 
+    generatePrimitiveArray(PrimitiveType::SHORT, "ShortArray"); 
+    generatePrimitiveArray(PrimitiveType::CHAR, "CharArray"); 
+    generatePrimitiveArray(PrimitiveType::INT, "IntArray"); 
+
     // clean up extras in environment
     for (auto it: globalEnv.extras){
         delete it.second;
