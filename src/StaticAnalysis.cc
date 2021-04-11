@@ -210,23 +210,26 @@ void ReachabilityVisitor::visit(NameExpression& node)
 
 void ConstantExpressionVisitor::leave(IntLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, 
-        {_int:  (decltype(Expression::ConstantValue::ConstantValueContents::_int)) node.value}});
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::INT });
+    node.constant_value->value._int = (decltype(Expression::ConstantValue::ConstantValueContents::_int))node.value;
 }
 
 void ConstantExpressionVisitor::leave(CharLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, {_char: node.value}});
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::CHAR });
+    node.constant_value->value._char = node.value;
 }
 
 void ConstantExpressionVisitor::leave(StringLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::STRING, {_string: &node}});
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::STRING });
+    node.constant_value->value._string = &node;
 }
 
 void ConstantExpressionVisitor::leave(BooleanLiteral& node)
 {
-    node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BOOL, {_bool: node.value}});
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BOOL });
+    node.constant_value->value._bool = node.value;
 }
 
 void ConstantExpressionVisitor::leave(BinaryOperation& node)
@@ -250,19 +253,24 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
             // Conditional AND and OR (Not Eager) do not short circuit during constant expression evaluation.
             // (true || (a == 1)) does not evaluate to true during constant expression evaluation if a is not final.
             case BinaryOperation::AND: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::EAGER_AND: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::OR: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::EAGER_OR: 
-                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::XOR:
-                result = {Expression::ConstantValue::BOOL, {_bool: node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::PLUS:
                 arithmetic = std::plus<integer_type>();
@@ -301,13 +309,22 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
                 break;
         }
 
-        if(arithmetic)
+        if (arithmetic)
+        {
             // Section 15.18.2/5.6.2 Binary numeric promotion is performed, promoting both operands to ints (done for all additive and multiplicative operators)
-            result = {Expression::ConstantValue::INT, {_int: arithmetic(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt()) }};
+            result = { Expression::ConstantValue::INT };
+            result.value._int = arithmetic(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt());
+        }
         else if (int_comparison)
-            result = {Expression::ConstantValue::BOOL, {_bool: int_comparison(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt()) }};
+        {
+            result = { Expression::ConstantValue::BOOL };
+            result.value._bool = int_comparison(node.lhs->constant_value->asInt(), node.rhs->constant_value->asInt());
+        }
         else if (bool_comparison)
-            result = {Expression::ConstantValue::BOOL, {_bool: bool_comparison(node.lhs->constant_value->value._bool, node.rhs->constant_value->value._bool) }};
+        {
+            result = { Expression::ConstantValue::BOOL };
+            result.value._bool = bool_comparison(node.lhs->constant_value->value._bool, node.rhs->constant_value->value._bool);
+        }
 
         // TODO Correct default behaviour due to type checking?
         node.constant_value = new Expression::ConstantValue(result);
@@ -323,10 +340,12 @@ void ConstantExpressionVisitor::leave(PrefixOperation& node)
         switch(node.op)
         {
             case PrefixOperation::NOT: 
-                result = {Expression::ConstantValue::BOOL, {_bool: !node.operand->constant_value->value._bool }};
+                result = { Expression::ConstantValue::BOOL };
+                result.value._bool = !node.operand->constant_value->value._bool;
                 break;
             case PrefixOperation::MINUS: 
-                result = {Expression::ConstantValue::INT, {_int: -node.operand->constant_value->asInt() }};
+                result = { Expression::ConstantValue::INT };
+                result.value._int = -node.operand->constant_value->asInt();
                 break;
         }
 
@@ -343,20 +362,20 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
         switch (primitive->type)
         {
             case PrimitiveType::BYTE:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::BYTE, 
-                    {_byte: (decltype(Expression::ConstantValue::ConstantValueContents::_byte)) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BYTE });
+                node.constant_value->value._byte = (decltype(Expression::ConstantValue::ConstantValueContents::_byte))node.expression->constant_value->asInt();
                 break;
             case PrimitiveType::SHORT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::SHORT, 
-                    {_short: (decltype(Expression::ConstantValue::ConstantValueContents::_short)) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::SHORT });
+                node.constant_value->value._short = (decltype(Expression::ConstantValue::ConstantValueContents::_short))node.expression->constant_value->asInt();
                 break;
             case PrimitiveType::INT:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::INT, 
-                    {_int: (decltype(Expression::ConstantValue::ConstantValueContents::_int)) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::INT });
+                node.constant_value->value._int = (decltype(Expression::ConstantValue::ConstantValueContents::_int))node.expression->constant_value->asInt();
                 break;
             case PrimitiveType::CHAR:
-                node.constant_value = new Expression::ConstantValue({Expression::ConstantValue::CHAR, 
-                    {_char: (decltype(Expression::ConstantValue::ConstantValueContents::_char)) node.expression->constant_value->asInt() }});
+                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::CHAR });
+                node.constant_value->value._char = (decltype(Expression::ConstantValue::ConstantValueContents::_char))node.expression->constant_value->asInt();
                 break;
             case PrimitiveType::BOOLEAN:
                 // Must be identity conversion
