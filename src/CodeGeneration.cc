@@ -1185,7 +1185,7 @@ void CodeGenerator::CodeGenVisitor::leave(WhileStatement& node)
     node.code += labelAsm(whileBeginLabel);
     node.code += ifFalse(*node.condition, whileEndLabel);
     node.code += node.body->code;
-    node.code += "jmp " + whileBeginLabel;
+    node.code += "jmp " + whileBeginLabel + "\n";
     node.code += labelAsm(whileEndLabel);
     node.code += commentAsm("WhileStatement End");
 }
