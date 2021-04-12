@@ -160,7 +160,7 @@ public:
 
         virtual void leave(IntLiteral& node);
         virtual void leave(CharLiteral& node);
-        // virtual void leave(StringLiteral& node);
+        virtual void leave(StringLiteral& node);
         virtual void leave(BooleanLiteral& node);
         virtual void leave(NullLiteral& node);
         virtual void leave(NameExpression& node);
