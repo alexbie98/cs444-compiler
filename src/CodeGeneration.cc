@@ -753,9 +753,56 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
     node.code += node.rhs->code;
     node.code += "pop ebx\n";
 
-    if (dynamic_cast<ArrayType*>(node.lhs->resolvedType))
+    ArrayType* array_type = dynamic_cast<ArrayType*>(node.lhs->resolvedType);
+    if (array_type)
     {
-        // Todo type check code for runtime assignability of array element
+        QualifiedType* carray = dynamic_cast<QualifiedType*>(array_type);
+        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array_type);
+
+        if(carray)
+        {
+            // Type check code for runtime assignability of array element
+            // Check if carray is a subtype of rhs
+            TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(carray->name->refers_to);
+            assert(decl);
+
+            // Get rhs subtype, put into ecx
+            node.code += commentAsm("Type check runtime assignability of array element")
+
+            // Save lhs and rhs
+            node.code += "push eax\n";
+            node.code += "push ebx\n";
+
+            // Get rhs subtype, put into edx
+            node.code += getClassInfo();
+            node.code += getSubtypeColumn();
+            node.code += "mov edx, eax\n";
+
+            // Get lhs subtype, put into ecx
+            node.code += "mov ebx, eax\n";
+            node.code += getClassInfo();
+            node.code += getSubtypeColumn();
+            node.code += "mov ecx, eax\n";
+
+            // Get subtype table entry
+            node.code += "mov eax, " + SUBTYPE_TABLE_LABEL + "\n";
+            node.code += "mul ecx, " + std::to_string(cg.subtype_column_count) + "\n";
+            node.code += "add eax, ecx\n";
+            node.code += "add eax, edx\n";
+            node.code += "mov ecx, 0\n";
+            node.code += "mov cl, [eax]\n";
+            node.code += "mov eax, ecx\n";
+            node.code += nullCheckAsm();
+
+            // Restore lhs and rhs
+            node.code += "pop ebx\n";
+            node.code += "pop eax\n";
+        }
+        else if(parray)
+        {
+            // TODO Cast primitive types 
+        }
+        else assert(false);
     }
 
     node.code += "mov [ebx], eax\n";
