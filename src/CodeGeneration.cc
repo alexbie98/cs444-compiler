@@ -323,7 +323,7 @@ std::string CodeGenerator::writeExterns()
 {
     std::string ret;
 
-    assert(used_labels.empty());
+    //assert(used_labels.empty());
     for(auto& used: used_labels)
     {
         assert(!used_labels.empty());
@@ -1302,7 +1302,8 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 
         node.code = commentAsm("Static FieldDeclaration Start");
         node.code += CodeGenerator::DATA_DIR;
-        node.code += useLabel(node.staticLabel) + " dd 0\n";
+        node.code += labelAsm(node.staticLabel);
+        node.code += "dd 0\n";
         node.code += CodeGenerator::TEXT_DIR;
         node.code += node.declaration->code;
         node.code += "mov ebx, " + node.staticLabel + '\n';

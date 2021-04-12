@@ -71,7 +71,7 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
     else
     {
         environments.top()->classes[class_name] = &node;
-        node.fullyQualifiedName = class_name;
+        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? "." + node.name->getString() : class_name;
         node.packageName = package;
     }
     initEnvironment(&node);
@@ -97,7 +97,7 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
     else
     {
         environments.top()->interfaces[interface_name] = &node;
-        node.fullyQualifiedName = interface_name;
+        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? "." + node.name->getString() : interface_name;
         node.packageName = package;
     }
     initEnvironment(&node);
