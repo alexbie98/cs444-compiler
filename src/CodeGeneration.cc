@@ -323,8 +323,10 @@ std::string CodeGenerator::writeExterns()
 {
     std::string ret;
 
-    for(std::string used: used_labels)
+    assert(used_labels.empty());
+    for(auto& used: used_labels)
     {
+        assert(!used_labels.empty());
         if(defined_labels.find(used) == defined_labels.end()) ret += externAsm(used); 
     }
 
@@ -424,20 +426,13 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
         class_asm += wordAsm(0);
     }
 
-    // TEMP Define label for each method
-    if(otype == ObjectType::OBJECT_ARRAY && dynamic_cast<ClassDeclaration*>(root))
+    if(otype == ObjectType::OBJECT && dynamic_cast<ClassDeclaration*>(root))
     {
-        class_asm += "\n\n" + commentAsm("================== METHODS ==================");
+        // class_asm += "\n\n" + commentAsm("================== METHODS ==================");
 
-        for(MemberDeclaration* member: dynamic_cast<ClassDeclaration*>(root)->classBody->elements)
-        {
-            MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-            if(method)
-            {
-                class_asm += globalAsm(classMethodLabel(method));
-                class_asm += labelAsm(classMethodLabel(method));
-            }
-        }
+        // CodeGenVisitor visitor(*this);
+        // root->visitAll(visitor);
+        // class_asm += root->code;
     }
 
     return class_asm;
