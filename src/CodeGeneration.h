@@ -51,9 +51,9 @@ class CodeGenerator
     void createMethodAndFieldPrefixes(ClassDeclaration* decl);
 
     void createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclaration* subtype);
-    size_t getArraySubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type] + subtype_table_object_index.size(); }
-    size_t getObjectSubtypeIndex(TypeDeclaration* type){ return subtype_table_object_index[type]; }
-    size_t getPrimitiveArraySubtypeIndex(PrimitiveType::BasicType type){ return subtype_table_primitive_array_index[type]; }
+    size_t getArraySubtypeIndex(TypeDeclaration* type){ size_t i = subtype_table_object_index[type] + subtype_table_object_index.size(); assert(i < subtype_column_count); return i; }
+    size_t getObjectSubtypeIndex(TypeDeclaration* type){ size_t i = subtype_table_object_index[type]; assert(i < subtype_column_count); return i; }
+    size_t getPrimitiveArraySubtypeIndex(PrimitiveType::BasicType type){ size_t i = subtype_table_primitive_array_index[type]; assert(i < subtype_column_count); return i; }
 
     std::unordered_map<FieldDeclaration*, ClassDeclaration*> static_fields;
     std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
