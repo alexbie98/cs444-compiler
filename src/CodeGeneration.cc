@@ -428,11 +428,11 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
     if(otype == ObjectType::OBJECT && dynamic_cast<ClassDeclaration*>(root))
     {
-        // class_asm += "\n\n" + commentAsm("================== METHODS ==================");
+        class_asm += "\n\n" + commentAsm("================== METHODS ==================");
 
-        // CodeGenVisitor visitor(*this);
-        // root->visitAll(visitor);
-        // class_asm += root->code;
+        CodeGenVisitor visitor(*this);
+        root->visitAll(visitor);
+        class_asm += root->code;
     }
 
     return class_asm;
@@ -878,8 +878,8 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
     ArrayType* array_type = dynamic_cast<ArrayType*>(node.lhs->resolvedType);
     if (array_type)
     {
-        QualifiedType* carray = dynamic_cast<QualifiedType*>(array_type);
-        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array_type);
+        QualifiedType* carray = dynamic_cast<QualifiedType*>(array_type->elementType);
+        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array_type->elementType);
 
         if(carray)
         {
@@ -972,28 +972,44 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 {
     FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(node.refersTo);
 
-    bool isStatic = false;
-    for (Modifier* modifier : field->modifiers->elements)
+    if (field)
     {
-        if (modifier->type == Modifier::STATIC)
+        bool isStatic = false;
+        for (Modifier* modifier : field->modifiers->elements)
         {
-            isStatic = true;
+            if (modifier->type == Modifier::STATIC)
+            {
+                isStatic = true;
+            }
         }
-    }
 
-    if (isStatic)
-    {
-        node.addr = labelAddr(field->staticLabel);
-        node.code = node.addr + addrVal();
+        if (isStatic)
+        {
+            node.addr = labelAddr(field->staticLabel);
+            node.code = node.addr + addrVal();
 
-        node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
-        node.code = commentAsm("Static FieldAccess Code") + node.code + commentAsm("Static FieldAccess End");
+            node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
+            node.code = commentAsm("Static FieldAccess Code") + node.code + commentAsm("Static FieldAccess End");
+        }
+        else
+        {
+            node.addr = node.prevExpr->code;
+            node.addr += cg.nullCheckAsm();
+            node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
+
+            node.code = node.addr + addrVal();
+
+            node.addr = commentAsm("FieldAccess Addr") + node.addr + commentAsm("FieldAccess End");
+            node.code = commentAsm("FieldAccess Code") + node.code + commentAsm("FieldAccess End");
+        }
     }
     else
     {
-        node.addr += node.prevExpr->code;
+        assert(node.name->id == "length");
+        // Special case for array
+        node.addr = node.prevExpr->code;
         node.addr += cg.nullCheckAsm();
-        node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
+        node.addr += addOffset(FIELDS_OFFSET);
 
         node.code = node.addr + addrVal();
 
@@ -1005,7 +1021,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
 {
     MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(node.name->refers_to);
-    std::string& object = node.prevExpr->code;
+    std::string object = node.prevExpr ? node.prevExpr->code : (thisAddr() + addrVal());
     std::vector<std::string> args;
     for (Expression* arg : node.arguments->elements)
     {
@@ -1328,23 +1344,25 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 
 void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
 {
-    node.code = commentAsm("MethodDeclaration Start");
-    node.code += globalAsm(cg.classMethodLabel(&node));
-    node.code += labelAsm(cg.classMethodLabel(&node));
-    node.code += methodCallHeader();
-
-    node.code += commentAsm("Push local vars to stack");
-    for (int i = 0; i < localVariableCount; i++)
+    if (node.body)
     {
-        node.code += "push 0\n";
+        node.code = commentAsm("MethodDeclaration Start");
+        node.code += globalAsm(cg.classMethodLabel(&node));
+        node.code += labelAsm(cg.classMethodLabel(&node));
+        node.code += methodCallHeader();
+
+        node.code += commentAsm("Push local vars to stack");
+        for (int i = 0; i < localVariableCount; i++)
+        {
+            node.code += "push 0\n";
+        }
+
+        node.code += pushCalleeSaveRegs();
+        node.code += node.body->code;
+        node.code += popCalleeSaveRegs();
+        node.code += methodCallReturn();
+        node.code += commentAsm("MethodDeclaration End");
     }
-
-    node.code += pushCalleeSaveRegs();
-    node.code += node.body->code;
-    node.code += popCalleeSaveRegs();
-    node.code += methodCallReturn();
-    node.code += commentAsm("MethodDeclaration End");
-
     inMethod = false;
 }
 

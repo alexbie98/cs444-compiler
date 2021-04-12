@@ -1856,6 +1856,7 @@ void TypeCheckingVisitor::leave(MethodCall& node)
         if (validateMemberAccess(node.prevExpr, callingType, method))
         {
             node.resolvedType = cloneType(method->type);
+            node.name->refers_to = method;
         }
         else
         {
