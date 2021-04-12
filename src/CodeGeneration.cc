@@ -60,7 +60,8 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
                 {
                     MethodDeclaration* method = member_it.second;
                     assert(method);
-                    
+                    assert(class_info.methods_prefix.find(method->getSignature()) == class_info.methods_prefix.end());
+
                     // Add new method to method prefix
                     size_t index = class_info.methods_prefix.size();
                     method_prefix_indices[method] = index;
@@ -153,6 +154,7 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, obj
                 {
                     // If method is a plausable interface method, add to method -> index mapping and SIT table
                     size_t index = unique_method_signatures[method->getSignature()];
+                    assert(index < sit_column_size);
                     sit_indices[method] = index;
                     sit_table[it.second][index] = method;
                 }
@@ -188,7 +190,7 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, obj
     for(size_t i = 0; i < subtype_column_count; i++)
     {
         // Allocate space in subtype_table_index
-        subtype_table.push_back(std::vector<bool>(subtype_column_count, false));
+        subtype_table.emplace_back(subtype_column_count, false);
     }
 
     assert(globalEnv.interfaces.find("java.lang.Cloneable") != globalEnv.interfaces.end());
@@ -440,21 +442,32 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
 std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    std::string ret = generateObjectCode(root, ObjectType::OBJECT)
-        + "\n\n"
-        + commentAsm("Object Array Information")
-        + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
-    ret += writeExterns();
-    return ret;
+    // std::string ret =  generateObjectCode(root, ObjectType::OBJECT) 
+    //        + "\n\n" 
+    //        + commentAsm("Object Array Information") 
+    //        + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
+    // ret += writeExterns();
+    // return ret;
+    return generateObjectCode(root, ObjectType::OBJECT) 
+           + "\n\n" 
+           + commentAsm("Object Array Information") 
+           + generateObjectCode(root, ObjectType::OBJECT_ARRAY)
+           + writeExterns();
 }
 
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
-{
+{   
+    // std::string ret = generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
+    // ret += writeExterns();
+    // return ret;
     return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type) + writeExterns();
 }
 
 std::string CodeGenerator::generateInterfaceArrayCode(InterfaceDeclaration* root)
 {
+    // std::string ret = commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {});
+    // ret += writeExterns();
+    // return ret;
     return commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {}) + writeExterns();
 }
 
