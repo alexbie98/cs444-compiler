@@ -1695,9 +1695,9 @@ std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaratio
     int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
 
     std::string ret = commentAsm("ClassInstanceCreator Start");
-    ret += "mov eax, " + std::to_string(objSize);
-    ret += "call __malloc";
-    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
+    ret += "mov eax, " + std::to_string(objSize) + "\n";
+    ret += "call " + MALLOC + "\n";
+    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl)) + "\n";
 
     ret += "push eax\n";
 
@@ -1723,8 +1723,8 @@ std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::strin
     ret += "push eax\n";
     ret += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
 
-    ret += "call __malloc";
-    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
+    ret += "call " + MALLOC + "\n";
+    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label) + "\n";
     ret += "pop ebx\n";
     ret += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
     ret += commentAsm("ArrayCreator End");
