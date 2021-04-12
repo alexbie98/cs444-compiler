@@ -1087,7 +1087,19 @@ bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
     {
         if (ArrayType * arrayCast = dynamic_cast<ArrayType*>(castType))
         {
-            return isCastable(arrayBase->elementType, arrayCast->elementType);
+            Type* baseElemType = arrayBase->elementType;
+            Type* castElemType = arrayCast->elementType;
+            if (PrimitiveType * primBase = dynamic_cast<PrimitiveType*>(baseElemType))
+            {
+                if (PrimitiveType * primCast = dynamic_cast<PrimitiveType*>(castElemType))
+                {
+                    return primBase->type == primCast->type;
+                }
+            }
+            else
+            {
+                return isCastable(arrayBase->elementType, arrayCast->elementType);
+            }
         }
         else if (QualifiedType * qualType = dynamic_cast<QualifiedType*>(castType))
         {

@@ -167,7 +167,7 @@ public:
         virtual void leave(ArrayCreator& node);
         virtual void leave(FieldAccess& node);
         virtual void leave(MethodCall& node);
-        // virtual void leave(ArrayAccess& node);
+        virtual void leave(ArrayAccess& node);
         virtual void leave(ThisExpression& node);
         virtual void leave(VariableDeclarationExpression& node);
         virtual void leave(InstanceOfExpression& node);

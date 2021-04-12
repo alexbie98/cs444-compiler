@@ -1006,6 +1006,27 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
     node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
 }
 
+void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
+{
+    node.addr += node.prevExpr->code;
+    node.addr += nullCheckAsm();
+    node.addr += "push eax\n";
+    node.addr += node.indexExpr->code;
+    node.addr += "pop ebx\n";
+    node.addr += "cmp eax, 0\n";
+    node.addr += "jl " + EXCEPTION + "\n";
+    node.addr += "mov ecx, [eax + " + std::to_string(FIELDS_OFFSET) + "]\n";
+    node.addr += "cmp eax, ecx\n";
+    node.addr += "jge " + EXCEPTION + "\n";
+    node.addr += "add eax, 2\n";
+    node.addr += "imul eax, " + WORD_SIZE;
+    node.addr += "add eax, ebx";
+
+    node.code = node.addr + addrVal();
+
+    node.addr = commentAsm("ArrayAccess Addr") + node.addr + commentAsm("ArrayAccess End");
+    node.code = commentAsm("ArrayAccess Code") + node.code + commentAsm("ArrayAccess End");
+}
 
 void CodeGenerator::CodeGenVisitor::leave(ThisExpression& node)
 {
@@ -1236,7 +1257,6 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
             node.code += member->code;
         }
     }
-
 }
 
 void CodeGenerator::CodeGenVisitor::leave(InterfaceDeclaration& node)
