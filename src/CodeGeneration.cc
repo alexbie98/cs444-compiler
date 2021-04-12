@@ -745,6 +745,77 @@ void CodeGenerator::CodeGenVisitor::leave(PrefixOperation& node)
     node.code += commentAsm("PrefixOperation End");
 }
 
+void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
+{
+    node.code = commentAsm("CastExpression Begin");
+    assert(node.castType);
+    PrimitiveType* prim = dynamic_cast<PrimitiveType*>(node.castType);
+
+    std::string& object = node.expression->code;
+    node.code += object;
+
+    if(prim)
+    {
+        switch (prim->type)
+        {
+        case PrimitiveType::BYTE:
+            node.code = "mov ecx, 0\n";
+            node.code = "movsx ecx, al\n";
+            node.code = "mov eax, ecx\n";
+            break;
+        case PrimitiveType::SHORT:
+            node.code = "mov ecx, 0\n";
+            node.code = "movsx ecx, ax\n";
+            node.code = "mov eax, ecx\n";
+            break;
+        case PrimitiveType::INT:
+            break;
+        case PrimitiveType::CHAR:
+            node.code = "mov ecx, 0\n";
+            node.code = "mov ecx, ax\n";
+            node.code = "mov eax, ecx\n";
+            break;
+        case PrimitiveType::BOOLEAN:
+            break;
+        default:
+            assert(false);  
+            break;
+        }
+    }
+    else
+    {
+        // Similar to instanceof
+        size_t type_offset = getTypeSubtypeIndex(node.castType);
+
+        std::string cast_allowed = cg.freshenLabel("cast_allowed");
+
+        node.code += "push eax\n";
+
+        node.code = commentAsm("Check if object is null, allow cast if it is");
+        node.code += "cmp eax, 0\n";
+        node.code += "je " + cast_allowed + "\n";
+        
+        // Check if expression is instanceof castType
+        node.code += getClassInfo();
+        node.code += getSubtypeColumn();
+        node.code += "mov ecx, 0\n";
+        node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
+        node.code += "cmp ecx, 0\n";
+        node.code += "jne " + cast_allowed + "\n";
+
+        // Check if castType is instanceof expression type
+        node.code += "mov ecx, 0\n";
+        node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ " + std::to_string(type_offset) + " *"+ std::to_string(cg.subtype_column_count) + "+eax]\n";
+        node.code += "cmp ecx, 0\n";
+        node.code += "je " + EXCEPTION + "\n";
+
+        node.code += labelAsm(cast_allowed);
+        node.code += "pop eax\n";
+    }
+
+    node.code = commentAsm("CastExpression End");
+}
+
 void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
 {
     node.code = commentAsm("AssignmentExpression Begin");
@@ -971,33 +1042,8 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
 
 void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
 {
-    QualifiedType* qualified = dynamic_cast<QualifiedType*>(node.type);
-    ArrayType* array = dynamic_cast<ArrayType*>(node.type);
-
-    size_t type_offset;
-
-    if(qualified)
-    {
-        TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(qualified->name->refers_to);
-        type_offset = cg.getObjectSubtypeIndex(decl);
-    }
-    else if (array)
-    {
-        QualifiedType* carray = dynamic_cast<QualifiedType*>(array->elementType);
-        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array->elementType);
-
-        if(carray)
-        {
-            TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(carray->name->refers_to);
-            type_offset = cg.getArraySubtypeIndex(decl);
-        }
-        else if(parray)
-        {
-            type_offset = cg.getPrimitiveArraySubtypeIndex(parray->type);
-        }
-        else assert(false);
-    }
-    else assert(false);
+    node.code = commentAsm("InstanceOfExpression Begin");
+    size_t type_offset = getTypeSubtypeIndex(node.type);
 
     std::string& object = node.expression->code;
     node.code += object;
@@ -1015,6 +1061,7 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
     node.code += "mov eax, ecx\n";
 
     node.code += labelAsm(finished);
+    node.code = commentAsm("InstanceOfExpression End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ExpressionStatement& node)
@@ -1382,4 +1429,37 @@ std::string CodeGenerator::CodeGenVisitor::getClassInfo()
 std::string CodeGenerator::CodeGenVisitor::getSubtypeColumn()
 {
     return "mov eax, [eax + " + std::to_string(SUBTYPE_OFFSET) + "]\n";
+}
+
+size_t CodeGenerator::CodeGenVisitor::getTypeSubtypeIndex(Type* type)
+{
+    QualifiedType* qualified = dynamic_cast<QualifiedType*>(type);
+    ArrayType* array = dynamic_cast<ArrayType*>(type);
+
+    size_t type_offset;
+
+    if(qualified)
+    {
+        TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(qualified->name->refers_to);
+        type_offset = cg.getObjectSubtypeIndex(decl);
+    }
+    else if (array)
+    {
+        QualifiedType* carray = dynamic_cast<QualifiedType*>(array->elementType);
+        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array->elementType);
+
+        if(carray)
+        {
+            TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(carray->name->refers_to);
+            type_offset = cg.getArraySubtypeIndex(decl);
+        }
+        else if(parray)
+        {
+            type_offset = cg.getPrimitiveArraySubtypeIndex(parray->type);
+        }
+        else assert(false);
+    }
+    else assert(false);
+
+    return type_offset;
 }
