@@ -1283,6 +1283,10 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
         }
     }
 
+    std::string staticFields = commentAsm("================== STATIC FIELDS ==================");
+    staticFields += DATA_DIR;
+
+    node.code = TEXT_DIR;
     for (MemberDeclaration* member : node.classBody->elements)
     {
         if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
@@ -1291,7 +1295,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
             {
                 if (modifier->type == Modifier::STATIC)
                 {
-                    staticFieldInitializers += field->code;
+                    staticFields += field->code;
                 }
             }
         }
@@ -1300,6 +1304,8 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
             node.code += member->code;
         }
     }
+
+    node.code += staticFields;
 }
 
 void CodeGenerator::CodeGenVisitor::leave(InterfaceDeclaration& node)
@@ -1335,14 +1341,16 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
         node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
 
         node.code = commentAsm("Static FieldDeclaration Start");
-        node.code += CodeGenerator::DATA_DIR;
+        node.code += globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
         node.code += "dd 0\n";
-        node.code += CodeGenerator::TEXT_DIR;
-        node.code += node.declaration->code;
-        node.code += "mov ebx, " + node.staticLabel + '\n';
-        node.code += "mov [ebx], eax\n";
-        node.code += commentAsm("Static FieldDeclaration End");
+        
+        // We need to run all the static field initializers once in a seperate location at start of execution
+        staticFieldInitializers += node.declaration->code;
+        staticFieldInitializers += externAsm(node.staticLabel);
+        staticFieldInitializers += "mov ebx, " + node.staticLabel + '\n';
+        staticFieldInitializers += "mov [ebx], eax\n";
+        staticFieldInitializers += commentAsm("Static FieldDeclaration End");
     }
     else
     {
