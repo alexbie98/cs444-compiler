@@ -1087,6 +1087,8 @@ void CompilerUnit::visitChildren(ASTNodeVisitor& v)
     }
 }
 
+const std::vector<PrimitiveType::BasicType> PrimitiveType::all_prim_types{BOOLEAN, BYTE , SHORT, CHAR, INT};
+
 std::string PrimitiveType::getTypeName() const
 {
     switch (type)

@@ -191,19 +191,33 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
         subtype_table.push_back(std::vector<bool>(subtype_column_count, false));
     }
 
+    assert(globalEnv.interfaces.find("java.lang.Cloneable") != globalEnv.interfaces.end());
+    assert(globalEnv.interfaces.find("java.io.Serializeable") != globalEnv.interfaces.end());
+    InterfaceDeclaration* cloneable_decl = globalEnv.interfaces["java.lang.Cloneable"];
+    InterfaceDeclaration* serializable_decl = globalEnv.interfaces["java.io.Serializeable"];
     for(auto it: globalEnv.classes)
     {
         createSubtypeInfo(it.second, it.second);
+        // Set array of class to inherit from Object
+        subtype_table[getArraySubtypeIndex(it.second)][getArraySubtypeIndex(it.second)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(object_class_decl)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(cloneable_decl)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(serializable_decl)] = true;
     }
-
-    subtype_table[getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)][getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)] = true;
-
-    for(PrimitiveType::BasicType t: std::vector<PrimitiveType::BasicType>{PrimitiveType::BYTE , PrimitiveType::SHORT, PrimitiveType::CHAR, PrimitiveType::INT})
+    for(auto it: globalEnv.interfaces)
     {
-        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::BYTE)] = true;
-        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::SHORT)] = true;
-        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::CHAR)] = true;
-        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(PrimitiveType::INT)] = true;
+        // Set array of interface to inherit from Object
+        subtype_table[getArraySubtypeIndex(it.second)][getArraySubtypeIndex(it.second)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(object_class_decl)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(cloneable_decl)] = true;
+        subtype_table[getArraySubtypeIndex(it.second)][getObjectSubtypeIndex(serializable_decl)] = true;
+    }
+    for(PrimitiveType::BasicType t: PrimitiveType::all_prim_types)
+    {
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getPrimitiveArraySubtypeIndex(t)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getObjectSubtypeIndex(object_class_decl)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getObjectSubtypeIndex(cloneable_decl)] = true;
+        subtype_table[getPrimitiveArraySubtypeIndex(t)][getObjectSubtypeIndex(serializable_decl)] = true;
     }
 
     // Add subtype column index to each ClassInfo
@@ -269,8 +283,7 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
     }
 
     // Create ClassInfos for primitive arrays
-    std::vector<PrimitiveType::BasicType> primitive_types = {PrimitiveType::BOOLEAN, PrimitiveType::BYTE , PrimitiveType::SHORT, PrimitiveType::CHAR, PrimitiveType::INT};
-    for(PrimitiveType::BasicType t: primitive_types)
+    for(PrimitiveType::BasicType t: PrimitiveType::all_prim_types)
     {
         primitive_array_class_infos.insert({t, ClassInfo()});
         ClassInfo& class_info = primitive_array_class_infos[t];
