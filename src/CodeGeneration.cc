@@ -538,8 +538,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
     {
         if (FormalParameter * param = dynamic_cast<FormalParameter*>(node.name->refers_to))
         {
-            node.addr = "mov eax, ebp";
-            node.addr += "add eax, " + std::to_string(param->paramOffset);
+            node.addr = frameOffsetAddr(param->paramOffset);
 
             node.code += node.addr + addrVal();
 
