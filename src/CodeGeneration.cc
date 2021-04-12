@@ -1081,7 +1081,7 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
         node.code += "push eax\n";
         node.code += frameOffsetAddr(node.variableOffset);
         node.code += "pop ebx\n";
-        node.code += "mov [eax], ebx";
+        node.code += "mov [eax], ebx\n";
         node.code += commentAsm("Local VariableDeclarationExpression End");
     }
 }
