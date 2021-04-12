@@ -1648,8 +1648,6 @@ void TypeCheckingVisitor::leave(AssignmentExpression& node)
                             }
                         }
                     }
-
-                    node.resolvedType = cloneType(var->type);
                 }
             }
             else
