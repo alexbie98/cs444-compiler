@@ -537,7 +537,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
             else
             {
                 node.addr = thisAddr() + addrVal();
-                node.addr += addOffset(cg.field_prefix_indices[field]);
+                node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
 
                 node.code = node.addr + addrVal();
 
@@ -572,7 +572,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
                 else
                 {
                     node.addr = thisAddr() + addrVal();
-                    node.addr += addOffset(cg.field_prefix_indices[field]);
+                    node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
 
                     node.code = node.addr + addrVal();
 
@@ -968,7 +968,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
     {
         node.addr += node.prevExpr->code;
         node.addr += nullCheckAsm();
-        node.addr += addOffset(cg.field_prefix_indices[field]);
+        node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
 
         node.code = node.addr + addrVal();
 
@@ -982,7 +982,7 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
     MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(node.name->refers_to);
     assert(method);
     assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
-    size_t method_prefix_index = cg.method_prefix_indices[method];
+    size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
 
     std::string& object = node.prevExpr->code;
 
@@ -1286,7 +1286,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
         {
             node.code = commentAsm("FieldDeclaration Start");
             node.code += thisAddr() + addrVal();
-            node.code += addOffset(cg.field_prefix_indices[&node]);
+            node.code += addOffset(cg.field_prefix_indices[&node] * WORD_SIZE + FIELDS_OFFSET);
             node.code += "push eax\n";
             node.code += node.declaration->code;
             node.code += "pop ebx\n";

@@ -65,8 +65,10 @@ class CodeGenerator
     static const std::string MALLOC;
     static const size_t WORD_SIZE = 4;
     static const size_t CLASS_INFO_OFFSET = 0;
+    static const size_t FIELDS_OFFSET = 4;
     static const size_t SIT_OFFSET = 0;
     static const size_t SUBTYPE_OFFSET = 4;
+    static const size_t METHODS_OFFSET = 8;
 
     static const std::string TEXT_DIR;
     static const std::string DATA_DIR;
