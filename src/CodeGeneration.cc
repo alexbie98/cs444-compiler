@@ -1417,7 +1417,7 @@ std::string CodeGenerator::CodeGenVisitor::thisAddr()
     return frameOffsetAddr(thisOffset);
 }
 
-std::string CodeGenerator::CodeGenVisitor::labelAddr(std::string label)
+std::string CodeGenerator::CodeGenVisitor::labelAddr(const std::string& label)
 {
     return "mov eax, " + useLabel(label) + "\n";
 }
@@ -1742,7 +1742,7 @@ std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method,
     return ret;
 }
 
-std::string CodeGenerator::CodeGenVisitor::createStringFromLiteral(const std::u16string str)
+std::string CodeGenerator::CodeGenVisitor::createStringFromLiteral(const std::u16string& str)
 {
     std::string label = cg.primitiveArrayDataLabel(PrimitiveType::CHAR);
     // Find the char[] constructor of String
