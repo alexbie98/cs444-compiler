@@ -747,6 +747,7 @@ void CodeGenerator::CodeGenVisitor::leave(PrefixOperation& node)
 
 void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
 {
+    node.code = commentAsm("CastExpression Begin");
     assert(node.castType);
     PrimitiveType* prim = dynamic_cast<PrimitiveType*>(node.castType);
 
@@ -811,6 +812,8 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         node.code += labelAsm(cast_allowed);
         node.code += "pop eax\n";
     }
+
+    node.code = commentAsm("CastExpression End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
@@ -1012,6 +1015,7 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
 
 void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
 {
+    node.code = commentAsm("InstanceOfExpression Begin");
     size_t type_offset = getTypeSubtypeIndex(node.type);
 
     std::string& object = node.expression->code;
@@ -1030,6 +1034,7 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
     node.code += "mov eax, ecx\n";
 
     node.code += labelAsm(finished);
+    node.code = commentAsm("InstanceOfExpression End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ExpressionStatement& node)
