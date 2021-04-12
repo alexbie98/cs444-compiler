@@ -192,9 +192,9 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
     }
 
     assert(globalEnv.interfaces.find("java.lang.Cloneable") != globalEnv.interfaces.end());
-    assert(globalEnv.interfaces.find("java.io.Serializeable") != globalEnv.interfaces.end());
+    assert(globalEnv.interfaces.find("java.io.Serializable") != globalEnv.interfaces.end());
     InterfaceDeclaration* cloneable_decl = globalEnv.interfaces["java.lang.Cloneable"];
-    InterfaceDeclaration* serializable_decl = globalEnv.interfaces["java.io.Serializeable"];
+    InterfaceDeclaration* serializable_decl = globalEnv.interfaces["java.io.Serializable"];
     for(auto it: globalEnv.classes)
     {
         createSubtypeInfo(it.second, it.second);
