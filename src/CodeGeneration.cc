@@ -1230,7 +1230,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
         constructorSuper += "push eax\n";
         constructorSuper += labelAddr(cg.constructorLabel(super));
         constructorSuper += "call eax\n";
-        constructorSuper += "add esp, " + WORD_SIZE + '\n';
+        constructorSuper += "add esp, " + std::to_string(WORD_SIZE) + '\n';
         constructorSuper += commentAsm("Super Constructor Call End");
     }
 
