@@ -158,7 +158,7 @@ public:
         virtual void leave(NameExpression& node);
         virtual void leave(BinaryOperation& node);
         virtual void leave(PrefixOperation& node);
-        // virtual void leave(CastExpression& node);
+        virtual void leave(CastExpression& node);
         virtual void leave(AssignmentExpression& node);
         virtual void leave(ParenthesizedExpression& node);
         virtual void leave(ClassInstanceCreator& node);
@@ -200,6 +200,7 @@ public:
 
         std::string getClassInfo();
         std::string getSubtypeColumn();
+        size_t getTypeSubtypeIndex(Type* type);
     };
 
     CodeGenerator(Environment& globalEnv);
