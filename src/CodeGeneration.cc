@@ -9,6 +9,8 @@ const std::string CodeGenerator::SUBTYPE_TABLE_LABEL = "SUBTYPE_TABLE";
 const std::string CodeGenerator::EXCEPTION = "__exception";
 const std::string CodeGenerator::DEXIT = "__debexit";
 const std::string CodeGenerator::MALLOC = "__malloc";
+const std::string CodeGenerator::TEXT_DIR = CodeGenerator::directiveAsm("text");
+const std::string CodeGenerator::DATA_DIR = CodeGenerator::directiveAsm("data");
 
 void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
 {
@@ -461,10 +463,6 @@ std::string CodeGenerator::runtimeExternsAsm()
         externAsm("__exception");
 }
 
-const std::string CodeGenerator::TEXT_DIR = CodeGenerator::directiveAsm("text");
-const std::string CodeGenerator::DATA_DIR = CodeGenerator::directiveAsm("data");
-
-
 void CodeGenerator::CodeGenVisitor::visit(MethodDeclaration& node)
 {
     formalParameterCount = node.parameters->elements.size();
@@ -504,6 +502,70 @@ void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
 void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
 {
     node.code = "mov eax, " + std::to_string(node.value) + " " + commentAsm("CharLiteral");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(StringLiteral& node)
+{
+    std::string label = cg.primitiveArrayDataLabel(PrimitiveType::CHAR);
+
+    node.code = commentAsm("StringLiteral Start");
+    node.code += commentAsm("Creating Char[]");
+    node.code += "mov eax, " + std::to_string(node.value.size()) + "\n";
+    node.code += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
+    node.code += "call _malloc";
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
+    node.code += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], " + std::to_string(node.value.size()) + "\n";
+
+    for (int i = 0; i < node.value.size(); i++)
+    {
+        node.code += "mov [eax + " + std::to_string((i + 1) * WORD_SIZE + FIELDS_OFFSET) + "], " + std::to_string(node.value[i]) + "\n";
+    }
+    node.code += "push eax\n";
+    node.code += commentAsm("Creating new String()");
+
+    ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(cg.global_env.classes["java.lang.String"]);
+    assert(classDecl);
+    ClassInfo classInfo = cg.class_infos[classDecl];
+
+    int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
+
+    node.code += "mov eax, " + std::to_string(objSize);
+    node.code += "call _malloc";
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
+    node.code += "pop ebx\n";
+    node.code += "push eax\n";
+    node.code += "push ebx\n";
+
+    // Find the char[] constructor of String
+    ConstructorDeclaration* constructor = nullptr;
+    for (MemberDeclaration* member : classDecl->classBody->elements)
+    {
+        if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+        {
+            if (c->parameters->elements.size() == 1)
+            {
+                FormalParameter* param = c->parameters->elements[0];
+                if (ArrayType * arrayType = dynamic_cast<ArrayType*>(param->type))
+                {
+                    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(arrayType->elementType))
+                    {
+                        if (primType->type == PrimitiveType::CHAR)
+                        {
+                            constructor = c;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert(constructor);
+
+    node.code += labelAddr(cg.constructorLabel(constructor));
+    node.code += "call eax\n";
+    node.code += "add esp, " + std::to_string(WORD_SIZE) + '\n';
+    node.code += "pop eax\n";
+    node.code += commentAsm("StringLiteral End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
@@ -962,7 +1024,7 @@ void CodeGenerator::CodeGenVisitor::leave(ArrayCreator& node)
     node.code += "call _malloc";
     node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
     node.code += "pop ebx\n";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET + WORD_SIZE) + "], ebx\n";
+    node.code += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
     node.code += commentAsm("ArrayCreator End");
 }
 
@@ -1009,6 +1071,7 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
 
     std::string& object = node.prevExpr->code;
 
+    node.code = commentAsm("MethodCall Start");
     node.code += object;
     node.code += cg.nullCheckAsm();
     node.code += "push eax\n";
@@ -1027,20 +1090,21 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
     node.code += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
     node.code += "call eax\n";
     node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+    node.code += commentAsm("MethodCall End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
 {
     node.addr += node.prevExpr->code;
-    node.addr += nullCheckAsm();
+    node.addr += cg.nullCheckAsm();
     node.addr += "push eax\n";
     node.addr += node.indexExpr->code;
     node.addr += "pop ebx\n";
     node.addr += "cmp eax, 0\n";
-    node.addr += "jl " + EXCEPTION + "\n";
+    node.addr += "jl " + useLabel(EXCEPTION) + "\n";
     node.addr += "mov ecx, [eax + " + std::to_string(FIELDS_OFFSET) + "]\n";
     node.addr += "cmp eax, ecx\n";
-    node.addr += "jge " + EXCEPTION + "\n";
+    node.addr += "jge " + useLabel(EXCEPTION) + "\n";
     node.addr += "add eax, 2\n";
     node.addr += "imul eax, " + WORD_SIZE;
     node.addr += "add eax, ebx";
