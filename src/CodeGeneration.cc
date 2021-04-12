@@ -103,7 +103,7 @@ void CodeGenerator::createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclarat
     } 
 }
 
-CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
+CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, object_class_decl(nullptr)
 {
     // Generate SIT indices
     std::unordered_map<std::string, size_t> unique_method_signatures;
@@ -440,11 +440,12 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
 std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    return generateObjectCode(root, ObjectType::OBJECT) 
-           + "\n\n" 
-           + commentAsm("Object Array Information") 
-           + generateObjectCode(root, ObjectType::OBJECT_ARRAY)
-           + writeExterns();
+    std::string ret = generateObjectCode(root, ObjectType::OBJECT)
+        + "\n\n"
+        + commentAsm("Object Array Information")
+        + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
+    ret += writeExterns();
+    return ret;
 }
 
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
@@ -1671,7 +1672,7 @@ size_t CodeGenerator::CodeGenVisitor::getTypeSubtypeIndex(Type* type)
 
 std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs)
 {
-    ClassInfo classInfo = cg.class_infos[classDecl];
+    ClassInfo& classInfo = cg.class_infos[classDecl];
 
     int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
 
@@ -1747,7 +1748,7 @@ std::string CodeGenerator::CodeGenVisitor::createStringFromLiteral(const std::u1
     // Find the char[] constructor of String
     ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(cg.global_env.classes["java.lang.String"]);
     assert(classDecl);
-    ClassInfo classInfo = cg.class_infos[classDecl];
+    ClassInfo& classInfo = cg.class_infos[classDecl];
 
     ConstructorDeclaration* constructor = nullptr;
     for (MemberDeclaration* member : classDecl->classBody->elements)
