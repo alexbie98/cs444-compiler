@@ -4,6 +4,12 @@
 #include <iostream>
 #include <set>
 
+const std::string CodeGenerator::SUBTYPE_COLUMN_COUNT_LABEL = "SUBTYPE_COLUMN_COUNT";
+const std::string CodeGenerator::SUBTYPE_TABLE_LABEL = "SUBTYPE_TABLE";
+const std::string CodeGenerator::EXCEPTION = "__exception";
+const std::string CodeGenerator::DEXIT = "__debexit";
+const std::string CodeGenerator::MALLOC = "__malloc";
+
 void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
 {
     if(class_infos.find(class_decl) == class_infos.end())
@@ -306,6 +312,7 @@ std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType
         class_info = &class_infos[root];
         class_data_label = classDataLabel(root);
         subtype_index = getObjectSubtypeIndex(root);
+        class_asm += runtimeExternsAsm();
         class_asm += "\n" + commentAsm("================== OBJECT INFORMATION ==================");
     } 
     else if(otype == ObjectType::OBJECT_ARRAY)
@@ -415,6 +422,20 @@ std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
 {
     return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
+}
+
+std::string CodeGenerator::nullCheckAsm()
+{
+    return commentAsm("Null Check") +
+           "cmp eax, 0\n" +
+           "je " + MALLOC + "\n";
+}
+
+std::string CodeGenerator::runtimeExternsAsm()
+{
+    return externAsm("__malloc") + 
+           externAsm("__debexit") +
+           externAsm("__exception");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
@@ -702,4 +723,33 @@ std::string CodeGenerator::CodeGenVisitor::cmpOperation(ASTNode& lhs, ASTNode& r
     ret += "mov eax, 1\n";
     ret += setLabel(labelB);
     return ret;
+}
+
+void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
+{
+    MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(node.name->refers_to);
+    assert(method);
+    assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
+    size_t method_prefix_index = cg.method_prefix_indices[method];
+
+    std::string& object = node.prevExpr->code;
+
+    node.code += object;
+    node.code += cg.nullCheckAsm();
+    node.code += "push eax\n";
+
+    size_t object_offset = 0;
+
+    for(Expression* arg: node.arguments->elements)
+    {
+        node.code += arg->code;
+        node.code += "push eax\n";
+        object_offset += WORD_SIZE;
+    }
+
+    node.code += "mov eax, [exp + " + std::to_string(object_offset) + "]\n";
+    node.code += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
+    node.code += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
+    node.code += "call eax"
+    node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE);
 }
