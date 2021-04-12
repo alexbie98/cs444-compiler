@@ -1169,7 +1169,7 @@ void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 
     if (node.forUpdate) node.code += node.forUpdate->code;
 
-    node.code += "jmp " + forBeginLabel;
+    node.code += "jmp " + forBeginLabel + "\n";
     node.code += labelAsm(forEndLabel);
     node.code += commentAsm("ForStatement End");
 }
