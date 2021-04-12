@@ -298,24 +298,36 @@ std::string CodeGenerator::generateCommon()
         common_asm += "\n";
     }
 
+    // Reset labels
+    writeExterns();
+
     return common_asm;
 }
 
-std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType otype, std::set<std::string> externed_labels, PrimitiveType::BasicType ptype)
+std::string CodeGenerator::writeExterns()
+{
+    std::string ret;
+
+    for(std::string used: used_labels)
+    {
+        if(defined_labels.find(used) == defined_labels.end()) ret += externAsm(used); 
+    }
+
+    used_labels.clear();
+    defined_labels.clear();
+
+    return ret;
+}
+
+std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype)
 {
     std::string class_asm;
-
-    // TODO Change to defined_labels and make neccessary changes below
-    // TODO This no longer words since this function is called twice per file, need a file to name map...
-    externed_labels.insert(sitColumnClassLabel(object_class_decl));
 
     std::vector<MethodDeclaration*>* column = nullptr;
     ClassInfo* class_info = nullptr;
     std::string column_label;
     std::string class_data_label;
     size_t subtype_index;
-
-    if(root != object_class_decl) class_asm += externAsm(sitColumnClassLabel(object_class_decl));
 
     if(otype == ObjectType::OBJECT)
     {
@@ -358,12 +370,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
         {
             if(method)
             {
-                if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
-                {
-                    class_asm += externAsm(classMethodLabel(method));
-                    externed_labels.insert(classMethodLabel(method));
-                }
-                class_asm += wordAsm(classMethodLabel(method));
+                class_asm += wordAsm(useLabel(classMethodLabel(method)));
             }
             else
             {
@@ -373,11 +380,9 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     }
 
     class_asm += "\n";
-    class_asm += externAsm(SUBTYPE_COLUMN_COUNT_LABEL);
-    class_asm += externAsm(SUBTYPE_TABLE_LABEL);
 
     class_asm += labelAsm(class_data_label);
-    class_asm += wordAsm(column_label);
+    class_asm += wordAsm(useLabel(column_label));
     class_asm += wordAsm(subtype_index);
 
     size_t prefix_size = class_info->methods_prefix.size();
@@ -391,17 +396,13 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     for(MethodDeclaration* method: expanded_method_prefix)
     {
         assert(method);
-        if(containingType(method) != root && externed_labels.find(classMethodLabel(method)) == externed_labels.end())
-        {
-            class_asm += externAsm(classMethodLabel(method));
-        }
-        class_asm += wordAsm(classMethodLabel(method));
+        class_asm += wordAsm(useLabel(classMethodLabel(method)));
     }
 
     // Add entryType if object is an array
     if(otype == ObjectType::OBJECT_ARRAY)
     {
-        class_asm += wordAsm(classDataLabel(root));
+        class_asm += wordAsm(useLabel(classDataLabel(root)));
     } 
     else if(otype == ObjectType::PRIMITIVE_ARRAY)
     {
@@ -429,28 +430,28 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
 std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    std::set<std::string> externed;
-    return generateObjectCode(root, ObjectType::OBJECT, externed) 
+    return generateObjectCode(root, ObjectType::OBJECT) 
            + "\n\n" 
            + commentAsm("Object Array Information") 
-           + generateObjectCode(root, ObjectType::OBJECT_ARRAY, externed);
+           + generateObjectCode(root, ObjectType::OBJECT_ARRAY)
+           + writeExterns();
 }
 
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
 {
-    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, {}, type);
+    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type) + writeExterns();
 }
 
 std::string CodeGenerator::generateInterfaceArrayCode(InterfaceDeclaration* root)
 {
-    return commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {});
+    return commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {}) + writeExterns();
 }
 
 std::string CodeGenerator::nullCheckAsm()
 {
     return commentAsm("Null Check") +
         "cmp eax, 0\n" +
-        "je " + EXCEPTION + "\n";
+        "je " + useLabel(EXCEPTION) + "\n";
 }
 
 std::string CodeGenerator::runtimeExternsAsm()
@@ -660,7 +661,7 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
             break;
         case BinaryOperation::AND:
         {
-            std::string andLabel = "andEnd." + std::to_string(node.LABEL_NUM);
+            std::string andLabel = useLabel("andEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
             node.code += ifFalse(*node.lhs, andLabel);
             node.code += node.rhs->code;
@@ -669,7 +670,7 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::OR:
         {
-            std::string orLabel = "orEnd." + std::to_string(node.LABEL_NUM);
+            std::string orLabel = useLabel("orEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
             node.code += ifTrue(*node.lhs, orLabel);
             node.code += node.rhs->code;
@@ -690,8 +691,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
             break;
         case BinaryOperation::EQ:
         {
-            std::string eqLabel = "eqTrue." + std::to_string(node.LABEL_NUM);
-            std::string eqLabelEnd = "eqEnd." + std::to_string(node.LABEL_NUM);
+            std::string eqLabel = useLabel("eqTrue." + std::to_string(node.LABEL_NUM));
+            std::string eqLabelEnd = useLabel("eqEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "je", eqLabel, eqLabelEnd);
@@ -699,8 +700,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::NEQ:
         {
-            std::string neqLabel = "neqTrue." + std::to_string(node.LABEL_NUM);
-            std::string neqLabelEnd = "neqEnd." + std::to_string(node.LABEL_NUM);
+            std::string neqLabel = useLabel("neqTrue." + std::to_string(node.LABEL_NUM));
+            std::string neqLabelEnd = useLabel("neqEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jne", neqLabel, neqLabelEnd);
@@ -708,8 +709,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::LEQ:
         {
-            std::string leqLabel = "leqTrue." + std::to_string(node.LABEL_NUM);
-            std::string leqLabelEnd = "leqEnd." + std::to_string(node.LABEL_NUM);
+            std::string leqLabel = useLabel("leqTrue." + std::to_string(node.LABEL_NUM));
+            std::string leqLabelEnd = useLabel("leqEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jle", leqLabel, leqLabelEnd);
@@ -717,8 +718,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::GEQ:
         {
-            std::string geqLabel = "geqTrue." + std::to_string(node.LABEL_NUM);
-            std::string geqLabelEnd = "geqEnd." + std::to_string(node.LABEL_NUM);
+            std::string geqLabel = useLabel("geqTrue." + std::to_string(node.LABEL_NUM));
+            std::string geqLabelEnd = useLabel("geqEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jge", geqLabel, geqLabelEnd);
@@ -726,8 +727,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::LT:
         {
-            std::string ltLabel = "gtTrue." + std::to_string(node.LABEL_NUM);
-            std::string ltLabelEnd = "gtEnd." + std::to_string(node.LABEL_NUM);
+            std::string ltLabel = useLabel("gtTrue." + std::to_string(node.LABEL_NUM));
+            std::string ltLabelEnd = useLabel("gtEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jl", ltLabel, ltLabelEnd);
@@ -735,8 +736,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::GT:
         {
-            std::string gtLabel = "gtTrue." + std::to_string(node.LABEL_NUM);
-            std::string gtLabelEnd = "gtEnd." + std::to_string(node.LABEL_NUM);
+            std::string gtLabel = useLabel("gtTrue." + std::to_string(node.LABEL_NUM));
+            std::string gtLabelEnd = useLabel("gtEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jg", gtLabel, gtLabelEnd);
@@ -821,15 +822,15 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         node.code += getClassInfo();
         node.code += getSubtypeColumn();
         node.code += "mov ecx, 0\n";
-        node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
+        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
         node.code += "cmp ecx, 0\n";
         node.code += "jne " + cast_allowed + "\n";
 
         // Check if castType is instanceof expression type
         node.code += "mov ecx, 0\n";
-        node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ " + std::to_string(type_offset) + " *"+ std::to_string(cg.subtype_column_count) + "+eax]\n";
+        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ " + std::to_string(type_offset) + " *"+ std::to_string(cg.subtype_column_count) + "+eax]\n";
         node.code += "cmp ecx, 0\n";
-        node.code += "je " + EXCEPTION + "\n";
+        node.code += "je " + useLabel(EXCEPTION) + "\n";
 
         node.code += labelAsm(cast_allowed);
         node.code += "pop eax\n";
@@ -878,14 +879,14 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
             node.code += "mov ecx, eax\n";
 
             // Get subtype table entry
-            node.code += "mov eax, " + SUBTYPE_TABLE_LABEL + "\n";
+            node.code += "mov eax, " + useLabel(SUBTYPE_TABLE_LABEL) + "\n";
             node.code += "mul ecx, " + std::to_string(cg.subtype_column_count) + "\n";
             node.code += "add eax, ecx\n";
             node.code += "add eax, edx\n";
             node.code += "mov ecx, 0\n";
             node.code += "mov cl, [eax]\n";
             node.code += "mov eax, ecx\n";
-            node.code += nullCheckAsm();
+            node.code += cg.nullCheckAsm();
 
             // Restore lhs and rhs
             node.code += "pop ebx\n";
@@ -920,7 +921,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassInstanceCreator& node)
     node.code = commentAsm("ClassInstanceCreator Start");
     node.code += "mov eax, " + std::to_string(objSize);
     node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + cg.classDataLabel(classDecl);
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
 
     node.code += "push eax\n";
 
@@ -959,7 +960,7 @@ void CodeGenerator::CodeGenVisitor::leave(ArrayCreator& node)
     node.code += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
 
     node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + label;
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
     node.code += "pop ebx\n";
     node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET + WORD_SIZE) + "], ebx\n";
     node.code += commentAsm("ArrayCreator End");
@@ -989,7 +990,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
     else
     {
         node.addr += node.prevExpr->code;
-        node.addr += nullCheckAsm();
+        node.addr += cg.nullCheckAsm();
         node.addr += addOffset(cg.field_prefix_indices[field] * WORD_SIZE + FIELDS_OFFSET);
 
         node.code = node.addr + addrVal();
@@ -1091,7 +1092,7 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
     std::string& object = node.expression->code;
     node.code += object;
 
-    std::string finished = cg.freshenLabel("instanceof_result");
+    std::string finished = useLabel(cg.freshenLabel("instanceof_result"));
 
     node.code = commentAsm("Check if object is null");
     node.code += "cmp eax, 0\n";
@@ -1100,7 +1101,7 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
     node.code += getClassInfo();
     node.code += getSubtypeColumn();
     node.code += "mov ecx, 0\n";
-    node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
+    node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
     node.code += "mov eax, ecx\n";
 
     node.code += labelAsm(finished);
@@ -1125,8 +1126,8 @@ void CodeGenerator::CodeGenVisitor::leave(ReturnStatement& node)
 
 void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
 {
-    std::string elseLabel = "else." + std::to_string(node.LABEL_NUM);
-    std::string endLabel = "end." + std::to_string(node.LABEL_NUM);
+    std::string elseLabel = useLabel("else." + std::to_string(node.LABEL_NUM));
+    std::string endLabel = useLabel("end." + std::to_string(node.LABEL_NUM));
     node.LABEL_NUM++;
 
     node.code = commentAsm("IfStatement Begin");
@@ -1143,8 +1144,8 @@ void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
 
 void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 {
-    std::string forBeginLabel = "forBegin." + std::to_string(node.LABEL_NUM);
-    std::string forEndLabel = "forEnd." + std::to_string(node.LABEL_NUM);
+    std::string forBeginLabel = useLabel("forBegin." + std::to_string(node.LABEL_NUM));
+    std::string forEndLabel = useLabel("forEnd." + std::to_string(node.LABEL_NUM));
 
     node.LABEL_NUM++;
 
@@ -1167,8 +1168,8 @@ void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 
 void CodeGenerator::CodeGenVisitor::leave(WhileStatement& node)
 {
-    std::string whileBeginLabel = "whileBegin." + std::to_string(node.LABEL_NUM);
-    std::string whileEndLabel = "whileEnd." + std::to_string(node.LABEL_NUM);
+    std::string whileBeginLabel = useLabel("whileBegin." + std::to_string(node.LABEL_NUM));
+    std::string whileEndLabel = useLabel("whileEnd." + std::to_string(node.LABEL_NUM));
 
     node.LABEL_NUM++;
 
@@ -1315,7 +1316,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 
         node.code = commentAsm("Static FieldDeclaration Start");
         node.code += CodeGenerator::DATA_DIR;
-        node.code += node.staticLabel + " dd 0\n";
+        node.code += useLabel(node.staticLabel) + " dd 0\n";
         node.code += CodeGenerator::TEXT_DIR;
         node.code += node.declaration->code;
         node.code += "mov ebx, " + node.staticLabel + '\n';
@@ -1364,7 +1365,7 @@ std::string CodeGenerator::CodeGenVisitor::ifFalse(ASTNode& node, const std::str
 {
     std::string ret = node.code;
     ret += "cmp eax, 0\n";
-    ret += "je " + label + '\n';
+    ret += "je " + useLabel(label) + '\n';
 
     return ret;
 }
@@ -1373,7 +1374,7 @@ std::string CodeGenerator::CodeGenVisitor::ifTrue(ASTNode& node, const std::stri
 {
     std::string ret = node.code;
     ret += "cmp eax, 0\n";
-    ret += "jne " + label + '\n';
+    ret += "jne " + useLabel(label) + '\n';
 
     return ret;
 }
@@ -1413,7 +1414,7 @@ std::string CodeGenerator::CodeGenVisitor::thisAddr()
 
 std::string CodeGenerator::CodeGenVisitor::labelAddr(std::string label)
 {
-    return "mov eax, " + label + "\n";
+    return "mov eax, " + useLabel(label) + "\n";
 }
 
 std::string CodeGenerator::CodeGenVisitor::addOffset(int offset)

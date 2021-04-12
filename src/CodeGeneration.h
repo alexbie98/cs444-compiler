@@ -76,7 +76,7 @@ class CodeGenerator
 
     size_t fresh_label_counter = 0;
 
-    static std::string labelAsm(std::string id){ return id + ":\n"; }
+    std::string labelAsm(std::string id){ defined_labels.insert(id); return id + ":\n"; }
     static std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
     static std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
     static std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
@@ -87,7 +87,7 @@ class CodeGenerator
     static std::string globalAsm(std::string id){ return "global " + id + "\n"; }
 
     // Performs a null check on eax
-    static std::string nullCheckAsm();
+    std::string nullCheckAsm();
     std::string runtimeExternsAsm();
 
     // TODO Make helpers for generating assembly to access class data members
@@ -130,7 +130,12 @@ class CodeGenerator
         PRIMITIVE_ARRAY
     };
 
-    std::string generateObjectCode(TypeDeclaration* root, ObjectType otype, std::set<std::string> externed_labels, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
+    std::set<std::string> used_labels;
+    std::set<std::string> defined_labels;
+    std::string useLabel(std::string label){ used_labels.insert(label); return label; };
+    std::string writeExterns(); // Writes neccessary externs and resets
+
+    std::string generateObjectCode(TypeDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
     
 public:
 
@@ -204,6 +209,9 @@ public:
         std::string getClassInfo();
         std::string getSubtypeColumn();
         size_t getTypeSubtypeIndex(Type* type);
+
+        std::string labelAsm(std::string id){ return cg.labelAsm(id); }
+        std::string useLabel(std::string label){ return cg.useLabel(label); };
     };
 
     CodeGenerator(Environment& globalEnv);
