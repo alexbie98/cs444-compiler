@@ -88,8 +88,8 @@ class CodeGenerator
     std::string runtimeExternsAsm();
 
     // TODO Make helpers for generating assembly to access class data members
-    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->getName()->getString(); }
-    std::string classArrayDataLabel(ClassDeclaration* decl){ return "carray_info_" + decl->getName()->getString(); }
+    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->fullyQualifiedName; }
+    std::string classArrayDataLabel(TypeDeclaration* decl){ return "carray_info_" + decl->fullyQualifiedName; }
     std::string primitiveArrayDataLabel(PrimitiveType::BasicType type){ return "parray_info_" + PrimitiveType::basicTypeToString(type); }
     std::string classMethodLabel(MethodDeclaration* method)
     { 
@@ -103,8 +103,8 @@ class CodeGenerator
         assert(containing_class);
         return constructor->getSignature() + "_class_" + containing_class->fullyQualifiedName;
     }
-    std::string sitColumnClassLabel(ClassDeclaration* decl){ return "c_sit_column_" + decl->getName()->getString(); }
-    std::string sitColumnClassArrayLabel(ClassDeclaration* decl){ return "carray_sit_column_" + decl->getName()->getString(); }
+    std::string sitColumnClassLabel(ClassDeclaration* decl){ return "c_sit_column_" + decl->fullyQualifiedName; }
+    std::string sitColumnClassArrayLabel(ClassDeclaration* decl){ return "carray_sit_column_" + decl->fullyQualifiedName; }
     std::string sitColumnPrimArrayLabel(PrimitiveType::BasicType type){ return "parray_sit_column_" + PrimitiveType::basicTypeToString(type); }
     std::string freshenLabel(std::string label){ return label + "_" + std::to_string(fresh_label_counter++); }
 
@@ -162,7 +162,7 @@ public:
         virtual void leave(AssignmentExpression& node);
         virtual void leave(ParenthesizedExpression& node);
         virtual void leave(ClassInstanceCreator& node);
-        // virtual void leave(ArrayCreator& node);
+        virtual void leave(ArrayCreator& node);
         virtual void leave(FieldAccess& node);
         virtual void leave(MethodCall& node);
         // virtual void leave(ArrayAccess& node);

@@ -845,6 +845,33 @@ void CodeGenerator::CodeGenVisitor::leave(ClassInstanceCreator& node)
     node.code += commentAsm("ClassInttanceCreator End");
 }
 
+void CodeGenerator::CodeGenVisitor::leave(ArrayCreator& node)
+{
+    Type* elementType = node.type->elementType;
+    std::string label;
+    
+    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(elementType))
+    {
+        label = cg.primitiveArrayDataLabel(primType->type);
+    }
+    else if (QualifiedType * qualType = dynamic_cast<QualifiedType*>(elementType))
+    {
+        TypeDeclaration* typeDecl = dynamic_cast<TypeDeclaration*>(qualType->name->refers_to);
+        label = cg.classArrayDataLabel(typeDecl);
+    }
+
+    node.code = commentAsm("ArrayCreator Start");
+    node.code += node.argument->code;
+    node.code += "push eax\n";
+    node.code += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
+
+    node.code += "call _malloc";
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + label;
+    node.code += "pop ebx\n";
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET + WORD_SIZE) + "], ebx\n";
+    node.code += commentAsm("ArrayCreator End");
+}
+
 void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 {
     FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(node.refersTo);
@@ -869,7 +896,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
     else
     {
         node.addr += node.prevExpr->code;
-        // TODO: Add null check
+        node.addr += nullCheckAsm();
         node.addr += addOffset(cg.field_prefix_indices[field]);
 
         node.code = node.addr + addrVal();
