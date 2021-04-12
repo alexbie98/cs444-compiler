@@ -151,9 +151,9 @@ public:
         virtual void leave(MethodCall& node);
         // virtual void leave(ArrayAccess& node);
         virtual void leave(ThisExpression& node);
-        // virtual void leave(VariableDeclarationExpression& node);
+        virtual void leave(VariableDeclarationExpression& node);
         // virtual void leave(InstanceOfExpression& node);
-        // virtual void leave(ExpressionStatement& node);
+        virtual void leave(ExpressionStatement& node);
         virtual void leave(ReturnStatement& node);
         virtual void leave(IfStatement& node);
         virtual void leave(ForStatement& node);

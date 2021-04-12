@@ -537,7 +537,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
             else
             {
                 node.addr = thisAddr() + addrVal();
-                node.addr += addOffset(field->declaration->variableOffset);
+                node.addr += addOffset(cg.field_prefix_indices[field]);
 
                 node.code = node.addr + addrVal();
 
@@ -572,7 +572,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
                 else
                 {
                     node.addr = thisAddr() + addrVal();
-                    node.addr += addOffset(field->declaration->variableOffset);
+                    node.addr += addOffset(cg.field_prefix_indices[field]);
 
                     node.code = node.addr + addrVal();
 
@@ -795,7 +795,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
     {
         node.addr += node.prevExpr->code;
         // TODO: Add null check
-        node.addr += addOffset(field->declaration->variableOffset);
+        node.addr += addOffset(cg.field_prefix_indices[field]);
 
         node.code = node.addr + addrVal();
 
@@ -842,6 +842,27 @@ void CodeGenerator::CodeGenVisitor::leave(ThisExpression& node)
 
     node.addr = commentAsm("ThisExpression Addr") + node.addr + commentAsm("ThisExpression End");
     node.code = commentAsm("ThisExpression Code") + node.code + commentAsm("ThisExpression End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
+{
+    if (FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(node.parent))
+    {
+    }
+    else // Local variable declaration
+    {
+        node.code = commentAsm("Local VariableDeclarationExpression Start");
+        node.code += node.initializer->code;
+        node.code += "push eax\n";
+        node.code += frameOffsetAddr(node.variableOffset);
+        node.code += "pop ebx\n";
+        node.code += "mov [eax], ebx";
+    }
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ExpressionStatement& node)
+{
+    node.code = commentAsm("ExpressionStatement Begin") + node.expression->code + commentAsm("ExpressionStatement End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ReturnStatement& node)
