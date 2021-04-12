@@ -161,7 +161,7 @@ public:
         // virtual void leave(CastExpression& node);
         virtual void leave(AssignmentExpression& node);
         virtual void leave(ParenthesizedExpression& node);
-        // virtual void leave(ClassInstanceCreator& node);
+        virtual void leave(ClassInstanceCreator& node);
         // virtual void leave(ArrayCreator& node);
         virtual void leave(FieldAccess& node);
         virtual void leave(MethodCall& node);
@@ -176,7 +176,7 @@ public:
         virtual void leave(WhileStatement& node);
         virtual void leave(Block& node);
         virtual void leave(ClassDeclaration& node);
-        // virtual void leave(InterfaceDeclaration& node);
+        virtual void leave(InterfaceDeclaration& node);
         virtual void leave(ConstructorDeclaration& node);
         virtual void leave(FieldDeclaration& node);
         virtual void leave(MethodDeclaration& node);

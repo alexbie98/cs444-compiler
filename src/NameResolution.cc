@@ -1747,6 +1747,7 @@ void TypeCheckingVisitor::leave(ClassInstanceCreator& node)
                         if (validateConstructorAccess(constructor))
                         {
                             node.resolvedType = cloneType(node.type);
+                            node.matchedConstructor = constructor;
                             return;
                         }
                         else

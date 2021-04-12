@@ -597,6 +597,8 @@ struct ClassInstanceCreator : public Expression
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "ClassInstanceCreator"; }
 
+    ConstructorDeclaration* matchedConstructor = nullptr;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };

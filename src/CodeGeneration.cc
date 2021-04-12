@@ -767,7 +767,7 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
             assert(decl);
 
             // Get rhs subtype, put into ecx
-            node.code += commentAsm("Type check runtime assignability of array element")
+            node.code += commentAsm("Type check runtime assignability of array element");
 
             // Save lhs and rhs
             node.code += "push eax\n";
@@ -815,6 +815,34 @@ void CodeGenerator::CodeGenVisitor::leave(ParenthesizedExpression& node)
     node.code = commentAsm("ParenthesizedExpression Begin");
     node.code += node.expr->code;
     node.code += commentAsm("ParenthesizedExpression End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ClassInstanceCreator& node)
+{
+    ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(node.type->name->refers_to);
+    ClassInfo classInfo = cg.class_infos[classDecl];
+
+    int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
+
+    node.code = commentAsm("ClassInstanceCreator Start");
+    node.code += "mov eax, " + std::to_string(objSize);
+    node.code += "call _malloc";
+    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + cg.classDataLabel(classDecl);
+
+    node.code += "push eax\n";
+
+    int object_offset = 0;
+    for (Expression* arg : node.arguments->elements)
+    {
+        node.code += arg->code;
+        node.code += "push eax\n";
+        object_offset += WORD_SIZE;
+    }
+    node.code += labelAddr(cg.constructorLabel(node.matchedConstructor));
+    node.code += "call eax\n";
+    node.code += "add esp, " + std::to_string(object_offset) + '\n';
+    node.code += "pop eax\n";
+    node.code += commentAsm("ClassInttanceCreator End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
@@ -1137,6 +1165,14 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
 
 }
 
+void CodeGenerator::CodeGenVisitor::leave(InterfaceDeclaration& node)
+{
+    for (MemberDeclaration* member : node.interfaceBody->elements)
+    {
+        node.code += member->code;
+    }
+}
+
 void CodeGenerator::CodeGenVisitor::leave(ConstructorDeclaration& node)
 {
     // Only body for now, the rest of the method call will be made in ClassDeclaration
@@ -1188,7 +1224,6 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 
 void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
 {
-    // TODO: implementation
     node.code = commentAsm("MethodDeclaration Start");
     node.code += globalAsm(cg.classMethodLabel(&node));
     node.code += labelAsm(cg.classMethodLabel(&node));
