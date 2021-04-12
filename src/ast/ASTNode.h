@@ -386,6 +386,7 @@ struct PrimitiveType : public Type
         assert(false);
         return "";
     }
+    static const std::vector<BasicType> all_prim_types;
 
     BasicType type;
 
