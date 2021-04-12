@@ -169,8 +169,6 @@ public:
     private:
         std::string ifFalse(ASTNode& node, const std::string& label);
         std::string ifTrue(ASTNode& node, const std::string& label);
-        std::string setLabel(const std::string& label);
-        std::string comment(const std::string& comment);
         std::string evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs); // lhs in ebx, rhs in eax
         std::string cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB);
         std::string addrVal();
