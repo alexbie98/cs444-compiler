@@ -1238,7 +1238,19 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
     {
         if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
         {
-            constructorInitializers += field->code;
+            bool isStatic = false;
+            for (Modifier* modifier : node.modifiers->elements)
+            {
+                if (modifier->type == Modifier::STATIC)
+                {
+                    isStatic = true;
+                }
+            }
+
+            if (!isStatic)
+            {
+                constructorInitializers += field->code;
+            }
         }
     }
     if (constructorInitializers != "")
