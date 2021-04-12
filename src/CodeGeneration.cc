@@ -442,33 +442,26 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
 std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    // std::string ret =  generateObjectCode(root, ObjectType::OBJECT) 
-    //        + "\n\n" 
-    //        + commentAsm("Object Array Information") 
-    //        + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
-    // ret += writeExterns();
-    // return ret;
-    return generateObjectCode(root, ObjectType::OBJECT) 
+    std::string ret =  generateObjectCode(root, ObjectType::OBJECT) 
            + "\n\n" 
            + commentAsm("Object Array Information") 
-           + generateObjectCode(root, ObjectType::OBJECT_ARRAY)
-           + writeExterns();
+           + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
+    ret += writeExterns();
+    return ret;
 }
 
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
 {   
-    // std::string ret = generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
-    // ret += writeExterns();
-    // return ret;
-    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type) + writeExterns();
+    std::string ret = generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
+    ret += writeExterns();
+    return ret;
 }
 
 std::string CodeGenerator::generateInterfaceArrayCode(InterfaceDeclaration* root)
 {
-    // std::string ret = commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {});
-    // ret += writeExterns();
-    // return ret;
-    return commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {}) + writeExterns();
+    std::string ret = commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {});
+    ret += writeExterns();
+    return ret;
 }
 
 std::string CodeGenerator::nullCheckAsm()
@@ -1176,7 +1169,7 @@ void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 
     if (node.forUpdate) node.code += node.forUpdate->code;
 
-    node.code += "jmp " + forBeginLabel;
+    node.code += "jmp " + forBeginLabel + "\n";
     node.code += labelAsm(forEndLabel);
     node.code += commentAsm("ForStatement End");
 }
@@ -1237,7 +1230,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
         constructorSuper += "push eax\n";
         constructorSuper += labelAddr(cg.constructorLabel(super));
         constructorSuper += "call eax\n";
-        constructorSuper += "add esp, " + WORD_SIZE + '\n';
+        constructorSuper += "add esp, " + std::to_string(WORD_SIZE) + '\n';
         constructorSuper += commentAsm("Super Constructor Call End");
     }
 
