@@ -1697,7 +1697,7 @@ std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaratio
     std::string ret = commentAsm("ClassInstanceCreator Start");
     ret += "mov eax, " + std::to_string(objSize) + "\n";
     ret += "call " + MALLOC + "\n";
-    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl)) + "\n";
+    ret += "mov dword [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl)) + "\n";
 
     ret += "push eax\n";
 
@@ -1724,9 +1724,9 @@ std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::strin
     ret += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
 
     ret += "call " + MALLOC + "\n";
-    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label) + "\n";
+    ret += "mov dword [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label) + "\n";
     ret += "pop ebx\n";
-    ret += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
+    ret += "mov dword [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
     ret += commentAsm("ArrayCreator End");
     return ret;
 }
@@ -1796,7 +1796,7 @@ std::string CodeGenerator::CodeGenVisitor::createStringFromLiteral(const std::u1
     charArrayCode += createArrayFromLabel(cg.primitiveArrayDataLabel(PrimitiveType::CHAR), "mov eax, " + std::to_string(str.size()) + "\n");
     for (int i = 0; i < str.size(); i++)
     {
-        charArrayCode += "mov [eax + " + std::to_string((i + 1) * WORD_SIZE + FIELDS_OFFSET) + "], " + std::to_string(str[i]) + "\n";
+        charArrayCode += "mov dword [eax + " + std::to_string((i + 1) * WORD_SIZE + FIELDS_OFFSET) + "], " + std::to_string(str[i]) + "\n";
     }
     charArrayCode += commentAsm("Char[] End");
 
