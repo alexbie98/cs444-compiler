@@ -826,11 +826,11 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
         object_offset += WORD_SIZE;
     }
 
-    node.code += "mov eax, [exp + " + std::to_string(object_offset) + "]\n";
+    node.code += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
     node.code += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
     node.code += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
     node.code += "call eax\n";
-    node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE);
+    node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
 }
 
 
@@ -848,6 +848,12 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
 {
     if (FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(node.parent))
     {
+        if (node.initializer)
+        {
+            node.code = commentAsm("Field VariableDeclarationExpression Start");
+            node.code += node.initializer->code;
+            node.code += commentAsm("Field VariableDeclarationExpression End");
+        }
     }
     else // Local variable declaration
     {
@@ -857,6 +863,7 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
         node.code += frameOffsetAddr(node.variableOffset);
         node.code += "pop ebx\n";
         node.code += "mov [eax], ebx";
+        node.code += commentAsm("Local VariableDeclarationExpression End");
     }
 }
 
@@ -944,9 +951,102 @@ void CodeGenerator::CodeGenVisitor::leave(Block& node)
     node.code += commentAsm("Block End");
 }
 
+void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
+{
+    // Finish constructor code gen
+    // Do this here because we need to have generated code for all Field initializers
+
+    std::string constructorHeader;
+    std::string constructorSuper;
+    std::string constructorInitializers;
+    std::string constructorSuffix;
+
+    if (node.baseClass)
+    {
+        ConstructorDeclaration* super = nullptr;
+        for (MemberDeclaration* member : node.baseClass->classBody->elements)
+        {
+            if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
+            {
+                if (constructor->parameters->elements.size() == 0)
+                {
+                    super = constructor;
+                    break;
+                }
+            }
+        }
+
+        constructorSuper = commentAsm("Super Constructor Call Start");
+        constructorSuper += thisAddr() + addrVal();
+        constructorSuper += "push eax\n";
+        constructorSuper += labelAddr(cg.constructorLabel(super));
+        constructorSuper += "call eax\n";
+        constructorSuper += "add esp, " + WORD_SIZE + '\n';
+        constructorSuper += commentAsm("Super Constructor Call End");
+    }
+
+    for (MemberDeclaration* member : node.classBody->elements)
+    {
+        if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
+        {
+            constructorInitializers += field->code;
+        }
+    }
+    if (constructorInitializers != "")
+    {
+        constructorInitializers = commentAsm("Field Initializers Start")
+            + constructorInitializers + commentAsm("Field Initializers End");
+    }
+
+    constructorSuffix = popCalleeSaveRegs();
+    constructorSuffix += methodCallReturn();
+    constructorSuffix += commentAsm("ConstructorDeclaration End");
+
+    for (MemberDeclaration* member : node.classBody->elements)
+    {
+        if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
+        {
+            constructorHeader = commentAsm("ConstructorDeclaration Start");
+            constructorHeader += methodCallHeader();
+            constructorHeader += globalAsm(cg.constructorLabel(constructor));
+            constructorHeader += labelAsm(cg.constructorLabel(constructor));
+            constructorHeader += commentAsm("Push local vars to stack");
+            for (int i = 0; i < constructor->localVarCount; i++)
+            {
+                constructorHeader += "push 0\n";
+            }
+            constructorHeader += pushCalleeSaveRegs();
+
+            constructor->code = constructorHeader + constructorSuper + constructorInitializers
+                + constructor->code + constructorSuffix;
+        }
+    }
+
+    for (MemberDeclaration* member : node.classBody->elements)
+    {
+        if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
+        {
+            for (Modifier* modifier : field->modifiers->elements)
+            {
+                if (modifier->type == Modifier::STATIC)
+                {
+                    staticFieldInitializers += field->code;
+                }
+            }
+        }
+        else
+        {
+            node.code += member->code;
+        }
+    }
+
+}
+
 void CodeGenerator::CodeGenVisitor::leave(ConstructorDeclaration& node)
 {
-    // TODO: implementation
+    // Only body for now, the rest of the method call will be made in ClassDeclaration
+    node.code = node.body->code;
+    node.localVarCount = localVariableCount;
 
     inMethod = false;
 }
@@ -966,20 +1066,50 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
     {
         node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
 
-        node.code = commentAsm("StaticFieldDeclaration Start");
+        node.code = commentAsm("Static FieldDeclaration Start");
         node.code += CodeGenerator::DATA_DIR;
         node.code += node.staticLabel + " dd 0\n";
         node.code += CodeGenerator::TEXT_DIR;
         node.code += node.declaration->code;
         node.code += "mov ebx, " + node.staticLabel + '\n';
         node.code += "mov [ebx], eax\n";
-        node.code += commentAsm("StaticFieldDeclaration End");
+        node.code += commentAsm("Static FieldDeclaration End");
+    }
+    else
+    {
+        if (node.declaration->initializer)
+        {
+            node.code = commentAsm("FieldDeclaration Start");
+            node.code += thisAddr() + addrVal();
+            node.code += addOffset(cg.field_prefix_indices[&node]);
+            node.code += "push eax\n";
+            node.code += node.declaration->code;
+            node.code += "pop ebx\n";
+            node.code += "mov [ebx], eax\n";
+            node.code += commentAsm("FieldDeclaration End");
+        }
     }
 }
 
 void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
 {
     // TODO: implementation
+    node.code = commentAsm("MethodDeclaration Start");
+    node.code += globalAsm(cg.classMethodLabel(&node));
+    node.code += labelAsm(cg.classMethodLabel(&node));
+    node.code += methodCallHeader();
+
+    node.code += commentAsm("Push local vars to stack");
+    for (int i = 0; i < localVariableCount; i++)
+    {
+        node.code += "push 0\n";
+    }
+
+    node.code += pushCalleeSaveRegs();
+    node.code += node.body->code;
+    node.code += popCalleeSaveRegs();
+    node.code += methodCallReturn();
+    node.code += commentAsm("MethodDeclaration End");
 
     inMethod = false;
 }

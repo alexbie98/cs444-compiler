@@ -189,7 +189,7 @@ ArrayType::~ArrayType()
 
 std::string ArrayType::getTypeName() const
 {
-    return elementType->getTypeName() + "_array";
+    return elementType->getTypeName() + ".array";
 }
 
 void ArrayType::visitChildren(ASTNodeVisitor& v)

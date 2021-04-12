@@ -925,7 +925,6 @@ struct InterfaceDeclaration : public TypeDeclaration
     ASTNodeList<Type>* extends = nullptr;
     ASTNodeList<MemberDeclaration>* interfaceBody = nullptr;
 
-
     virtual ~InterfaceDeclaration();
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
@@ -969,6 +968,8 @@ struct ConstructorDeclaration : public MemberDeclaration
     virtual std::string toString() { return "ConstructorDeclaration"; }
 
     std::string getSignature() const;
+
+    int localVarCount = 0;
 
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;

@@ -93,7 +93,13 @@ class CodeGenerator
     { 
         ClassDeclaration* containing_class = dynamic_cast<ClassDeclaration*>(containingType(method));
         assert(containing_class);
-        return method->getSignature() + "_class_" + containing_class->getName()->getString(); 
+        return method->getSignature() + "_class_" + containing_class->fullyQualifiedName; 
+    }
+    std::string constructorLabel(ConstructorDeclaration* constructor)
+    {
+        ClassDeclaration* containing_class = dynamic_cast<ClassDeclaration*>(containingType(constructor));
+        assert(containing_class);
+        return constructor->getSignature() + "_class_" + containing_class->fullyQualifiedName;
     }
     std::string sitColumnClassLabel(ClassDeclaration* decl){ return "c_sit_column_" + decl->getName()->getString(); }
     std::string sitColumnClassArrayLabel(ClassDeclaration* decl){ return "carray_sit_column_" + decl->getName()->getString(); }
@@ -104,6 +110,12 @@ class CodeGenerator
     {
         assert(dynamic_cast<TypeDeclaration*>(method->parent->parent));
         return dynamic_cast<TypeDeclaration*>(method->parent->parent);
+    }
+
+    TypeDeclaration* containingType(ConstructorDeclaration* constructor)
+    {
+        assert(dynamic_cast<TypeDeclaration*>(constructor->parent->parent));
+        return dynamic_cast<TypeDeclaration*>(constructor->parent->parent);
     }
 
     enum class ObjectType
@@ -125,6 +137,8 @@ public:
 
         bool inMethod = false;
         CodeGenerator& cg;
+
+        std::string staticFieldInitializers;
 
     public:
         CodeGenVisitor(CodeGenerator& code_generator) : cg{ code_generator } {};
@@ -159,9 +173,8 @@ public:
         virtual void leave(ForStatement& node);
         virtual void leave(WhileStatement& node);
         virtual void leave(Block& node);
-        // virtual void leave(ClassDeclaration& node);
+        virtual void leave(ClassDeclaration& node);
         // virtual void leave(InterfaceDeclaration& node);
-        // virtual void leave(FormalParameter& node);
         virtual void leave(ConstructorDeclaration& node);
         virtual void leave(FieldDeclaration& node);
         virtual void leave(MethodDeclaration& node);
