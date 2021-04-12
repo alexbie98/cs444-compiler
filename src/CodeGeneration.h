@@ -208,10 +208,17 @@ public:
 
         std::string getClassInfo();
         std::string getSubtypeColumn();
+
+        std::string stringConversion(Expression& node);
         size_t getTypeSubtypeIndex(Type* type);
 
         std::string labelAsm(std::string id){ return cg.labelAsm(id); }
         std::string useLabel(std::string label){ return cg.useLabel(label); };
+
+        std::string createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs);
+        std::string createArrayFromLabel(const std::string& label, const std::string& argument);
+        std::string callMethod(MethodDeclaration* method, const std::string& object, std::vector<std::string> codeArgs);
+        std::string createStringFromLiteral(const std::u16string string);
     };
 
     CodeGenerator(Environment& globalEnv);

@@ -506,66 +506,7 @@ void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
 
 void CodeGenerator::CodeGenVisitor::leave(StringLiteral& node)
 {
-    std::string label = cg.primitiveArrayDataLabel(PrimitiveType::CHAR);
-
-    node.code = commentAsm("StringLiteral Start");
-    node.code += commentAsm("Creating Char[]");
-    node.code += "mov eax, " + std::to_string(node.value.size()) + "\n";
-    node.code += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
-    node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
-    node.code += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], " + std::to_string(node.value.size()) + "\n";
-
-    for (int i = 0; i < node.value.size(); i++)
-    {
-        node.code += "mov [eax + " + std::to_string((i + 1) * WORD_SIZE + FIELDS_OFFSET) + "], " + std::to_string(node.value[i]) + "\n";
-    }
-    node.code += "push eax\n";
-    node.code += commentAsm("Creating new String()");
-
-    ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(cg.global_env.classes["java.lang.String"]);
-    assert(classDecl);
-    ClassInfo classInfo = cg.class_infos[classDecl];
-
-    int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
-
-    node.code += "mov eax, " + std::to_string(objSize);
-    node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
-    node.code += "pop ebx\n";
-    node.code += "push eax\n";
-    node.code += "push ebx\n";
-
-    // Find the char[] constructor of String
-    ConstructorDeclaration* constructor = nullptr;
-    for (MemberDeclaration* member : classDecl->classBody->elements)
-    {
-        if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
-        {
-            if (c->parameters->elements.size() == 1)
-            {
-                FormalParameter* param = c->parameters->elements[0];
-                if (ArrayType * arrayType = dynamic_cast<ArrayType*>(param->type))
-                {
-                    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(arrayType->elementType))
-                    {
-                        if (primType->type == PrimitiveType::CHAR)
-                        {
-                            constructor = c;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    assert(constructor);
-
-    node.code += labelAddr(cg.constructorLabel(constructor));
-    node.code += "call eax\n";
-    node.code += "add esp, " + std::to_string(WORD_SIZE) + '\n';
-    node.code += "pop eax\n";
-    node.code += commentAsm("StringLiteral End");
+    node.code = createStringFromLiteral(node.value);
 }
 
 void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
@@ -698,7 +639,24 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
             }
             else
             {
-                // TODO: string concat
+                ClassDeclaration* classDecl = cg.global_env.classes["java.lang.String"];
+                assert(classDecl);
+                MethodDeclaration* concatMethod = nullptr;
+                for (MemberDeclaration* member : classDecl->classBody->elements)
+                {
+                    if (MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(member))
+                    {
+                        if (method->name->id == "concat")
+                        {
+                            concatMethod = method;
+                            break;
+                        }
+                    }
+                }
+                assert(concatMethod);
+                node.code += commentAsm("String Concatenation Start");
+                node.code += callMethod(concatMethod, stringConversion(*node.lhs), std::vector<std::string>{stringConversion(*node.rhs)});
+                node.code += commentAsm("String Concatenation End");
             }
             break;
         case BinaryOperation::MINUS:
@@ -976,29 +934,12 @@ void CodeGenerator::CodeGenVisitor::leave(ParenthesizedExpression& node)
 void CodeGenerator::CodeGenVisitor::leave(ClassInstanceCreator& node)
 {
     ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(node.type->name->refers_to);
-    ClassInfo classInfo = cg.class_infos[classDecl];
-
-    int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
-
-    node.code = commentAsm("ClassInstanceCreator Start");
-    node.code += "mov eax, " + std::to_string(objSize);
-    node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
-
-    node.code += "push eax\n";
-
-    int object_offset = 0;
+    std::vector<std::string> args;
     for (Expression* arg : node.arguments->elements)
     {
-        node.code += arg->code;
-        node.code += "push eax\n";
-        object_offset += WORD_SIZE;
+        args.push_back(arg->code);
     }
-    node.code += labelAddr(cg.constructorLabel(node.matchedConstructor));
-    node.code += "call eax\n";
-    node.code += "add esp, " + std::to_string(object_offset) + '\n';
-    node.code += "pop eax\n";
-    node.code += commentAsm("ClassInttanceCreator End");
+    node.code = createFromConstructor(classDecl, node.matchedConstructor, args);
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ArrayCreator& node)
@@ -1016,16 +957,7 @@ void CodeGenerator::CodeGenVisitor::leave(ArrayCreator& node)
         label = cg.classArrayDataLabel(typeDecl);
     }
 
-    node.code = commentAsm("ArrayCreator Start");
-    node.code += node.argument->code;
-    node.code += "push eax\n";
-    node.code += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
-
-    node.code += "call _malloc";
-    node.code += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
-    node.code += "pop ebx\n";
-    node.code += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
-    node.code += commentAsm("ArrayCreator End");
+    node.code = createArrayFromLabel(label, node.argument->code);
 }
 
 void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
@@ -1065,32 +997,14 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
 {
     MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(node.name->refers_to);
-    assert(method);
-    assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
-    size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
-
     std::string& object = node.prevExpr->code;
-
-    node.code = commentAsm("MethodCall Start");
-    node.code += object;
-    node.code += cg.nullCheckAsm();
-    node.code += "push eax\n";
-
-    size_t object_offset = 0;
-
+    std::vector<std::string> args;
     for (Expression* arg : node.arguments->elements)
     {
-        node.code += arg->code;
-        node.code += "push eax\n";
-        object_offset += WORD_SIZE;
+        args.push_back(arg->code);
     }
 
-    node.code += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
-    node.code += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
-    node.code += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
-    node.code += "call eax\n";
-    node.code += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
-    node.code += commentAsm("MethodCall End");
+    node.code = callMethod(method, object, args);
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
@@ -1538,6 +1452,164 @@ std::string CodeGenerator::CodeGenVisitor::getSubtypeColumn()
     return "mov eax, [eax + " + std::to_string(SUBTYPE_OFFSET) + "]\n";
 }
 
+std::string CodeGenerator::CodeGenVisitor::stringConversion(Expression& node)
+{
+    std::string ret = node.code;
+
+    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(node.resolvedType))
+    {
+        ClassDeclaration* classDecl = nullptr;
+        ConstructorDeclaration* constructor = nullptr;
+        switch (primType->type)
+        {
+        case PrimitiveType::BYTE:
+            classDecl = cg.global_env.classes["java.lang.Byte"];
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+                {
+                    if (c->parameters->elements.size() == 1)
+                    {
+                        FormalParameter* param = c->parameters->elements[0];
+                        if (PrimitiveType * arrayType = dynamic_cast<PrimitiveType*>(c->parameters->elements[0]->type))
+                        {
+                            if (primType->type == PrimitiveType::BYTE)
+                            {
+                                constructor = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case PrimitiveType::SHORT:
+            classDecl = cg.global_env.classes["java.lang.Short"];
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+                {
+                    if (c->parameters->elements.size() == 1)
+                    {
+                        FormalParameter* param = c->parameters->elements[0];
+                        if (PrimitiveType * arrayType = dynamic_cast<PrimitiveType*>(c->parameters->elements[0]->type))
+                        {
+                            if (primType->type == PrimitiveType::SHORT)
+                            {
+                                constructor = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case PrimitiveType::INT:
+            classDecl = cg.global_env.classes["java.lang.Integer"];
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+                {
+                    if (c->parameters->elements.size() == 1)
+                    {
+                        FormalParameter* param = c->parameters->elements[0];
+                        if (PrimitiveType * arrayType = dynamic_cast<PrimitiveType*>(c->parameters->elements[0]->type))
+                        {
+                            if (primType->type == PrimitiveType::INT)
+                            {
+                                constructor = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case PrimitiveType::CHAR:
+            classDecl = cg.global_env.classes["java.lang.Character"];
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+                {
+                    if (c->parameters->elements.size() == 1)
+                    {
+                        FormalParameter* param = c->parameters->elements[0];
+                        if (PrimitiveType * arrayType = dynamic_cast<PrimitiveType*>(c->parameters->elements[0]->type))
+                        {
+                            if (primType->type == PrimitiveType::CHAR)
+                            {
+                                constructor = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case PrimitiveType::BOOLEAN:
+            classDecl = cg.global_env.classes["java.lang.Boolean"];
+            for (MemberDeclaration* member : classDecl->classBody->elements)
+            {
+                if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+                {
+                    if (c->parameters->elements.size() == 1)
+                    {
+                        FormalParameter* param = c->parameters->elements[0];
+                        if (PrimitiveType * arrayType = dynamic_cast<PrimitiveType*>(c->parameters->elements[0]->type))
+                        {
+                            if (primType->type == PrimitiveType::BOOLEAN)
+                            {
+                                constructor = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case PrimitiveType::NULL_TYPE:
+            // special case
+            return commentAsm("String Conversion Start") + createStringFromLiteral(u"null") + commentAsm(" String Conversion End");
+
+        }
+        assert(classDecl);
+        assert(constructor);
+
+        ret = createFromConstructor(classDecl, constructor, std::vector<std::string>{node.code});
+    }
+
+    TypeDeclaration* type = dynamic_cast<TypeDeclaration*>(node.resolvedType);
+    if (!type || type->fullyQualifiedName != "java.lang.String")
+    {
+        std::string nullLabel = cg.freshenLabel("null.to_string");
+        std::string endConversion = cg.freshenLabel("to_string.end");
+
+        ret += "cmp eax, 0";
+        ret += "je " + useLabel(nullLabel) + "\n";
+
+        ClassDeclaration* classDecl = cg.global_env.classes["java.lang.Object"];
+        MethodDeclaration* toStringMethod = nullptr;
+        for (MemberDeclaration* member : classDecl->classBody->elements)
+        {
+            if (MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(member))
+            {
+                if (method->name->id == "toString")
+                {
+                    toStringMethod = method;
+                    break;
+                }
+            }
+        }
+        assert(toStringMethod);
+        ret += callMethod(toStringMethod, "", std::vector<std::string>());
+        ret += "jmp " + useLabel(endConversion) + "\n";
+        ret += labelAsm(nullLabel);
+        ret += createStringFromLiteral(u"null");
+        ret += labelAsm(endConversion) + "\n";
+    }
+    return commentAsm("String Conversion Start") + ret + commentAsm(" String Conversion End");
+}
+
 size_t CodeGenerator::CodeGenVisitor::getTypeSubtypeIndex(Type* type)
 {
     QualifiedType* qualified = dynamic_cast<QualifiedType*>(type);
@@ -1569,4 +1641,122 @@ size_t CodeGenerator::CodeGenVisitor::getTypeSubtypeIndex(Type* type)
     else assert(false);
 
     return type_offset;
+}
+
+std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs)
+{
+    ClassInfo classInfo = cg.class_infos[classDecl];
+
+    int objSize = (classInfo.fields_prefix.size() + 1) * WORD_SIZE;
+
+    std::string ret = commentAsm("ClassInstanceCreator Start");
+    ret += "mov eax, " + std::to_string(objSize);
+    ret += "call __malloc";
+    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl));
+
+    ret += "push eax\n";
+
+    int object_offset = 0;
+    for (std::string code : codeArgs)
+    {
+        ret += code;
+        ret += "push eax\n";
+        object_offset += WORD_SIZE;
+    }
+    ret += labelAddr(cg.constructorLabel(constructor));
+    ret += "call eax\n";
+    ret += "add esp, " + std::to_string(object_offset) + '\n';
+    ret += "pop eax\n";
+    ret += commentAsm("ClassInstanceCreator End");
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::string& label, const std::string& argument)
+{
+    std::string ret = commentAsm("ArrayCreator Start");
+    ret += argument;
+    ret += "push eax\n";
+    ret += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
+
+    ret += "call __malloc";
+    ret += "mov [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label);
+    ret += "pop ebx\n";
+    ret += "mov [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";
+    ret += commentAsm("ArrayCreator End");
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method, const std::string& object, std::vector<std::string> codeArgs)
+{
+    assert(method);
+    assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
+    size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
+
+    std::string ret = commentAsm("MethodCall Start");
+    ret += object;
+    ret += cg.nullCheckAsm();
+    ret += "push eax\n";
+
+    size_t object_offset = 0;
+
+    for (std::string code : codeArgs)
+    {
+        ret += code;
+        ret += "push eax\n";
+        object_offset += WORD_SIZE;
+    }
+
+    ret += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
+    ret += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
+    ret += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
+    ret += "call eax\n";
+    ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+    ret += commentAsm("MethodCall End");
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::createStringFromLiteral(const std::u16string str)
+{
+    std::string label = cg.primitiveArrayDataLabel(PrimitiveType::CHAR);
+    // Find the char[] constructor of String
+    ClassDeclaration* classDecl = dynamic_cast<ClassDeclaration*>(cg.global_env.classes["java.lang.String"]);
+    assert(classDecl);
+    ClassInfo classInfo = cg.class_infos[classDecl];
+
+    ConstructorDeclaration* constructor = nullptr;
+    for (MemberDeclaration* member : classDecl->classBody->elements)
+    {
+        if (ConstructorDeclaration * c = dynamic_cast<ConstructorDeclaration*>(member))
+        {
+            if (c->parameters->elements.size() == 1)
+            {
+                FormalParameter* param = c->parameters->elements[0];
+                if (ArrayType * arrayType = dynamic_cast<ArrayType*>(param->type))
+                {
+                    if (PrimitiveType * primType = dynamic_cast<PrimitiveType*>(arrayType->elementType))
+                    {
+                        if (primType->type == PrimitiveType::CHAR)
+                        {
+                            constructor = c;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert(constructor);
+
+    std::string charArrayCode = commentAsm("Creating Char[]");
+    charArrayCode += createArrayFromLabel(cg.primitiveArrayDataLabel(PrimitiveType::CHAR), "mov eax, " + std::to_string(str.size()) + "\n");
+    for (int i = 0; i < str.size(); i++)
+    {
+        charArrayCode += "mov [eax + " + std::to_string((i + 1) * WORD_SIZE + FIELDS_OFFSET) + "], " + std::to_string(str[i]) + "\n";
+    }
+    charArrayCode += commentAsm("Char[] End");
+
+    std::string ret = commentAsm("StringLiteral Start");
+    ret += createFromConstructor(classDecl, constructor, std::vector<std::string>{ charArrayCode });
+    ret += commentAsm("StringLiteral End");
+    return ret;
 }
