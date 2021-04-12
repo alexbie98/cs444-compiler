@@ -107,46 +107,61 @@ public:
 
     class CodeGenVisitor : public ASTNodeVisitor
     {
+        int thisOffset = 0;
+        int formalParameterCount = 0;
+        int localVariableCount = 0;
+
+        bool inMethod = false;
+
     public:
+        virtual void visit(MethodDeclaration& node);
+        virtual void visit(ConstructorDeclaration& node);
+        virtual void visit(FormalParameter& node);
+        virtual void visit(VariableDeclarationExpression& node);
+
         virtual void leave(IntLiteral& node);
         virtual void leave(CharLiteral& node);
         // virtual void leave(StringLiteral& node);
         virtual void leave(BooleanLiteral& node);
         virtual void leave(NullLiteral& node);
-        // virtual void leave(NameExpression& node);
+        virtual void leave(NameExpression& node);
         virtual void leave(BinaryOperation& node);
         virtual void leave(PrefixOperation& node);
         // virtual void leave(CastExpression& node);
         virtual void leave(AssignmentExpression& node);
-        // virtual void leave(ParenthesizedExpression& node);
+        virtual void leave(ParenthesizedExpression& node);
         // virtual void leave(ClassInstanceCreator& node);
         // virtual void leave(ArrayCreator& node);
         // virtual void leave(MethodCall& node);
-        // virtual void leave(FieldAccess& node);
+        virtual void leave(FieldAccess& node);
         // virtual void leave(ArrayAccess& node);
-        // virtual void leave(ThisExpression& node);
+        virtual void leave(ThisExpression& node);
         // virtual void leave(VariableDeclarationExpression& node);
         // virtual void leave(InstanceOfExpression& node);
         // virtual void leave(ExpressionStatement& node);
-        // virtual void leave(EmptyStatement& node);
-        // virtual void leave(ReturnStatement& node);
+        virtual void leave(ReturnStatement& node);
         virtual void leave(IfStatement& node);
         virtual void leave(ForStatement& node);
         virtual void leave(WhileStatement& node);
-        // virtual void leave(Block& node);
+        virtual void leave(Block& node);
         // virtual void leave(ClassDeclaration& node);
         // virtual void leave(InterfaceDeclaration& node);
         // virtual void leave(FormalParameter& node);
-        // virtual void leave(ConstructorDeclaration& node);
+        virtual void leave(ConstructorDeclaration& node);
         // virtual void leave(FieldDeclaration& node);
-        // virtual void leave(MethodDeclaration& node);
+        virtual void leave(MethodDeclaration& node);
 
     private:
         std::string ifFalse(ASTNode& node, const std::string& label);
         std::string ifTrue(ASTNode& node, const std::string& label);
         std::string setLabel(const std::string& label);
+        std::string comment(const std::string& comment);
         std::string evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs); // lhs in ebx, rhs in eax
         std::string cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB);
+        std::string methodCallHeader();
+        std::string methodCallReturn();
+        std::string pushCalleeSaveRegs();
+        std::string popCalleeSaveRegs();
     };
 
     CodeGenerator(Environment& globalEnv);

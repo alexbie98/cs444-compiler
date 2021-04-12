@@ -417,14 +417,45 @@ std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType t
     return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
 }
 
+void CodeGenerator::CodeGenVisitor::visit(MethodDeclaration& node)
+{
+    formalParameterCount = node.parameters->elements.size();
+    thisOffset = (formalParameterCount + 2) * 4;
+    localVariableCount = 0;
+    inMethod = true;
+}
+
+void CodeGenerator::CodeGenVisitor::visit(ConstructorDeclaration& node)
+{
+    formalParameterCount = node.parameters->elements.size();
+    thisOffset = (formalParameterCount + 2) * 4;
+    localVariableCount = 0;
+    inMethod = true;
+}
+
+void CodeGenerator::CodeGenVisitor::visit(FormalParameter& node)
+{
+    node.paramOffset = (formalParameterCount + 1) * 4;
+    formalParameterCount--;
+}
+
+void CodeGenerator::CodeGenVisitor::visit(VariableDeclarationExpression& node)
+{
+    if (inMethod)
+    {
+        localVariableCount++;
+        node.variableOffset = localVariableCount * -4;
+    }
+}
+
 void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
 {
-    node.code += "mov eax, " + std::to_string(node.value) + " ; IntLiteral\n";
+    node.code += "mov eax, " + std::to_string(node.value) + " " + comment("IntLiteral");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
 {
-    node.code = "mov eax, " + std::to_string(node.value) + " ; CharLiteral\n";
+    node.code = "mov eax, " + std::to_string(node.value) + " " + comment("CharLiteral");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
@@ -434,23 +465,44 @@ void CodeGenerator::CodeGenVisitor::leave(BooleanLiteral& node)
     if (node.value) node.code += '1';
     else node.code += '0';
 
-    node.code += " ; BooleanLiteral\n";
+    node.code += " " + comment("BooleanLiteral");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(NullLiteral& node)
 {
-    node.code = "mov eax, 0 ; NullLiteral\n";
+    node.code = "mov eax, 0 " + comment("NullLiteral");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
+{
+    if (node.name)
+    {
+
+    }
+    else // node.field
+    {
+        node.addr = node.field->addr;
+        node.code = node.field->code;
+    }
 }
 
 void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
 {
-    node.code = "; BinaryOperation Begin\n";
+    node.code = comment("BinaryOperation Begin");
 
     switch (node.op)
     {
         case BinaryOperation::PLUS:
-            node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
-            node.code += "add eax, ebx\n";
+            // Numeric plus
+            if (dynamic_cast<PrimitiveType*>(node.lhs->resolvedType) && dynamic_cast<PrimitiveType*>(node.rhs->resolvedType))
+            {
+                node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+                node.code += "add eax, ebx\n";
+            }
+            else
+            {
+                // TODO: string concat
+            }
             break;
         case BinaryOperation::MINUS:
             node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
@@ -558,12 +610,12 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
     }
 
-    node.code += "; BinaryOperation End\n";
+    node.code += comment("BinaryOperation End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(PrefixOperation& node)
 {
-    node.code = "; PrefixOperation Begin\n";
+    node.code = comment("PrefixOperation Begin");
 
     node.code += node.operand->code;
 
@@ -578,13 +630,12 @@ void CodeGenerator::CodeGenVisitor::leave(PrefixOperation& node)
         break;
     }
 
-    node.code += "; PrefixOperation End\n";
-
+    node.code += comment("PrefixOperation End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
 {
-    node.code = "; AssignmentExpression Begin\n";
+    node.code = comment("AssignmentExpression Begin");
     node.code += node.lhs->addr;
     node.code += "push eax\n";
     node.code += node.rhs->code;
@@ -597,7 +648,73 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
 
     node.code += "mov [ebx], eax\n";
     node.code += "mov eax, ebx\n";
-    node.code = "; AssignmentExpression End\n";
+    node.code += comment("AssignmentExpression End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ParenthesizedExpression& node)
+{
+    node.code = comment("ParenthesizedExpression Begin");
+    node.code += node.expr->code;
+    node.code += comment("ParenthesizedExpression End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
+{
+    FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(node.refersTo);
+
+    bool isStatic = false;
+    for (Modifier* modifier : field->modifiers->elements)
+    {
+        if (modifier->type == Modifier::STATIC)
+        {
+            isStatic = true;
+        }
+    }
+
+    if (isStatic)
+    {
+        node.addr = "mov eax, "; // + label of static field
+        node.code = node.addr + addrVal();
+
+        node.addr = comment("Static FieldAccess Addr") + node.addr + comment("Static FieldAccess End");
+        node.code = comment("Static FieldAccess Code") + node.code + comment("Static FieldAccess End");
+    }
+    else
+    {
+        node.addr += node.prevExpr->code;
+        // TODO: Add null check
+        node.addr += "add eax, " + std::to_string(field->declaration->variableOffset);
+
+        node.code = node.addr + addrVal();
+
+        node.addr += comment("FieldDeclaration End");
+        node.code += comment("FieldDeclaration End");
+
+        node.addr = comment("FieldAccess Addr") + node.addr + comment("FieldAccess End");
+        node.code = comment("FieldAccess Code") + node.code + comment("FieldAccess End");
+    }
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ThisExpression& node)
+{
+    node.addr = "mov eax, ebp";
+    node.addr += "add eax, " + std::to_string(thisOffset);
+    
+    node.code += node.addr + addrVal();
+
+    node.addr = comment("ThisExpression Addr") + node.addr + comment("ThisExpression End");
+    node.code = comment("ThisExpression Code") + node.code + comment("ThisExpression End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ReturnStatement& node)
+{
+    node.code = comment("ReturnStatement Begin");
+
+    if (node.expression) node.code += node.expression->code;
+    node.code += popCalleeSaveRegs();
+    node.code += methodCallReturn();
+
+    node.code += comment("ReturnStatement End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
@@ -606,7 +723,7 @@ void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
     std::string endLabel = "end." + std::to_string(node.LABEL_NUM);
     node.LABEL_NUM++;
 
-    node.code = "; IfStatement Begin\n";
+    node.code = comment("IfStatement Begin");
     node.code += ifFalse(*node.ifCondition, elseLabel);
     node.code += node.ifBody->code;
     node.code += "jmp " + endLabel + "\n";
@@ -615,7 +732,7 @@ void CodeGenerator::CodeGenVisitor::leave(IfStatement& node)
     if (node.elseBody) node.code += node.elseBody->code;
 
     node.code += setLabel(endLabel);
-    node.code += "; IfStatement End\n";
+    node.code += comment("IfStatement End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
@@ -625,7 +742,7 @@ void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 
     node.LABEL_NUM++;
 
-    node.code = "; ForStatement Begin\n";
+    node.code = comment("ForStatement Begin");
 
     if (node.forInit) node.code += node.forInit->code;
     
@@ -639,7 +756,7 @@ void CodeGenerator::CodeGenVisitor::leave(ForStatement& node)
 
     node.code += "jmp " + forBeginLabel;
     node.code += setLabel(forEndLabel);
-    node.code += "; ForStatement End\n";
+    node.code += comment("ForStatement End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(WhileStatement& node)
@@ -649,13 +766,37 @@ void CodeGenerator::CodeGenVisitor::leave(WhileStatement& node)
 
     node.LABEL_NUM++;
 
-    node.code = "; WhileStatement Begin\n";
+    node.code = comment("WhileStatement Begin");
     node.code += setLabel(whileBeginLabel);
     node.code += ifFalse(*node.condition, whileEndLabel);
     node.code += node.body->code;
     node.code += "jmp " + whileBeginLabel;
     node.code += setLabel(whileEndLabel);
-    node.code += "; WhileStatement End\n";
+    node.code += comment("WhileStatement End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(Block& node)
+{
+    node.code = comment("Block Start");
+    for (Statement* stmt : node.statements->elements)
+    {
+        node.code += stmt->code;
+    }
+    node.code += comment("Block End");
+}
+
+void CodeGenerator::CodeGenVisitor::leave(ConstructorDeclaration& node)
+{
+    // TODO: implementation
+
+    inMethod = false;
+}
+
+void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
+{
+    // TODO: implementation
+
+    inMethod = false;
 }
 
 std::string CodeGenerator::CodeGenVisitor::ifFalse(ASTNode& node, const std::string& label)
@@ -681,6 +822,11 @@ std::string CodeGenerator::CodeGenVisitor::setLabel(const std::string& label)
     return label + ":\n";
 }
 
+std::string CodeGenerator::CodeGenVisitor::comment(const std::string& comment)
+{
+    return "; " + comment + "\n";
+}
+
 std::string CodeGenerator::CodeGenVisitor::evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs)
 {
     std::string ret = lhs.code;
@@ -703,3 +849,47 @@ std::string CodeGenerator::CodeGenVisitor::cmpOperation(ASTNode& lhs, ASTNode& r
     ret += setLabel(labelB);
     return ret;
 }
+
+std::string CodeGenerator::CodeGenVisitor::addrVal()
+{
+    return "mov eax, [eax]\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::methodCallHeader()
+{
+    std::string ret = comment("Method Header");
+    ret += "push ebp\n";
+    ret += "mov ebp, esp\n";
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::methodCallReturn()
+{
+    std::string ret = comment("Method Return");
+    ret += "mov esp, ebp\n";
+    ret += "pop ebp\n";
+    ret += "ret\n";
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::pushCalleeSaveRegs()
+{
+    std::string ret = comment("Pushing Callee Regs");
+    ret += "push ebx\n";
+    ret += "push esi\n";
+    ret += "push edi\n";
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::popCalleeSaveRegs()
+{
+    std::string ret = comment("Popping Callee Regs");
+    ret += "pop edi\n";
+    ret += "pop esi\n";
+    ret += "pop ebx\n";
+    return ret;
+}
+
+
+
+

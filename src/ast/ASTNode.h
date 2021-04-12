@@ -692,6 +692,8 @@ struct VariableDeclarationExpression : public Expression
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "VariableDeclarationExpression"; }
 
+    int variableOffset = 0;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };
@@ -944,6 +946,8 @@ struct FormalParameter : public ASTNode
     virtual void accept(ASTNodeVisitor& v) override { v.visit(*this); }
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "FormalParameter"; }
+
+    int paramOffset = 0;
 
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
