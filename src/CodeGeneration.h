@@ -172,6 +172,12 @@ public:
         std::string evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs); // lhs in ebx, rhs in eax
         std::string cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB);
         std::string addrVal();
+
+        std::string addOffset(int offset);
+        std::string frameOffsetAddr(int stackOffset);
+        std::string thisAddr();
+        std::string labelAddr(std::string label);
+
         std::string methodCallHeader();
         std::string methodCallReturn();
         std::string pushCalleeSaveRegs();

@@ -498,7 +498,94 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
 {
     if (node.name)
     {
+        if (FormalParameter * param = dynamic_cast<FormalParameter*>(node.name->refers_to))
+        {
+            node.addr = "mov eax, ebp";
+            node.addr += "add eax, " + std::to_string(param->paramOffset);
 
+            node.code += node.addr + addrVal();
+
+            node.addr = commentAsm("ParameterAccess Addr") + node.addr + commentAsm("ParameterAccess End");
+            node.code = commentAsm("ParameterAccess Code") + node.code + commentAsm("ParameterAccess End");
+        }
+        else if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(node.name->refers_to))
+        {
+            node.addr = "mov eax, ebp";
+            node.addr += "add eax, " + std::to_string(thisOffset);
+
+            bool isStatic = false;
+            for (Modifier* modifier : field->modifiers->elements)
+            {
+                if (modifier->type == Modifier::STATIC)
+                {
+                    isStatic = true;
+                }
+            }
+
+            if (isStatic)
+            {
+                node.addr = labelAddr("TODO");
+                node.code = node.addr + addrVal();
+
+                node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
+                node.code = commentAsm("Static FieldAccess Code") + node.code + commentAsm("Static FieldAccess End");
+            }
+            else
+            {
+                node.addr = thisAddr() + addrVal();
+                node.addr += addOffset(field->declaration->variableOffset);
+
+                node.code = node.addr + addrVal();
+
+                node.addr = commentAsm("(Implicit This) FieldAccess Addr") + node.addr + commentAsm("(Implicit This) FieldAccess End");
+                node.code = commentAsm("(Implicit This) FieldAccess Code") + node.code + commentAsm("(Implicit This) FieldAccess End");
+            }
+        }
+        else if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
+        {
+            if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(var->parent))
+            {
+                node.addr = "mov eax, ebp";
+                node.addr += "add eax, " + std::to_string(thisOffset);
+
+                bool isStatic = false;
+                for (Modifier* modifier : field->modifiers->elements)
+                {
+                    if (modifier->type == Modifier::STATIC)
+                    {
+                        isStatic = true;
+                    }
+                }
+
+                if (isStatic)
+                {
+                    node.addr = labelAddr("TODO");
+                    node.code = node.addr + addrVal();
+
+                    node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
+                    node.code = commentAsm("Static FieldAccess Code") + node.code + commentAsm("Static FieldAccess End");
+                }
+                else
+                {
+                    node.addr = thisAddr() + addrVal();
+                    node.addr += addOffset(field->declaration->variableOffset);
+
+                    node.code = node.addr + addrVal();
+
+                    node.addr = commentAsm("(Implicit This) FieldAccess Addr") + node.addr + commentAsm("(Implicit This) FieldAccess End");
+                    node.code = commentAsm("(Implicit This) FieldAccess Code") + node.code + commentAsm("(Implicit This) FieldAccess End");
+                }
+            }
+            else
+            {
+                node.addr = frameOffsetAddr(var->variableOffset);
+
+                node.code += node.addr + addrVal();
+
+                node.addr = commentAsm("Local Var Access Addr") + node.addr + commentAsm("Local Var Access End");
+                node.code = commentAsm("Local Var Access Code") + node.code + commentAsm("Local Var Access End");
+            }
+        }
     }
     else // node.field
     {
@@ -694,7 +781,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 
     if (isStatic)
     {
-        node.addr = "mov eax, "; // + label of static field
+        node.addr = labelAddr("TODO");
         node.code = node.addr + addrVal();
 
         node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
@@ -704,12 +791,9 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
     {
         node.addr += node.prevExpr->code;
         // TODO: Add null check
-        node.addr += "add eax, " + std::to_string(field->declaration->variableOffset);
+        node.addr += addOffset(field->declaration->variableOffset);
 
         node.code = node.addr + addrVal();
-
-        node.addr += commentAsm("FieldDeclaration End");
-        node.code += commentAsm("FieldDeclaration End");
 
         node.addr = commentAsm("FieldAccess Addr") + node.addr + commentAsm("FieldAccess End");
         node.code = commentAsm("FieldAccess Code") + node.code + commentAsm("FieldAccess End");
@@ -748,9 +832,8 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
 
 void CodeGenerator::CodeGenVisitor::leave(ThisExpression& node)
 {
-    node.addr = "mov eax, ebp";
-    node.addr += "add eax, " + std::to_string(thisOffset);
-    
+    node.addr = thisAddr();
+
     node.code += node.addr + addrVal();
 
     node.addr = commentAsm("ThisExpression Addr") + node.addr + commentAsm("ThisExpression End");
@@ -894,6 +977,28 @@ std::string CodeGenerator::CodeGenVisitor::cmpOperation(ASTNode& lhs, ASTNode& r
 std::string CodeGenerator::CodeGenVisitor::addrVal()
 {
     return "mov eax, [eax]\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::thisAddr()
+{
+    return frameOffsetAddr(thisOffset);
+}
+
+std::string CodeGenerator::CodeGenVisitor::labelAddr(std::string label)
+{
+    return "mov eax, " + label + "\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::addOffset(int offset)
+{
+    return "add eax, " + std::to_string(offset) + '\n';
+}
+
+std::string CodeGenerator::CodeGenVisitor::frameOffsetAddr(int stackOffset)
+{
+    std::string ret = "mov eax, ebp\n";
+    ret += "add eax, " + std::to_string(stackOffset) + '\n';
+    return ret;
 }
 
 std::string CodeGenerator::CodeGenVisitor::methodCallHeader()
