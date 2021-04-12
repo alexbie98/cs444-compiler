@@ -58,21 +58,32 @@ class CodeGenerator
     std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
 
     // Assembly helpers
-    const std::string SUBTYPE_COLUMN_COUNT_LABEL = "SUBTYPE_COLUMN_COUNT";
-    const std::string SUBTYPE_TABLE_LABEL = "SUBTYPE_TABLE";
+    static const std::string SUBTYPE_COLUMN_COUNT_LABEL;
+    static const std::string SUBTYPE_TABLE_LABEL;
+    static const std::string EXCEPTION;
+    static const std::string DEXIT;
+    static const std::string MALLOC;
+    static const size_t WORD_SIZE = 4;
+    static const size_t CLASS_INFO_OFFSET = 0;
 
     const std::string TEXT_DIR = directiveAsm("text");
     const std::string DATA_DIR = directiveAsm("data");
 
-    std::string labelAsm(std::string id){ return id + ":\n"; }
-    std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
-    std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
-    std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
-    std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
-    std::string commentAsm(std::string comment){ return "; " + comment + "\n"; }
+    size_t fresh_label_counter = 0;
 
-    std::string externAsm(std::string id){ return "extern " + id + "\n"; }
-    std::string globalAsm(std::string id){ return "global " + id + "\n"; }
+    static std::string labelAsm(std::string id){ return id + ":\n"; }
+    static std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
+    static std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
+    static std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
+    static std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
+    static std::string commentAsm(std::string comment){ return "; " + comment + "\n"; }
+
+    static std::string externAsm(std::string id){ return "extern " + id + "\n"; }
+    static std::string globalAsm(std::string id){ return "global " + id + "\n"; }
+
+    // Performs a null check on eax
+    static std::string nullCheckAsm();
+    std::string runtimeExternsAsm();
 
     // TODO Make helpers for generating assembly to access class data members
     std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->getName()->getString(); }
@@ -87,6 +98,7 @@ class CodeGenerator
     std::string sitColumnClassLabel(ClassDeclaration* decl){ return "c_sit_column_" + decl->getName()->getString(); }
     std::string sitColumnClassArrayLabel(ClassDeclaration* decl){ return "carray_sit_column_" + decl->getName()->getString(); }
     std::string sitColumnPrimArrayLabel(PrimitiveType::BasicType type){ return "parray_sit_column_" + PrimitiveType::basicTypeToString(type); }
+    std::string freshenLabel(std::string label){ return label + "_" + std::to_string(fresh_label_counter++); }
 
     TypeDeclaration* containingType(MethodDeclaration* method)
     {
@@ -112,8 +124,11 @@ public:
         int localVariableCount = 0;
 
         bool inMethod = false;
+        CodeGenerator& cg;
 
     public:
+        CodeGenVisitor(CodeGenerator& code_generator) : cg{ code_generator } {};
+
         virtual void visit(MethodDeclaration& node);
         virtual void visit(ConstructorDeclaration& node);
         virtual void visit(FormalParameter& node);
@@ -132,8 +147,8 @@ public:
         virtual void leave(ParenthesizedExpression& node);
         // virtual void leave(ClassInstanceCreator& node);
         // virtual void leave(ArrayCreator& node);
-        // virtual void leave(MethodCall& node);
         virtual void leave(FieldAccess& node);
+        virtual void leave(MethodCall& node);
         // virtual void leave(ArrayAccess& node);
         virtual void leave(ThisExpression& node);
         // virtual void leave(VariableDeclarationExpression& node);
@@ -158,6 +173,7 @@ public:
         std::string comment(const std::string& comment);
         std::string evaluateTwoNodes(ASTNode& lhs, ASTNode& rhs); // lhs in ebx, rhs in eax
         std::string cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB);
+        std::string addrVal();
         std::string methodCallHeader();
         std::string methodCallReturn();
         std::string pushCalleeSaveRegs();
