@@ -380,6 +380,8 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     } 
     else assert(false);
 
+    class_asm += TEXT_DIR; // Use .text for read only data
+
     // Generate SIT column if class
     if(otype == ObjectType::OBJECT) 
     {
