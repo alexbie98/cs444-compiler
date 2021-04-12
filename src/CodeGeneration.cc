@@ -1044,8 +1044,8 @@ void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
     node.addr += "cmp eax, ecx\n";
     node.addr += "jge " + useLabel(EXCEPTION) + "\n";
     node.addr += "add eax, 2\n";
-    node.addr += "imul eax, " + WORD_SIZE;
-    node.addr += "add eax, ebx";
+    node.addr += "imul eax, " + std::to_string(WORD_SIZE) + "\n";
+    node.addr += "add eax, ebx\n";
 
     node.code = node.addr + addrVal();
 
