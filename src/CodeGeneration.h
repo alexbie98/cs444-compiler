@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <set>
 #include "ast/ASTNode.h"
 
 struct ClassInfo
@@ -35,7 +36,7 @@ class CodeGenerator
     std::unordered_map<ClassDeclaration*, std::vector<MethodDeclaration*> > sit_table;
     std::vector<MethodDeclaration*> array_sit_column;
     std::unordered_map<ClassDeclaration*, ClassInfo> class_infos;
-    std::unordered_map<ClassDeclaration*, ClassInfo> array_class_infos;
+    std::unordered_map<TypeDeclaration*, ClassInfo> array_class_infos;
     std::unordered_map<PrimitiveType::BasicType, ClassInfo> primitive_array_class_infos;
     size_t subtype_column_count = 0;
     std::vector< std::vector<bool> > subtype_table; // Interfaces in columns are not used, first index is columns.
@@ -90,7 +91,7 @@ class CodeGenerator
     std::string runtimeExternsAsm();
 
     // TODO Make helpers for generating assembly to access class data members
-    std::string classDataLabel(ClassDeclaration* decl){ return "class_info_" + decl->fullyQualifiedName; }
+    std::string classDataLabel(TypeDeclaration* decl){ return "class_info_" + decl->fullyQualifiedName; }
     std::string classArrayDataLabel(TypeDeclaration* decl){ return "carray_info_" + decl->fullyQualifiedName; }
     std::string primitiveArrayDataLabel(PrimitiveType::BasicType type){ return "parray_info_" + PrimitiveType::basicTypeToString(type); }
     std::string classMethodLabel(MethodDeclaration* method)
@@ -129,7 +130,7 @@ class CodeGenerator
         PRIMITIVE_ARRAY
     };
 
-    std::string generateObjectCode(ClassDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
+    std::string generateObjectCode(TypeDeclaration* root, ObjectType otype, std::set<std::string> externed_labels, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
     
 public:
 
@@ -209,4 +210,5 @@ public:
     std::string generateCommon();
     std::string generateClassCode(ClassDeclaration* root); // Generates code for object and it's array
     std::string generatePrimitiveArrayCode(PrimitiveType::BasicType type);
+    std::string generateInterfaceArrayCode(InterfaceDeclaration* root);
 };

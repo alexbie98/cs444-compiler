@@ -114,6 +114,14 @@ int main(int argc, char *argv[])
         class_asm.close();
     }
 
+    for(auto it: globalEnv.interfaces)
+    {
+        ofstream class_asm;
+        class_asm.open ("output/" + it.second->getName()->getString() + ".s");
+        class_asm << code_generator.generateInterfaceArrayCode(it.second);
+        class_asm.close();
+    }
+
     auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
     {
         ofstream parray_asm;
