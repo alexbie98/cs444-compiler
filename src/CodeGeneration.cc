@@ -428,7 +428,7 @@ std::string CodeGenerator::nullCheckAsm()
 {
     return commentAsm("Null Check") +
         "cmp eax, 0\n" +
-        "je " + MALLOC + "\n";
+        "je " + EXCEPTION + "\n";
 }
 
 std::string CodeGenerator::runtimeExternsAsm()
@@ -860,6 +860,54 @@ void CodeGenerator::CodeGenVisitor::leave(VariableDeclarationExpression& node)
     }
 }
 
+void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
+{
+    QualifiedType* qualified = dynamic_cast<QualifiedType*>(node.type);
+    ArrayType* array = dynamic_cast<ArrayType*>(node.type);
+
+    size_t type_offset;
+
+    if(qualified)
+    {
+        TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(qualified->name->refers_to);
+        type_offset = cg.getObjectSubtypeIndex(decl);
+    }
+    else if (array)
+    {
+        QualifiedType* carray = dynamic_cast<QualifiedType*>(array->elementType);
+        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array->elementType);
+
+        if(carray)
+        {
+            TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(carray->name->refers_to);
+            type_offset = cg.getArraySubtypeIndex(decl);
+        }
+        else if(parray)
+        {
+            type_offset = cg.getPrimitiveArraySubtypeIndex(parray->type);
+        }
+        else assert(false);
+    }
+    else assert(false);
+
+    std::string& object = node.expression->code;
+    node.code += object;
+
+    std::string finished = cg.freshenLabel("instanceof_result");
+
+    node.code = commentAsm("Check if object is null");
+    node.code += "cmp eax, 0\n";
+    node.code += "je " + finished + "\n";
+
+    node.code += getClassInfo();
+    node.code += getSubtypeColumn();
+    node.code += "mov ecx, 0\n";
+    node.code += "mov cl, [" + SUBTYPE_TABLE_LABEL + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
+    node.code += "mov eax, ecx\n";
+
+    node.code += labelAsm(finished);
+}
+
 void CodeGenerator::CodeGenVisitor::leave(ExpressionStatement& node)
 {
     node.code = commentAsm("ExpressionStatement Begin") + node.expression->code + commentAsm("ExpressionStatement End");
@@ -1087,3 +1135,12 @@ std::string CodeGenerator::CodeGenVisitor::popCalleeSaveRegs()
     return ret;
 }
 
+std::string CodeGenerator::CodeGenVisitor::getClassInfo()
+{
+    return "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::getSubtypeColumn()
+{
+    return "mov eax, [eax + " + std::to_string(SUBTYPE_OFFSET) + "]\n";
+}

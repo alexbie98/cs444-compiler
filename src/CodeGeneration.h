@@ -65,6 +65,8 @@ class CodeGenerator
     static const std::string MALLOC;
     static const size_t WORD_SIZE = 4;
     static const size_t CLASS_INFO_OFFSET = 0;
+    static const size_t SIT_OFFSET = 0;
+    static const size_t SUBTYPE_OFFSET = 4;
 
     static const std::string TEXT_DIR;
     static const std::string DATA_DIR;
@@ -152,7 +154,7 @@ public:
         // virtual void leave(ArrayAccess& node);
         virtual void leave(ThisExpression& node);
         virtual void leave(VariableDeclarationExpression& node);
-        // virtual void leave(InstanceOfExpression& node);
+        virtual void leave(InstanceOfExpression& node);
         virtual void leave(ExpressionStatement& node);
         virtual void leave(ReturnStatement& node);
         virtual void leave(IfStatement& node);
@@ -182,6 +184,9 @@ public:
         std::string methodCallReturn();
         std::string pushCalleeSaveRegs();
         std::string popCalleeSaveRegs();
+
+        std::string getClassInfo();
+        std::string getSubtypeColumn();
     };
 
     CodeGenerator(Environment& globalEnv);
