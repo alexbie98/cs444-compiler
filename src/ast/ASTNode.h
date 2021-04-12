@@ -983,6 +983,8 @@ struct FieldDeclaration : public MemberDeclaration
     virtual void leave(ASTNodeVisitor& v) override { v.leave(*this); }
     virtual std::string toString() { return "FieldDeclaration"; }
 
+    std::string staticLabel;
+
 protected:
     virtual void visitChildren(ASTNodeVisitor& v) override;
 };

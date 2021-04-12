@@ -66,8 +66,8 @@ class CodeGenerator
     static const size_t WORD_SIZE = 4;
     static const size_t CLASS_INFO_OFFSET = 0;
 
-    const std::string TEXT_DIR = directiveAsm("text");
-    const std::string DATA_DIR = directiveAsm("data");
+    static const std::string TEXT_DIR;
+    static const std::string DATA_DIR;
 
     size_t fresh_label_counter = 0;
 
@@ -163,7 +163,7 @@ public:
         // virtual void leave(InterfaceDeclaration& node);
         // virtual void leave(FormalParameter& node);
         virtual void leave(ConstructorDeclaration& node);
-        // virtual void leave(FieldDeclaration& node);
+        virtual void leave(FieldDeclaration& node);
         virtual void leave(MethodDeclaration& node);
 
     private:

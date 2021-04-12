@@ -438,6 +438,10 @@ std::string CodeGenerator::runtimeExternsAsm()
         externAsm("__exception");
 }
 
+const std::string CodeGenerator::TEXT_DIR = CodeGenerator::directiveAsm("text");
+const std::string CodeGenerator::DATA_DIR = CodeGenerator::directiveAsm("data");
+
+
 void CodeGenerator::CodeGenVisitor::visit(MethodDeclaration& node)
 {
     formalParameterCount = node.parameters->elements.size();
@@ -524,7 +528,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
 
             if (isStatic)
             {
-                node.addr = labelAddr("TODO");
+                node.addr = labelAddr(field->staticLabel);
                 node.code = node.addr + addrVal();
 
                 node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
@@ -559,7 +563,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
 
                 if (isStatic)
                 {
-                    node.addr = labelAddr("TODO");
+                    node.addr = labelAddr(field->staticLabel);
                     node.code = node.addr + addrVal();
 
                     node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
@@ -781,7 +785,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 
     if (isStatic)
     {
-        node.addr = labelAddr("TODO");
+        node.addr = labelAddr(field->staticLabel);
         node.code = node.addr + addrVal();
 
         node.addr = commentAsm("Static FieldAccess Addr") + node.addr + commentAsm("Static FieldAccess End");
@@ -924,6 +928,32 @@ void CodeGenerator::CodeGenVisitor::leave(ConstructorDeclaration& node)
     // TODO: implementation
 
     inMethod = false;
+}
+
+void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
+{
+    bool isStatic = false;
+    for (Modifier* modifier : node.modifiers->elements)
+    {
+        if (modifier->type == Modifier::STATIC)
+        {
+            isStatic = true;
+        }
+    }
+
+    if (isStatic)
+    {
+        node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
+
+        node.code = commentAsm("StaticFieldDeclaration Start");
+        node.code += CodeGenerator::DATA_DIR;
+        node.code += node.staticLabel + " dd 0\n";
+        node.code += CodeGenerator::TEXT_DIR;
+        node.code += node.declaration->code;
+        node.code += "mov ebx, " + node.staticLabel + '\n';
+        node.code += "mov [ebx], eax\n";
+        node.code += commentAsm("StaticFieldDeclaration End");
+    }
 }
 
 void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
