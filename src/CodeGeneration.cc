@@ -255,6 +255,17 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}
         // Array prefixes will need the lenght and data fields added on during code gen
     }
 
+    // Create ClassInfos for interface arrays
+    for(auto it: globalEnv.interfaces)
+    {
+        InterfaceDeclaration* class_decl = it.second;
+        array_class_infos.insert({class_decl, ClassInfo()});
+        ClassInfo& class_info = array_class_infos[class_decl];
+
+        class_info.subtype_column = getArraySubtypeIndex(class_decl);
+        class_info.methods_prefix = class_infos[object_class_decl].methods_prefix;
+    }
+
     // Create ClassInfos for primitive arrays
     std::vector<PrimitiveType::BasicType> primitive_types = {PrimitiveType::BOOLEAN, PrimitiveType::BYTE , PrimitiveType::SHORT, PrimitiveType::CHAR, PrimitiveType::INT};
     for(PrimitiveType::BasicType t: primitive_types)
@@ -290,12 +301,13 @@ std::string CodeGenerator::generateCommon()
     return common_asm;
 }
 
-std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype)
+std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType otype, std::set<std::string> externed_labels, PrimitiveType::BasicType ptype)
 {
     std::string class_asm;
 
     // TODO Change to defined_labels and make neccessary changes below
-    std::set<std::string> externed_labels = {sitColumnClassLabel(object_class_decl)};
+    // TODO This no longer words since this function is called twice per file, need a file to name map...
+    externed_labels.insert(sitColumnClassLabel(object_class_decl));
 
     std::vector<MethodDeclaration*>* column = nullptr;
     ClassInfo* class_info = nullptr;
@@ -307,9 +319,10 @@ std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType
 
     if(otype == ObjectType::OBJECT)
     {
-        column_label = sitColumnClassLabel(root);
-        column = &sit_table[root];
-        class_info = &class_infos[root];
+        ClassDeclaration* root_class = dynamic_cast<ClassDeclaration*>(root);
+        column_label = sitColumnClassLabel(root_class);
+        column = &sit_table[root_class];
+        class_info = &class_infos[root_class];
         class_data_label = classDataLabel(root);
         subtype_index = getObjectSubtypeIndex(root);
         class_asm += runtimeExternsAsm();
@@ -396,11 +409,11 @@ std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType
     }
 
     // TEMP Define label for each method
-    if(otype == ObjectType::OBJECT_ARRAY)
+    if(otype == ObjectType::OBJECT_ARRAY && dynamic_cast<ClassDeclaration*>(root))
     {
         class_asm += "\n\n" + commentAsm("================== METHODS ==================");
 
-        for(MemberDeclaration* member: root->classBody->elements)
+        for(MemberDeclaration* member: dynamic_cast<ClassDeclaration*>(root)->classBody->elements)
         {
             MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
             if(method)
@@ -416,12 +429,21 @@ std::string CodeGenerator::generateObjectCode(ClassDeclaration* root, ObjectType
 
 std::string CodeGenerator::generateClassCode(ClassDeclaration* root)
 {
-    return generateObjectCode(root, ObjectType::OBJECT) + "\n\n" + commentAsm("Object Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY);
+    std::set<std::string> externed;
+    return generateObjectCode(root, ObjectType::OBJECT, externed) 
+           + "\n\n" 
+           + commentAsm("Object Array Information") 
+           + generateObjectCode(root, ObjectType::OBJECT_ARRAY, externed);
 }
 
 std::string CodeGenerator::generatePrimitiveArrayCode(PrimitiveType::BasicType type)
 {
-    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, type);
+    return generateObjectCode(0, ObjectType::PRIMITIVE_ARRAY, {}, type);
+}
+
+std::string CodeGenerator::generateInterfaceArrayCode(InterfaceDeclaration* root)
+{
+    return commentAsm("Interface Array Information") + generateObjectCode(root, ObjectType::OBJECT_ARRAY, {});
 }
 
 std::string CodeGenerator::nullCheckAsm()
