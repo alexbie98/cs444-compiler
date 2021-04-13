@@ -328,7 +328,7 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
                 result.value._bool = node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool;
                 break;
             case BinaryOperation::PLUS:
-                arithmetic = std::plus<integer_type>();
+                if (both_numeric) arithmetic = std::plus<integer_type>();
                 break;
             case BinaryOperation::MINUS:
                 arithmetic = std::minus<integer_type>();
@@ -354,11 +354,11 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
                 break;
             case BinaryOperation::EQ:
                 if(both_bool) bool_comparison = std::equal_to<bool>();
-                else int_comparison = std::equal_to<integer_type>();
+                else if(both_numeric) int_comparison = std::equal_to<integer_type>();
                 break;
             case BinaryOperation::NEQ:
                 if(both_bool) bool_comparison = std::not_equal_to<bool>();
-                else int_comparison = std::not_equal_to<integer_type>();
+                else if(both_numeric) int_comparison = std::not_equal_to<integer_type>();
                 break;
             case BinaryOperation::LEQ:
                 int_comparison = std::less_equal<integer_type>();
