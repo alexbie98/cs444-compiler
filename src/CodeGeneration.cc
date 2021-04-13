@@ -1398,7 +1398,6 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 
     if (isStatic)
     {
-        node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
         node.code += globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
         node.code += "dd 0\n";
@@ -1871,6 +1870,7 @@ std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method,
     size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
 
     std::string ret = commentAsm("MethodCall Start");
+    ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
     ret += object;
     ret += cg.nullCheckAsm();
     ret += "push eax\n";

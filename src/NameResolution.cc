@@ -1316,6 +1316,8 @@ void TypeCheckingVisitor::visit(FieldDeclaration& node)
         if (modifier->type == Modifier::STATIC)
         {
             isStaticContext = true;
+
+            node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
         }
     }
 }
