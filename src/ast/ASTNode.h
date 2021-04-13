@@ -284,7 +284,7 @@ struct Expression : public ASTNode //abstract
 
         bool isNumeric()
         {
-            return type != STRING && type != BOOL;
+            return type != STRING && type != BOOL && type != REF_TYPE;
         }
 
         int asInt()
