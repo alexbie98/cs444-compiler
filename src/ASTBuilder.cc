@@ -158,7 +158,7 @@ ASTNode* buildAST(ParseTreeNode* node)
         case NATIVE:
         {
             Modifier* modifier = new Modifier();
-            modifier->type = Modifier::PUBLIC;
+            modifier->type = Modifier::NATIVE;
             return modifier;
         }
         case INT_LIT:

@@ -1442,6 +1442,46 @@ void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
         node.code += methodCallReturn();
         node.code += commentAsm("MethodDeclaration End");
     }
+    else
+    {
+        bool isNative = false;
+
+        for (Modifier* mod : node.modifiers->elements)
+        {
+            if (mod->type == Modifier::NATIVE)
+            {
+                isNative = true;
+                break;
+            }
+        }
+
+        if (isNative)
+        {
+            node.code = commentAsm("MethodDeclaration Start");
+            node.code += globalAsm(cg.classMethodLabel(&node));
+            node.code += labelAsm(cg.classMethodLabel(&node));
+            node.code += methodCallHeader();
+
+            node.code += commentAsm("Push local vars to stack");
+            for (int i = 0; i < localVariableCount; i++)
+            {
+                node.code += "push 0\n";
+            }
+
+            node.code += pushCalleeSaveRegs();
+
+            assert(node.parameters->elements.size() == 1);
+
+            node.code += frameOffsetAddr(node.parameters->elements[0]->paramOffset);
+            node.code += addrVal();
+            node.code += "call " + useLabel("NATIVE" + node.originatingClass->fullyQualifiedName + '.' + node.name->id);
+
+            node.code += popCalleeSaveRegs();
+            node.code += methodCallReturn();
+            node.code += commentAsm("MethodDeclaration End");
+        }
+
+    }
     inMethod = false;
 }
 
