@@ -127,7 +127,7 @@ bool runIOTest(const string& testName,
     result = system("./output/main > output/out.txt");
     if (WEXITSTATUS(result) != 123)
     {
-        printRuntimeReturnCodeFailMsg(testName, result, 123);
+        printRuntimeReturnCodeFailMsg(testName, WEXITSTATUS(result), 123);
         return false;
     }
     //system("echo -n \"Hello, World!\n\" > output/out.txt");
