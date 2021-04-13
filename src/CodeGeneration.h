@@ -230,6 +230,8 @@ public:
         std::string createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs);
         std::string createArrayFromLabel(const std::string& label, const std::string& argument);
         std::string callMethod(MethodDeclaration* method, const std::string& object, std::vector<std::string> codeArgs);
+        std::string callStaticMethod(MethodDeclaration* method, std::vector<std::string> codeArgs);
+
         std::string createStringFromLiteral(const std::u16string& string);
     };
 

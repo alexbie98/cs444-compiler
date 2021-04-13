@@ -1087,14 +1087,31 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
 {
     MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(node.name->refers_to);
-    std::string object = node.prevExpr ? node.prevExpr->code : (thisAddr() + addrVal());
     std::vector<std::string> args;
     for (Expression* arg : node.arguments->elements)
     {
         args.push_back(arg->code);
     }
 
-    node.code = callMethod(method, object, args);
+    bool isStatic = false;
+    for (Modifier* mod : method->modifiers->elements)
+    {
+        if (mod->type == Modifier::STATIC)
+        {
+            isStatic = true;
+            break;
+        }
+    }
+
+    if (isStatic)
+    {
+        node.code = callStaticMethod(method, args);
+    }
+    else
+    {
+        std::string object = node.prevExpr ? node.prevExpr->code : (thisAddr() + addrVal());
+        node.code = callMethod(method, object, args);
+    }
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
@@ -1890,6 +1907,31 @@ std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method,
     ret += "call eax\n";
     ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
     ret += commentAsm("MethodCall End");
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::callStaticMethod(MethodDeclaration* method, std::vector<std::string> codeArgs)
+{
+    assert(method);
+    assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
+    size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
+
+    std::string ret = commentAsm("StaticMethodCall Start");
+    ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
+
+    size_t object_offset = 0;
+
+    for (std::string code : codeArgs)
+    {
+        ret += code;
+        ret += "push eax\n";
+        object_offset += WORD_SIZE;
+    }
+
+    ret += "mov eax, " + useLabel(cg.classMethodLabel(method)) + "\n";
+    ret += "call eax\n";
+    ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+    ret += commentAsm("StaticMethodCall End");
     return ret;
 }
 
