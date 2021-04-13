@@ -1737,7 +1737,7 @@ std::string CodeGenerator::CodeGenVisitor::stringConversion(Expression& node)
         std::string nullLabel = cg.freshenLabel("null.to_string");
         std::string endConversion = cg.freshenLabel("to_string.end");
 
-        ret += "cmp eax, 0";
+        ret += "cmp eax, 0\n";
         ret += "je " + useLabel(nullLabel) + "\n";
 
         ClassDeclaration* classDecl = cg.global_env.classes["java.lang.Object"];

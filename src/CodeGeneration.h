@@ -85,7 +85,7 @@ class CodeGenerator
     static std::string byteAsm(uint8_t value){ return "db " + std::to_string(value) + "\n"; }
     static std::string commentAsm(std::string comment){ return "; " + comment + "\n"; }
 
-    static std::string externAsm(std::string id){ return "extern " + id + "\n"; }
+    static std::string externAsm(std::string id){ assert(!id.empty()); return "extern " + id + "\n"; }
     static std::string globalAsm(std::string id){ return "global " + id + "\n"; }
 
     // Performs a null check on eax
