@@ -75,6 +75,7 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 		auto testName = t.substr(t.rfind("/") + 1);
 		size_t index = testName.find("_");
 		int expect = testName[index - 1] == 'e' ? 42 : 0;
+		int runtimeExpect = testName[index - 1] == 'r' ? 13 : 123;
 
 		string expectFile = "";
 
@@ -90,6 +91,7 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 								libSourceFiles,
 								libAssemblyFiles,
 								expect,
+								runtimeExpect,
 								runCode,
 								expectFile,
 								!regress && PRINT_PASSES);

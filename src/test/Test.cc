@@ -65,6 +65,7 @@ bool runIOTest(const string& testName,
                const vector<string>& libSourceFiles,
                const vector<string>& libAssemblyFiles,
                int expect, 
+               int runtimeExpect, 
                bool runCode,
                string expectFile,
                bool printPass){
@@ -109,15 +110,17 @@ bool runIOTest(const string& testName,
     auto files = ls("output");
     for (const auto& f: files){
         result = system(("/u/cs444/bin/nasm -O1 -f elf -g -F dwarf " + f).c_str());
-        if (WEXITSTATUS(result) != 0)
+        result = WEXITSTATUS(result);
+        if (result != 0)
         {
             printLinkAssembleFailMsg(testName);
-            cout << f << " filed to assemble" << endl;
+            cout << f << " failed to assemble" << endl;
             throw;
         }
     }
     result = system("ld -melf_i386 -o output/main output/*.o");
-    if (WEXITSTATUS(result) != 0)
+    result = WEXITSTATUS(result);
+    if (result != 0)
     {
         printLinkAssembleFailMsg(testName);
         cout << " failed to link" << endl;
@@ -125,9 +128,10 @@ bool runIOTest(const string& testName,
     }
 
     result = system("./output/main > output/out.txt");
-    if (WEXITSTATUS(result) != 123)
+    result = WEXITSTATUS(result);
+    if (result != runtimeExpect)
     {
-        printRuntimeReturnCodeFailMsg(testName, WEXITSTATUS(result), 123);
+        printRuntimeReturnCodeFailMsg(testName, result, runtimeExpect);
         return false;
     }
     //system("echo -n \"Hello, World!\n\" > output/out.txt");
