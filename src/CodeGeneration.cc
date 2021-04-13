@@ -304,6 +304,7 @@ std::string CodeGenerator::generateCommon()
     common_asm += labelAsm(SUBTYPE_COLUMN_COUNT_LABEL);
     common_asm += wordAsm(subtype_column_count);
 
+    common_asm += globalAsm(SUBTYPE_TABLE_LABEL);
     common_asm += labelAsm(SUBTYPE_TABLE_LABEL);
     for(const std::vector<bool>& column: subtype_table)
     {
