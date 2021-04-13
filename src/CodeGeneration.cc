@@ -329,6 +329,7 @@ std::string CodeGenerator::generateStart(std::string static_field_initializers, 
     ret += TEXT_DIR;
     ret += globalAsm("_start");
     ret += labelAsm("_start");
+    ret += "mov ebp, esp\n";
     ret += static_field_initializers;
     ret += externAsm(classMethodLabel(entry));
     ret += "call " + classMethodLabel(entry) + "\n";
