@@ -936,63 +936,77 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
 void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
 {
     node.code = commentAsm("AssignmentExpression Begin");
-    node.code += node.lhs->addr;
-    node.code += "push eax\n";
-    node.code += node.rhs->code;
-    node.code += "pop ebx\n";
 
-    ArrayType* array_type = dynamic_cast<ArrayType*>(node.lhs->resolvedType);
-    if (array_type)
+    bool is_object_array_assignment = false;
+    ArrayAccess* array_access = dynamic_cast<ArrayAccess*>(node.lhs);
+    if(array_access)
     {
-        QualifiedType* carray = dynamic_cast<QualifiedType*>(array_type->elementType);
-        PrimitiveType* parray = dynamic_cast<PrimitiveType*>(array_type->elementType);
+        assert(array_access->prevExpr->resolvedType);
+        ArrayType* array_type = dynamic_cast<ArrayType*>(array_access->prevExpr->resolvedType);
+        is_object_array_assignment = dynamic_cast<QualifiedType*>(array_type->elementType);
+    }
+    
+    if(is_object_array_assignment)
+    {
+        // Load array (instead of object in array) into ebx
+        // TODO Make more efficient by only doing index opperation after rather than entire array access again?
+        node.code += getArray(*array_access);
+        node.code += "push eax\n";
+        node.code += node.rhs->code;
+        node.code += "pop ebx\n";
+        // eax is rhs, ebx is lhs
 
-        if(carray)
-        {
-            // Type check code for runtime assignability of array element
-            // Check if carray is a subtype of rhs
-            TypeDeclaration* decl = dynamic_cast<TypeDeclaration*>(carray->name->refers_to);
-            assert(decl);
+        // Save lhs and rhs
+        node.code += "push eax\n";
+        node.code += "push ebx\n";
 
-            // Get rhs subtype, put into ecx
-            node.code += commentAsm("Type check runtime assignability of array element");
+        // Type check code for runtime assignability of array element
+        // Get rhs subtype, put into ecx
+        node.code += commentAsm("Type check runtime assignability of array element");
 
-            // Save lhs and rhs
-            node.code += "push eax\n";
-            node.code += "push ebx\n";
+        // Get rhs subtype, put into edx
+        node.code += getClassInfo();
+        node.code += getSubtypeColumn();
+        node.code += "mov edx, eax\n";
 
-            // Get rhs subtype, put into edx
-            node.code += getClassInfo();
-            node.code += getSubtypeColumn();
-            node.code += "mov edx, eax\n";
+        // Get lhs subtype, put into ecx
+        node.code += "mov eax, ebx\n";
+        node.code += getClassInfo();
+        node.code += getSubtypeColumn();
+        node.code += "mov ecx, eax\n";
+        
+        // Check rhs is subtype of lhs (rhs column)
+        // Get subtype table entry
+        node.code += "mov eax, " + useLabel(SUBTYPE_TABLE_LABEL) + "\n";
+        node.code += "imul edx, " + std::to_string(cg.subtype_column_count) + "\n";
+        node.code += "add eax, edx\n";
+        node.code += "add eax, ecx\n";
+        node.code += "mov ecx, 0\n";
+        node.code += "mov cl, [eax]\n";
+        node.code += "mov eax, ecx\n";
+        node.code += cg.nullCheckAsm();
 
-            // Get lhs subtype, put into ecx
-            node.code += "mov ebx, eax\n";
-            node.code += getClassInfo();
-            node.code += getSubtypeColumn();
-            node.code += "mov ecx, eax\n";
+        // Restore lhs and rhs
+        node.code += "pop ebx\n";
+        node.code += "pop eax\n";
 
-            // TODO rhs needs to be column, check rhs is subtype of lhs
+        // Put array back into eax and save ebx
+        node.code += "xchg eax, ebx\n";
+        node.code += "push ebx\n";
 
-            // Get subtype table entry
-            node.code += "mov eax, " + useLabel(SUBTYPE_TABLE_LABEL) + "\n";
-            node.code += "mul ecx, " + std::to_string(cg.subtype_column_count) + "\n";
-            node.code += "add eax, ecx\n";
-            node.code += "add eax, edx\n";
-            node.code += "mov ecx, 0\n";
-            node.code += "mov cl, [eax]\n";
-            node.code += "mov eax, ecx\n";
-            node.code += cg.nullCheckAsm();
+        node.code += indexArray(*array_access); // Equivelent to node.lhs->addr
 
-            // Restore lhs and rhs
-            node.code += "pop ebx\n";
-            node.code += "pop eax\n";
-        }
-        else if(parray)
-        {
-            // TODO Cast primitive types 
-        }
-        else assert(false);
+        // Restore ebx and put lhs back into ebx
+        node.code += "pop ebx\n";
+        node.code += "xchg eax, ebx\n";
+    }
+    else
+    {
+        // rhs in eax, lhs in ebx
+        node.code += node.lhs->addr;
+        node.code += "push eax\n";
+        node.code += node.rhs->code;
+        node.code += "pop ebx\n";
     }
 
     node.code += "mov [ebx], eax\n";
@@ -1116,21 +1130,35 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
     }
 }
 
+std::string CodeGenerator::CodeGenVisitor::getArray(ArrayAccess& node)
+{
+    std::string ret;
+    ret += node.prevExpr->code;
+    ret += cg.nullCheckAsm();
+    return ret;
+}
+
+std::string CodeGenerator::CodeGenVisitor::indexArray(ArrayAccess& node)
+{
+    std::string ret;
+    ret += "push eax\n";
+    ret += node.indexExpr->code;
+    ret += "pop ebx\n";
+    ret += "cmp eax, 0\n";
+    ret += "jl " + useLabel(EXCEPTION) + "\n";
+    ret += "mov ecx, [ebx + " + std::to_string(FIELDS_OFFSET) + "]\n";
+    ret += "cmp eax, ecx\n";
+    ret += "jge " + useLabel(EXCEPTION) + "\n";
+    ret += "add eax, 2\n";
+    ret += "imul eax, " + std::to_string(WORD_SIZE) + "\n";
+    ret += "add eax, ebx\n";
+    return ret;
+}
+
 void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
 {
-    node.addr += node.prevExpr->code;
-    node.addr += cg.nullCheckAsm();
-    node.addr += "push eax\n";
-    node.addr += node.indexExpr->code;
-    node.addr += "pop ebx\n";
-    node.addr += "cmp eax, 0\n";
-    node.addr += "jl " + useLabel(EXCEPTION) + "\n";
-    node.addr += "mov ecx, [ebx + " + std::to_string(FIELDS_OFFSET) + "]\n";
-    node.addr += "cmp eax, ecx\n";
-    node.addr += "jge " + useLabel(EXCEPTION) + "\n";
-    node.addr += "add eax, 2\n";
-    node.addr += "imul eax, " + std::to_string(WORD_SIZE) + "\n";
-    node.addr += "add eax, ebx\n";
+    node.addr += getArray(node);
+    node.addr += indexArray(node);
 
     node.code = node.addr + addrVal();
 

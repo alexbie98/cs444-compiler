@@ -233,6 +233,9 @@ public:
         std::string callStaticMethod(MethodDeclaration* method, std::vector<std::string> codeArgs);
 
         std::string createStringFromLiteral(const std::u16string& string);
+
+        std::string getArray(ArrayAccess& node);
+        std::string indexArray(ArrayAccess& node);
     };
 
     CodeGenerator(Environment& globalEnv);
