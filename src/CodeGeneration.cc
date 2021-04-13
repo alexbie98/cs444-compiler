@@ -1287,9 +1287,10 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
     std::string constructorInitializers;
     std::string constructorSuffix;
 
+    ConstructorDeclaration* super = nullptr;
+
     if (node.baseClass)
     {
-        ConstructorDeclaration* super = nullptr;
         for (MemberDeclaration* member : node.baseClass->classBody->elements)
         {
             if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
@@ -1301,14 +1302,6 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
                 }
             }
         }
-
-        constructorSuper = commentAsm("Super Constructor Call Start");
-        constructorSuper += thisAddr() + addrVal();
-        constructorSuper += "push eax\n";
-        constructorSuper += labelAddr(cg.constructorLabel(super));
-        constructorSuper += "call eax\n";
-        constructorSuper += "add esp, " + std::to_string(WORD_SIZE) + '\n';
-        constructorSuper += commentAsm("Super Constructor Call End");
     }
 
     for (MemberDeclaration* member : node.classBody->elements)
@@ -1354,6 +1347,18 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
                 constructorHeader += "push 0\n";
             }
             constructorHeader += pushCalleeSaveRegs();
+
+            if (super)
+            {
+                constructorSuper = commentAsm("Super Constructor Call Start");
+                constructorSuper += frameOffsetAddr((constructor->parameters->elements.size() + 2) * WORD_SIZE); // Manually calculate because we are no longer in constructor context
+                constructorSuper += addrVal();
+                constructorSuper += "push eax\n";
+                constructorSuper += labelAddr(cg.constructorLabel(super));
+                constructorSuper += "call eax\n";
+                constructorSuper += "add esp, " + std::to_string(WORD_SIZE) + '\n';
+                constructorSuper += commentAsm("Super Constructor Call End");
+            }
 
             constructor->code = constructorHeader + constructorSuper + constructorInitializers
                 + constructor->code + constructorSuffix;
