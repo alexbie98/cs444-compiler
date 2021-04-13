@@ -1328,9 +1328,9 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
         if (ConstructorDeclaration * constructor = dynamic_cast<ConstructorDeclaration*>(member))
         {
             constructorHeader = commentAsm("ConstructorDeclaration Start");
-            constructorHeader += methodCallHeader();
             constructorHeader += globalAsm(cg.constructorLabel(constructor));
             constructorHeader += labelAsm(cg.constructorLabel(constructor));
+            constructorHeader += methodCallHeader();
             constructorHeader += commentAsm("Push local vars to stack");
             for (int i = 0; i < constructor->localVarCount; i++)
             {
