@@ -325,6 +325,7 @@ std::string CodeGenerator::generateStart(std::string static_field_initializers, 
 {
     std::string ret;
     ret += runtimeExternsAsm();
+    ret += TEXT_DIR;
     ret += globalAsm("_start");
     ret += labelAsm("_start");
     ret += static_field_initializers;
