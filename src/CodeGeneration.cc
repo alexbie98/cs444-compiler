@@ -324,6 +324,7 @@ std::string CodeGenerator::generateCommon()
 std::string CodeGenerator::generateStart(std::string static_field_initializers, MethodDeclaration* entry)
 {
     std::string ret;
+    ret += runtimeExternsAsm();
     ret += globalAsm("_start");
     ret += labelAsm("_start");
     ret += static_field_initializers;
