@@ -215,6 +215,15 @@ void ConstantExpressionVisitor::visit(MethodDeclaration& node)
     methodName = node.name->id;
 }
 
+void ConstantExpressionVisitor::leave(Statement& node)
+{
+    if (error != "")
+    {
+        std::cout << error << std::endl;
+        exit(42);
+    }
+}
+
 void ConstantExpressionVisitor::leave(VariableDeclarationExpression& node)
 {
     // Only do for local vars not fields
@@ -340,16 +349,16 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
                 arithmetic = std::divides<integer_type>();
                 if (node.rhs->constant_value->asInt() == 0)
                 {
-                    std::cout << "Cannot divide by 0 (Static Analysis)" << std::endl;
-                    exit(42);
+                    error = "Cannot divide by 0 (Static Analysis)";
+                    return;
                 }
                 break;
             case BinaryOperation::REMAINDER:
                 arithmetic = std::modulus<integer_type>();
                 if (node.rhs->constant_value->asInt() == 0)
                 {
-                    std::cout << "Cannot divide by 0 (Static Analysis)" << std::endl;
-                    exit(42);
+                    error = "Cannot divide by 0 (Static Analysis)";
+                    return;
                 }
                 break;
             case BinaryOperation::EQ:
@@ -393,6 +402,21 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
 
         // TODO Correct default behaviour due to type checking?
         node.constant_value = new Expression::ConstantValue(result);
+    }
+    else
+    {
+        switch (node.op)
+        {
+        case BinaryOperation::AND:
+        case BinaryOperation::OR:
+            if (error != "")
+            {
+                // Reevaluate lhs, if it came from rhs we're not guarenteed to have the error
+                error = "";
+                node.lhs->visitAll(*this);
+            }
+            break;
+        }
     }
 }
 
@@ -469,8 +493,7 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
             {
                 if (!isCastable(node.expression->constant_value->refType, node.castType))
                 {
-                    std::cout << "Cast will never succeed (Static Analysis)" << std::endl;
-                    exit(42);
+                    error = "Cast will never succeed (Static Analysis)";
                 }
             }
         }
