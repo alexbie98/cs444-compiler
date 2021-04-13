@@ -1430,6 +1430,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
     {
         node.code += globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
+        cg.defined_labels.insert(node.staticLabel); // Make sure static fields aren't externed in their source file
         node.code += "dd 0\n";
         
         // We need to run all the static field initializers once in a seperate location at start of execution
