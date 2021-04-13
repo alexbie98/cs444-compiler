@@ -77,6 +77,8 @@ class CodeGenerator
     size_t fresh_label_counter = 0;
 
     std::string labelAsm(std::string id){ defined_labels.insert(id); return id + ":\n"; }
+    std::string staticLabelAsm(std::string id) { static_defined_labels.insert(id); return id + ":\n"; }
+
     static std::string directiveAsm(std::string id){ return "section ." + id + "\n"; }
     static std::string wordAsm(int value){ return "dd " + std::to_string(value) + "\n"; }
     static std::string wordAsm(std::string label){ return "dd " + label + "\n"; }
@@ -132,8 +134,13 @@ class CodeGenerator
 
     std::set<std::string> used_labels;
     std::set<std::string> defined_labels;
+    std::set<std::string> static_used_labels;
+    std::set<std::string> static_defined_labels;
     std::string useLabel(std::string label){ used_labels.insert(label); return label; };
+    std::string staticUseLabel(std::string label) { static_used_labels.insert(label); return label; };
+
     std::string writeExterns(); // Writes neccessary externs and resets
+    std::string staticWriteExterns(); // Writes externs for static initializers
 
     std::string static_field_initializers;
 
@@ -148,6 +155,7 @@ public:
         int localVariableCount = 0;
 
         bool inMethod = false;
+        bool inStaticField = false;
         CodeGenerator& cg;
 
         std::string staticFieldInitializers;
@@ -160,6 +168,7 @@ public:
         virtual void visit(ConstructorDeclaration& node);
         virtual void visit(FormalParameter& node);
         virtual void visit(VariableDeclarationExpression& node);
+        virtual void visit(FieldDeclaration& node);
 
         virtual void leave(IntLiteral& node);
         virtual void leave(CharLiteral& node);
@@ -215,8 +224,8 @@ public:
         std::string stringConversion(Expression& node);
         size_t getTypeSubtypeIndex(Type* type);
 
-        std::string labelAsm(const std::string& id){ return cg.labelAsm(id); }
-        std::string useLabel(const std::string& label){ return cg.useLabel(label); };
+        std::string labelAsm(const std::string& id);
+        std::string useLabel(const std::string& label);
 
         std::string createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs);
         std::string createArrayFromLabel(const std::string& label, const std::string& argument);

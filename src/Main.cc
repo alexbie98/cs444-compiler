@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     generatePrimitiveArray(PrimitiveType::INT, "IntArray"); 
 
     // Get entry point for program
-    MethodDeclaration* entry_point;
+    MethodDeclaration* entry_point = nullptr;
 
     CompilerUnit* first_file = dynamic_cast<CompilerUnit*>(asts[0]);
     assert(first_file); // TODO Make this a compile error?

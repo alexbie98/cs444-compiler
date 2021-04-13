@@ -333,8 +333,7 @@ std::string CodeGenerator::generateStart(std::string static_field_initializers, 
     ret += "mov eax, 1\n" + commentAsm("sys_exit system call");
     ret += "int 0x80\n";
     
-    // Externs are included in static_field_initializers, reset for sanity
-    writeExterns();
+    ret+= staticWriteExterns();
 
     return ret;
 }
@@ -352,6 +351,23 @@ std::string CodeGenerator::writeExterns()
 
     used_labels.clear();
     defined_labels.clear();
+
+    return ret;
+}
+
+
+std::string CodeGenerator::staticWriteExterns()
+{
+    std::string ret = "\n" + commentAsm("Static Initializer Externs");
+
+    //assert(used_labels.empty());
+    for (auto& used : static_used_labels)
+    {
+        if (static_defined_labels.find(used) == static_defined_labels.end()) ret += externAsm(used);
+    }
+
+    static_used_labels.clear();
+    static_defined_labels.clear();
 
     return ret;
 }
@@ -528,6 +544,19 @@ void CodeGenerator::CodeGenVisitor::visit(VariableDeclarationExpression& node)
     {
         localVariableCount++;
         node.variableOffset = localVariableCount * -4;
+    }
+}
+
+void CodeGenerator::CodeGenVisitor::visit(FieldDeclaration& node)
+{
+    inStaticField = false;
+    for (Modifier* mod : node.modifiers->elements)
+    {
+        if (mod->type == Modifier::STATIC)
+        {
+            inStaticField = true;
+            break;
+        }
     }
 }
 
@@ -1361,18 +1390,17 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
     if (isStatic)
     {
         node.staticLabel = node.originatingClass->fullyQualifiedName + "." + node.declaration->name->id;
-
-        node.code = commentAsm("Static FieldDeclaration Start");
         node.code += globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
         node.code += "dd 0\n";
         
         // We need to run all the static field initializers once in a seperate location at start of execution
+        staticFieldInitializers += commentAsm("Static FieldDeclaration Init Start");
         staticFieldInitializers += node.declaration->code;
         staticFieldInitializers += externAsm(node.staticLabel);
         staticFieldInitializers += "mov ebx, " + node.staticLabel + '\n';
         staticFieldInitializers += "mov [ebx], eax\n";
-        staticFieldInitializers += commentAsm("Static FieldDeclaration End");
+        staticFieldInitializers += commentAsm("Static FieldDeclaration Init End") + "\n";
     }
     else
     {
@@ -1388,6 +1416,8 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
             node.code += commentAsm("FieldDeclaration End");
         }
     }
+
+    inStaticField = false;
 }
 
 void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
@@ -1716,6 +1746,30 @@ size_t CodeGenerator::CodeGenVisitor::getTypeSubtypeIndex(Type* type)
     else assert(false);
 
     return type_offset;
+}
+
+std::string CodeGenerator::CodeGenVisitor::labelAsm(const std::string& id)
+{
+    if (!inStaticField)
+    {
+        return cg.labelAsm(id);
+    }
+    else
+    {
+        return cg.staticLabelAsm(id);
+    }
+}
+
+std::string CodeGenerator::CodeGenVisitor::useLabel(const std::string& label)
+{
+    if (!inStaticField)
+    {
+        return cg.useLabel(label);
+    }
+    else
+    {
+        return cg.staticUseLabel(label);
+    }
 }
 
 std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaration* classDecl, ConstructorDeclaration* constructor, std::vector<std::string> codeArgs)
