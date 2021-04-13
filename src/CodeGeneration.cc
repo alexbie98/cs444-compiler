@@ -1935,7 +1935,7 @@ std::string CodeGenerator::CodeGenVisitor::callStaticMethod(MethodDeclaration* m
 
     ret += "mov eax, " + useLabel(cg.classMethodLabel(method)) + "\n";
     ret += "call eax\n";
-    ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+    ret += "add esp, " + std::to_string(object_offset) + '\n';
     ret += commentAsm("StaticMethodCall End");
     return ret;
 }
