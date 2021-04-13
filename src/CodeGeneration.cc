@@ -999,7 +999,7 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
     }
 
     node.code += "mov [ebx], eax\n";
-    node.code += "mov eax, ebx\n";
+    node.code += "mov eax, [ebx]\n";
     node.code += commentAsm("AssignmentExpression End");
 }
 
@@ -1551,7 +1551,7 @@ std::string CodeGenerator::CodeGenVisitor::evaluateTwoNodes(ASTNode& lhs, ASTNod
 std::string CodeGenerator::CodeGenVisitor::cmpOperation(ASTNode& lhs, ASTNode& rhs, const std::string& cmpJump, const std::string& labelA, const std::string& labelB)
 {
     std::string ret = evaluateTwoNodes(lhs, rhs);
-    ret += "cmp eax, ebx\n";
+    ret += "cmp ebx, eax\n";
     ret += cmpJump + " " + labelA + "\n";
     ret += "mov eax, 0\n";
     ret += "jmp " + labelB + "\n";
