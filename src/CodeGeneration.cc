@@ -446,6 +446,17 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     class_asm += wordAsm(useLabel(column_label));
     class_asm += wordAsm(subtype_index);
 
+    // Add entryType if object is an array
+    if (otype == ObjectType::OBJECT_ARRAY)
+    {
+        // Store subtype index of entryType only
+        class_asm += wordAsm(getObjectSubtypeIndex(root));
+    }
+    else
+    {
+        class_asm += wordAsm(0);
+    }
+
     size_t prefix_size = class_info->methods_prefix.size();
     std::vector<MethodDeclaration*> expanded_method_prefix(prefix_size, nullptr);
     for(auto it: class_info->methods_prefix)
@@ -458,17 +469,6 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     {
         assert(method);
         class_asm += wordAsm(useLabel(classMethodLabel(method)));
-    }
-
-    // Add entryType if object is an array
-    if(otype == ObjectType::OBJECT_ARRAY)
-    {
-        // Store subtype index of entryType only
-        class_asm += wordAsm(getObjectSubtypeIndex(root));
-    } 
-    else if(otype == ObjectType::PRIMITIVE_ARRAY)
-    {
-        class_asm += wordAsm(0);
     }
 
     if(otype == ObjectType::OBJECT && dynamic_cast<ClassDeclaration*>(root))
@@ -972,7 +972,7 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
         // Get lhs subtype, put into ecx
         node.code += "mov eax, ebx\n";
         node.code += getClassInfo();
-        node.code += getSubtypeColumn();
+        node.code += getElementTypeColumn();
         node.code += "mov ecx, eax\n";
         
         // Check rhs is subtype of lhs (rhs column)
@@ -987,18 +987,12 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
         node.code += cg.nullCheckAsm();
 
         // Restore lhs and rhs
-        node.code += "pop ebx\n";
         node.code += "pop eax\n";
-
-        // Put array back into eax and save ebx
-        node.code += "xchg eax, ebx\n";
-        node.code += "push ebx\n";
-
         node.code += indexArray(*array_access); // Equivelent to node.lhs->addr
 
         // Restore ebx and put lhs back into ebx
-        node.code += "pop ebx\n";
-        node.code += "xchg eax, ebx\n";
+        node.code += "mov ebx, eax\n";
+        node.code += "pop eax\n";
     }
     else
     {
@@ -1662,6 +1656,11 @@ std::string CodeGenerator::CodeGenVisitor::getClassInfo()
 std::string CodeGenerator::CodeGenVisitor::getSubtypeColumn()
 {
     return "mov eax, [eax + " + std::to_string(SUBTYPE_OFFSET) + "]\n";
+}
+
+std::string CodeGenerator::CodeGenVisitor::getElementTypeColumn()
+{
+    return "mov eax, [eax + " + std::to_string(ELEMENT_TYPE_OFFSET) + "]\n";
 }
 
 std::string CodeGenerator::CodeGenVisitor::stringConversion(Expression& node)

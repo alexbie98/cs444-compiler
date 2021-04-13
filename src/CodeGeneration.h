@@ -69,7 +69,8 @@ class CodeGenerator
     static const size_t FIELDS_OFFSET = 4;
     static const size_t SIT_OFFSET = 0;
     static const size_t SUBTYPE_OFFSET = 4;
-    static const size_t METHODS_OFFSET = 8;
+    static const size_t ELEMENT_TYPE_OFFSET = 8;
+    static const size_t METHODS_OFFSET = 12;
 
     static const std::string TEXT_DIR;
     static const std::string DATA_DIR;
@@ -220,6 +221,7 @@ public:
 
         std::string getClassInfo();
         std::string getSubtypeColumn();
+        std::string getElementTypeColumn();
 
         std::string stringConversion(Expression& node);
         size_t getTypeSubtypeIndex(Type* type);
