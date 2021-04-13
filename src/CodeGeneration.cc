@@ -906,21 +906,26 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
 
         node.code += "push eax\n";
 
-        node.code = commentAsm("Check if object is null, allow cast if it is");
+        node.code += commentAsm("Check if object is null, allow cast if it is");
         node.code += "cmp eax, 0\n";
         node.code += "je " + cast_allowed + "\n";
         
         // Check if expression is instanceof castType
         node.code += getClassInfo();
         node.code += getSubtypeColumn();
+        node.code += "mov ebx, " + std::to_string(type_offset) + '\n';
         node.code += "mov ecx, 0\n";
-        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
+        node.code += "push eax\n";
+        node.code += "imul eax, " + std::to_string(cg.subtype_column_count) + '\n';
+        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + ebx]\n";
+        node.code += "pop eax\n";
         node.code += "cmp ecx, 0\n";
         node.code += "jne " + cast_allowed + "\n";
 
         // Check if castType is instanceof expression type
         node.code += "mov ecx, 0\n";
-        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ " + std::to_string(type_offset) + " *"+ std::to_string(cg.subtype_column_count) + "+eax]\n";
+        node.code += "imul ebx, " + std::to_string(cg.subtype_column_count) + '\n';
+        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + ebx]\n";
         node.code += "cmp ecx, 0\n";
         node.code += "je " + useLabel(EXCEPTION) + "\n";
 
@@ -928,7 +933,7 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         node.code += "pop eax\n";
     }
 
-    node.code = commentAsm("CastExpression End");
+    node.code += commentAsm("CastExpression End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
@@ -1185,8 +1190,10 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
 
     node.code += getClassInfo();
     node.code += getSubtypeColumn();
+    node.code += "mov ecx, 0\n";
     node.code += "imul eax, " + std::to_string(cg.subtype_column_count) + '\n';
-    node.code += "mov eax, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + " + std::to_string(type_offset) + "]\n";
+    node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + " + std::to_string(type_offset) + "]\n";
+    node.code += "mov eax, ecx\n";
 
     node.code += labelAsm(finished);
     node.code += commentAsm("InstanceOfExpression End");
