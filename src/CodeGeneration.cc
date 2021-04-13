@@ -389,13 +389,14 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
         column_label = sitColumnClassLabel(root_class);
         column = &sit_table[root_class];
         class_info = &class_infos[root_class];
-        class_data_label = classDataLabel(root);
+        class_data_label = classDataLabel(root_class);
         subtype_index = getObjectSubtypeIndex(root);
         class_asm += runtimeExternsAsm();
         class_asm += "\n" + commentAsm("================== OBJECT INFORMATION ==================");
     } 
     else if(otype == ObjectType::OBJECT_ARRAY)
     {
+        // Uses same sit column as object
         column_label = sitColumnClassLabel(object_class_decl);
         column = &sit_table[object_class_decl];
         class_info = &array_class_infos[root];
@@ -406,6 +407,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     } 
     else if(otype == ObjectType::PRIMITIVE_ARRAY)
     {
+        // Uses same sit column as object
         column_label = sitColumnClassLabel(object_class_decl);
         column = &sit_table[object_class_decl];
         class_info = &primitive_array_class_infos[ptype];
@@ -420,6 +422,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     // Generate SIT column if class
     if(otype == ObjectType::OBJECT) 
     {
+        class_asm += globalAsm(column_label);
         class_asm += labelAsm(column_label);
 
         for(MethodDeclaration* method: *column)
@@ -437,6 +440,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
 
     class_asm += "\n";
 
+    class_asm += globalAsm(class_data_label);
     class_asm += labelAsm(class_data_label);
     class_asm += wordAsm(useLabel(column_label));
     class_asm += wordAsm(subtype_index);
@@ -458,7 +462,8 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     // Add entryType if object is an array
     if(otype == ObjectType::OBJECT_ARRAY)
     {
-        class_asm += wordAsm(useLabel(classDataLabel(root)));
+        // Store subtype index of entryType only
+        class_asm += wordAsm(getObjectSubtypeIndex(root));
     } 
     else if(otype == ObjectType::PRIMITIVE_ARRAY)
     {
@@ -963,6 +968,8 @@ void CodeGenerator::CodeGenVisitor::leave(AssignmentExpression& node)
             node.code += getClassInfo();
             node.code += getSubtypeColumn();
             node.code += "mov ecx, eax\n";
+
+            // TODO rhs needs to be column, check rhs is subtype of lhs
 
             // Get subtype table entry
             node.code += "mov eax, " + useLabel(SUBTYPE_TABLE_LABEL) + "\n";

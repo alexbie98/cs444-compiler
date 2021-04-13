@@ -93,7 +93,7 @@ class CodeGenerator
     std::string runtimeExternsAsm();
 
     // TODO Make helpers for generating assembly to access class data members
-    std::string classDataLabel(TypeDeclaration* decl){ return "class_info_" + decl->fullyQualifiedName; }
+    std::string classDataLabel(ClassDeclaration* decl){ return "type_info_" + decl->fullyQualifiedName; }
     std::string classArrayDataLabel(TypeDeclaration* decl){ return "carray_info_" + decl->fullyQualifiedName; }
     std::string primitiveArrayDataLabel(PrimitiveType::BasicType type){ return "parray_info_" + PrimitiveType::basicTypeToString(type); }
     std::string classMethodLabel(MethodDeclaration* method)
