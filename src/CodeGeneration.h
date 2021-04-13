@@ -135,6 +135,8 @@ class CodeGenerator
     std::string useLabel(std::string label){ used_labels.insert(label); return label; };
     std::string writeExterns(); // Writes neccessary externs and resets
 
+    std::string static_field_initializers;
+
     std::string generateObjectCode(TypeDeclaration* root, ObjectType otype, PrimitiveType::BasicType ptype = PrimitiveType::BasicType(0));
     
 public:
@@ -152,6 +154,7 @@ public:
 
     public:
         CodeGenVisitor(CodeGenerator& code_generator) : cg{ code_generator } {};
+        const std::string& getStaticFieldInitializers(){ return staticFieldInitializers; }
 
         virtual void visit(MethodDeclaration& node);
         virtual void visit(ConstructorDeclaration& node);
@@ -223,7 +226,9 @@ public:
 
     CodeGenerator(Environment& globalEnv);
     std::string generateCommon();
+    std::string generateStart(std::string static_field_initializers, MethodDeclaration* entry);
     std::string generateClassCode(ClassDeclaration* root); // Generates code for object and it's array
     std::string generatePrimitiveArrayCode(PrimitiveType::BasicType type);
     std::string generateInterfaceArrayCode(InterfaceDeclaration* root);
+    std::string getAndResetStaticFieldInitializers(){ std::string ret = static_field_initializers; static_field_initializers = {}; return ret; }
 };

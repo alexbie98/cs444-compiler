@@ -321,6 +321,24 @@ std::string CodeGenerator::generateCommon()
     return common_asm;
 }
 
+std::string CodeGenerator::generateStart(std::string static_field_initializers, MethodDeclaration* entry)
+{
+    std::string ret;
+    ret += globalAsm("_start");
+    ret += labelAsm("_start");
+    ret += static_field_initializers;
+    ret += externAsm(classMethodLabel(entry));
+    ret += "call " + classMethodLabel(entry) + "\n";
+    ret += "mov ebx, eax\n";
+    ret += "mov eax, 1\n" + commentAsm("sys_exit system call");
+    ret += "int 0x80\n";
+    
+    // Externs are included in static_field_initializers, reset for sanity
+    writeExterns();
+
+    return ret;
+}
+
 std::string CodeGenerator::writeExterns()
 {
     std::string ret;
@@ -437,6 +455,8 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
         CodeGenVisitor visitor(*this);
         root->visitAll(visitor);
         class_asm += root->code;
+
+        static_field_initializers += visitor.getStaticFieldInitializers();
     }
 
     return class_asm;
@@ -1706,7 +1726,7 @@ std::string CodeGenerator::CodeGenVisitor::createFromConstructor(ClassDeclaratio
 
     std::string ret = commentAsm("ClassInstanceCreator Start");
     ret += "mov eax, " + std::to_string(objSize) + "\n";
-    ret += "call " + MALLOC + "\n";
+    ret += "call " + useLabel(MALLOC) + "\n";
     ret += "mov dword [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(cg.classDataLabel(classDecl)) + "\n";
 
     ret += "push eax\n";
@@ -1733,7 +1753,7 @@ std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::strin
     ret += "push eax\n";
     ret += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
 
-    ret += "call " + MALLOC + "\n";
+    ret += "call " + useLabel(MALLOC) + "\n";
     ret += "mov dword [eax + " + std::to_string(CLASS_INFO_OFFSET) + "], " + useLabel(label) + "\n";
     ret += "pop ebx\n";
     ret += "mov dword [eax + " + std::to_string(FIELDS_OFFSET) + "], ebx\n";

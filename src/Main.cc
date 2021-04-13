@@ -106,11 +106,14 @@ int main(int argc, char *argv[])
     common_asm << code_generator.generateCommon();
     common_asm.close();
 
+    std::string static_field_initializers;
+
     for(auto it: globalEnv.classes)
     {
         ofstream class_asm;
         class_asm.open ("output/" + it.second->getName()->getString() + ".s");
         class_asm << code_generator.generateClassCode(it.second);
+        static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
         class_asm.close();
     }
 
@@ -135,6 +138,39 @@ int main(int argc, char *argv[])
     generatePrimitiveArray(PrimitiveType::SHORT, "ShortArray"); 
     generatePrimitiveArray(PrimitiveType::CHAR, "CharArray"); 
     generatePrimitiveArray(PrimitiveType::INT, "IntArray"); 
+
+    // Get entry point for program
+    MethodDeclaration* entry_point;
+
+    CompilerUnit* first_file = dynamic_cast<CompilerUnit*>(asts[0]);
+    assert(first_file); // TODO Make this a compile error?
+    ClassDeclaration* first_class = dynamic_cast<ClassDeclaration*>(first_file->typeDecl);
+    assert(first_class);
+    for(MemberDeclaration* member: first_class->classBody->elements)
+    {
+        MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+        if(member)
+        {
+            bool is_static = false;
+            for(Modifier* modifier: member->modifiers->elements)
+            {
+                if(modifier->type == Modifier::ModifierType::STATIC) is_static = true;
+            }
+
+            if(is_static 
+               && method->name->getString() == "test" 
+               && dynamic_cast<PrimitiveType*>(method->type) 
+               && dynamic_cast<PrimitiveType*>(method->type)->type == PrimitiveType::INT )
+               {
+                   entry_point = method;
+               }
+        }
+    }
+
+    ofstream start_asm;
+    start_asm.open ("output/start.s");
+    start_asm << code_generator.generateStart(static_field_initializers, entry_point);
+    start_asm.close();
 
     // clean up extras in environment
     for (auto it: globalEnv.extras){
