@@ -152,8 +152,7 @@ int main(int argc, char *argv[])
     assert(first_class);
     for(MemberDeclaration* member: first_class->classBody->elements)
     {
-        MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-        if(member)
+        if(MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(member))
         {
             bool is_static = false;
             for(Modifier* modifier: member->modifiers->elements)
