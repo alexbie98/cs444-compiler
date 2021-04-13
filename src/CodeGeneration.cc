@@ -819,8 +819,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         break;
         case BinaryOperation::LT:
         {
-            std::string ltLabel = useLabel("gtTrue." + std::to_string(node.LABEL_NUM));
-            std::string ltLabelEnd = useLabel("gtEnd." + std::to_string(node.LABEL_NUM));
+            std::string ltLabel = useLabel("ltTrue." + std::to_string(node.LABEL_NUM));
+            std::string ltLabelEnd = useLabel("ltEnd." + std::to_string(node.LABEL_NUM));
             node.LABEL_NUM++;
 
             node.code += cmpOperation(*node.lhs, *node.rhs, "jl", ltLabel, ltLabelEnd);
@@ -1123,7 +1123,7 @@ void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
     node.addr += "pop ebx\n";
     node.addr += "cmp eax, 0\n";
     node.addr += "jl " + useLabel(EXCEPTION) + "\n";
-    node.addr += "mov ecx, [eax + " + std::to_string(FIELDS_OFFSET) + "]\n";
+    node.addr += "mov ecx, [ebx + " + std::to_string(FIELDS_OFFSET) + "]\n";
     node.addr += "cmp eax, ecx\n";
     node.addr += "jge " + useLabel(EXCEPTION) + "\n";
     node.addr += "add eax, 2\n";
@@ -1874,6 +1874,7 @@ std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::strin
     std::string ret = commentAsm("ArrayCreator Start");
     ret += argument;
     ret += "push eax\n";
+    ret += "imul eax, " + std::to_string(WORD_SIZE) + '\n';
     ret += "add eax, 8\n"; // Add 2 words one for class info and 1 for length
 
     ret += "call " + useLabel(MALLOC) + "\n";
