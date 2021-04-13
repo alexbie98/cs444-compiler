@@ -332,9 +332,7 @@ std::string CodeGenerator::generateStart(std::string static_field_initializers, 
     ret += static_field_initializers;
     ret += externAsm(classMethodLabel(entry));
     ret += "call " + classMethodLabel(entry) + "\n";
-    ret += "mov ebx, eax\n";
-    ret += "mov eax, 1\n" + commentAsm("sys_exit system call");
-    ret += "int 0x80\n";
+    ret += "jmp " + DEXIT + '\n';
     
     ret+= staticWriteExterns();
 
