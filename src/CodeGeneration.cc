@@ -1307,31 +1307,6 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
         }
     }
 
-    for (MemberDeclaration* member : node.classBody->elements)
-    {
-        if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
-        {
-            bool isStatic = false;
-            for (Modifier* modifier : field->modifiers->elements)
-            {
-                if (modifier->type == Modifier::STATIC)
-                {
-                    isStatic = true;
-                }
-            }
-
-            if (!isStatic)
-            {
-                constructorInitializers += field->code;
-            }
-        }
-    }
-    if (constructorInitializers != "")
-    {
-        constructorInitializers = commentAsm("Field Initializers Start")
-            + constructorInitializers + commentAsm("Field Initializers End");
-    }
-
     constructorSuffix = popCalleeSaveRegs();
     constructorSuffix += methodCallReturn();
     constructorSuffix += commentAsm("ConstructorDeclaration End");
@@ -1351,10 +1326,12 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
             }
             constructorHeader += pushCalleeSaveRegs();
 
+            thisOffset = (constructor->parameters->elements.size() + 2) * WORD_SIZE; // Manually calculate because we are no longer in constructor context
+
             if (super)
             {
                 constructorSuper = commentAsm("Super Constructor Call Start");
-                constructorSuper += frameOffsetAddr((constructor->parameters->elements.size() + 2) * WORD_SIZE); // Manually calculate because we are no longer in constructor context
+                constructorSuper += thisAddr(); // This is why we need to do this here
                 constructorSuper += addrVal();
                 constructorSuper += "push eax\n";
                 constructorSuper += labelAddr(cg.constructorLabel(super));
@@ -1362,6 +1339,34 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
                 constructorSuper += "add esp, " + std::to_string(WORD_SIZE) + '\n';
                 constructorSuper += commentAsm("Super Constructor Call End");
             }
+
+            for (MemberDeclaration* member : node.classBody->elements)
+            {
+                if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
+                {
+                    bool isStatic = false;
+                    for (Modifier* modifier : field->modifiers->elements)
+                    {
+                        if (modifier->type == Modifier::STATIC)
+                        {
+                            isStatic = true;
+                        }
+                    }
+
+                    if (!isStatic)
+                    {
+                        // Regen code, because this reference is different 
+                        field->visitAll(*this);
+                        constructorInitializers += field->code;
+                    }
+                }
+            }
+            if (constructorInitializers != "")
+            {
+                constructorInitializers = commentAsm("Field Initializers Start")
+                    + constructorInitializers + commentAsm("Field Initializers End");
+            }
+
 
             constructor->code = constructorHeader + constructorSuper + constructorInitializers
                 + constructor->code + constructorSuffix;
