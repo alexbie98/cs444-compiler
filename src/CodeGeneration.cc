@@ -874,21 +874,18 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         switch (prim->type)
         {
         case PrimitiveType::BYTE:
-            node.code = "mov ecx, 0\n";
-            node.code = "movsx ecx, al\n";
-            node.code = "mov eax, ecx\n";
+            node.code += "movsx ecx, al\n";
+            node.code += "mov eax, ecx\n";
             break;
         case PrimitiveType::SHORT:
-            node.code = "mov ecx, 0\n";
-            node.code = "movsx ecx, ax\n";
-            node.code = "mov eax, ecx\n";
+            node.code += "movsx ecx, ax\n";
+            node.code += "mov eax, ecx\n";
             break;
         case PrimitiveType::INT:
             break;
         case PrimitiveType::CHAR:
-            node.code = "mov ecx, 0\n";
-            node.code = "mov ecx, ax\n";
-            node.code = "mov eax, ecx\n";
+            node.code += "movzx ecx, ax\n";
+            node.code += "mov eax, ecx\n";
             break;
         case PrimitiveType::BOOLEAN:
             break;
