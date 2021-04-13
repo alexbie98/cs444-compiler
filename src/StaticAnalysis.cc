@@ -1,4 +1,5 @@
 #include "StaticAnalysis.h"
+#include "NameResolution.h"
 #include <assert.h>
 #include <iostream>
 #include <functional>
@@ -208,6 +209,41 @@ void ReachabilityVisitor::visit(NameExpression& node)
     }
 }
 
+void ConstantExpressionVisitor::visit(MethodDeclaration& node)
+{
+    fullyQualifiedName = node.originatingClass->fullyQualifiedName;
+    methodName = node.name->id;
+}
+
+void ConstantExpressionVisitor::leave(VariableDeclarationExpression& node)
+{
+    // Only do for local vars not fields
+    if (dynamic_cast<FieldDeclaration*>(node.parent) == nullptr)
+    {
+        if (node.initializer->constant_value)
+        {
+            node.constant_value = node.initializer->constant_value;
+        }
+    }
+}
+
+void ConstantExpressionVisitor::leave(AssignmentExpression& node)
+{
+    if (NameExpression * nameLhs = dynamic_cast<NameExpression*>(node.lhs))
+    {
+        if (nameLhs->name)
+        {
+            if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(nameLhs->name->refers_to))
+            {
+                if (dynamic_cast<FieldDeclaration*>(var->parent) == nullptr)
+                {
+                    var->constant_value = nullptr;
+                }
+            }
+        }
+    }
+}
+
 void ConstantExpressionVisitor::leave(IntLiteral& node)
 {
     node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::INT });
@@ -230,6 +266,25 @@ void ConstantExpressionVisitor::leave(BooleanLiteral& node)
 {
     node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BOOL });
     node.constant_value->value._bool = node.value;
+}
+
+void ConstantExpressionVisitor::leave(NullLiteral& node)
+{
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
+}
+
+void ConstantExpressionVisitor::leave(NameExpression& node)
+{
+    if (node.name)
+    {
+        if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
+        {
+            if (dynamic_cast<FieldDeclaration*>(var->parent) == nullptr)
+            {
+                node.constant_value = var->constant_value;
+            }
+        }
+    }
 }
 
 void ConstantExpressionVisitor::leave(BinaryOperation& node)
@@ -283,9 +338,19 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
                 break;
             case BinaryOperation::DIVIDE:
                 arithmetic = std::divides<integer_type>();
+                if (node.rhs->constant_value->asInt() == 0)
+                {
+                    std::cout << "Cannot divide by 0 (Static Analysis)" << std::endl;
+                    exit(42);
+                }
                 break;
             case BinaryOperation::REMAINDER:
                 arithmetic = std::modulus<integer_type>();
+                if (node.rhs->constant_value->asInt() == 0)
+                {
+                    std::cout << "Cannot divide by 0 (Static Analysis)" << std::endl;
+                    exit(42);
+                }
                 break;
             case BinaryOperation::EQ:
                 if(both_bool) bool_comparison = std::equal_to<bool>();
@@ -353,14 +418,26 @@ void ConstantExpressionVisitor::leave(PrefixOperation& node)
     }
 }
 
+void ConstantExpressionVisitor::leave(ClassInstanceCreator& node)
+{
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
+    node.constant_value->refType = node.type;
+}
+
+void ConstantExpressionVisitor::leave(ArrayCreator& node)
+{
+    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
+    node.constant_value->refType = node.type;
+}
+
 void ConstantExpressionVisitor::leave(CastExpression& node)
 {
-    PrimitiveType* primitive = dynamic_cast<PrimitiveType*>(node.castType);
-
-    if(node.expression->constant_value && primitive)
+    if (node.expression->constant_value)
     {
-        switch (primitive->type)
+        if (PrimitiveType * primitive = dynamic_cast<PrimitiveType*>(node.castType))
         {
+            switch (primitive->type)
+            {
             case PrimitiveType::BYTE:
                 node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BYTE });
                 node.constant_value->value._byte = (decltype(Expression::ConstantValue::ConstantValueContents::_byte))node.expression->constant_value->asInt();
@@ -384,6 +461,18 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
             default:
                 assert(false);
                 break;
+            }
+        }
+        else
+        {
+            if (node.expression->constant_value->refType != nullptr)
+            {
+                if (!isCastable(node.expression->constant_value->refType, node.castType))
+                {
+                    std::cout << "Cast will never succeed (Static Analysis)" << std::endl;
+                    exit(42);
+                }
+            }
         }
     }
 }

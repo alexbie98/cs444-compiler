@@ -71,7 +71,7 @@ void EnvironmentVisitor::visit(ClassDeclaration& node)
     else
     {
         environments.top()->classes[class_name] = &node;
-        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? "." + node.name->getString() : class_name;
+        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? node.name->getString() : class_name;
         node.packageName = package;
     }
     initEnvironment(&node);
@@ -97,7 +97,7 @@ void EnvironmentVisitor::visit(InterfaceDeclaration& node)
     else
     {
         environments.top()->interfaces[interface_name] = &node;
-        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? "." + node.name->getString() : interface_name;
+        node.fullyQualifiedName = (package == UNNAMED_PACKAGE) ? node.name->getString() : interface_name;
         node.packageName = package;
     }
     initEnvironment(&node);
@@ -842,7 +842,7 @@ Type* typeFromDecl(ClassDeclaration* decl)
     return type;
 }
 
-bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
+bool isAssignable(Type* lhs, Type* rhs)
 {
     if (lhs && rhs)
     {
@@ -919,7 +919,7 @@ bool TypeCheckingVisitor::isAssignable(Type* lhs, Type* rhs) const
     return false;
 }
 
-bool TypeCheckingVisitor::isDerived(TypeDeclaration* base, TypeDeclaration* derived) const
+bool isDerived(TypeDeclaration* base, TypeDeclaration* derived)
 {
     if (base != nullptr)
     {
@@ -963,40 +963,42 @@ bool TypeCheckingVisitor::isDerived(TypeDeclaration* base, TypeDeclaration* deri
     return false;
 }
 
-bool TypeCheckingVisitor::isBooleanType(Type* type) const
+bool isBooleanType(Type* type)
 {
     PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
     return primType && primType->type == PrimitiveType::BOOLEAN;
 }
 
-bool TypeCheckingVisitor::isVoidType(Type* type) const
+bool isVoidType(Type* type)
 {
     PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
     return primType && primType->type == PrimitiveType::VOID;
 }
 
-bool TypeCheckingVisitor::isStringType(Type* type) const
+bool isStringType(Type* type)
 {
     QualifiedType* qualType = dynamic_cast<QualifiedType*>(type);
     if (qualType)
     {
-        return qualType->name->refers_to == globalEnvironment->classes["java.lang.String"];
+        TypeDeclaration* typeDecl = dynamic_cast<TypeDeclaration*>(qualType->name->refers_to);
+
+        return typeDecl && typeDecl->fullyQualifiedName == "java.lang.String";
     }
     return false;
 }
 
-bool TypeCheckingVisitor::isRefType(Type* type) const
+bool isRefType(Type* type)
 {
     return dynamic_cast<QualifiedType*>(type) || dynamic_cast<ArrayType*>(type);
 }
 
-bool TypeCheckingVisitor::isNullType(Type* type) const
+bool isNullType(Type* type)
 {
     PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
     return primType && primType->type == PrimitiveType::NULL_TYPE;
 }
 
-bool TypeCheckingVisitor::isInterfaceType(Type* type) const
+bool isInterfaceType(Type* type)
 {
     QualifiedType* qualType = dynamic_cast<QualifiedType*>(type);
     if (qualType)
@@ -1007,7 +1009,7 @@ bool TypeCheckingVisitor::isInterfaceType(Type* type) const
     return false;
 }
 
-bool TypeCheckingVisitor::isCastable(Type* baseType, Type* castType) const
+bool isCastable(Type* baseType, Type* castType)
 {
     if (isNullType(castType))
     {
@@ -1206,7 +1208,7 @@ bool TypeCheckingVisitor::validateConstructorAccess(ConstructorDeclaration* memb
     return true;
 }
 
-bool TypeCheckingVisitor::isNumericType(Type* type) const
+bool isNumericType(Type* type)
 {
     PrimitiveType* primType = dynamic_cast<PrimitiveType*>(type);
     if (primType)

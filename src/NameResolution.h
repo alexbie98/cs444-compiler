@@ -70,6 +70,17 @@ public:
     virtual void leave(Expression& e);
 };
 
+bool isAssignable(Type* lhs, Type* rhs);
+bool isDerived(TypeDeclaration* base, TypeDeclaration* derived);
+bool isBooleanType(Type* type);
+bool isVoidType(Type* type);
+bool isNumericType(Type* type);
+bool isStringType(Type* type);
+bool isRefType(Type* type);
+bool isNullType(Type* type);
+bool isInterfaceType(Type* type);
+bool isCastable(Type* baseType, Type* castType);
+
 class TypeCheckingVisitor : public ASTNodeVisitor
 {
     Environment* globalEnvironment;
@@ -122,17 +133,7 @@ public:
     virtual void leave(Block& node);
 
 private:
-    bool isAssignable(Type* lhs, Type* rhs) const;
-    bool isDerived(TypeDeclaration* base, TypeDeclaration* derived) const;
-    bool isBooleanType(Type* type) const;
-    bool isVoidType(Type* type) const;
-    bool isNumericType(Type* type) const;
-    bool isStringType(Type* type) const;
-    bool isRefType(Type* type) const;
-    bool isNullType(Type* type) const;
-    bool isInterfaceType(Type* type) const;
 
-    bool isCastable(Type* baseType, Type* castType) const;
 
     bool validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessingType, MemberDeclaration* member) const;
     bool validateConstructorAccess(ConstructorDeclaration* member) const;

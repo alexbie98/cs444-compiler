@@ -55,15 +55,25 @@ public:
 
 class ConstantExpressionVisitor: public ASTNodeVisitor
 {
+    std::string fullyQualifiedName;
+    std::string methodName;
 public: 
+
+    virtual void visit(MethodDeclaration& node);
+
+    virtual void leave(VariableDeclarationExpression& node);
+    virtual void leave(AssignmentExpression& node);
+
     virtual void leave(IntLiteral& node);
     virtual void leave(CharLiteral& node);
     virtual void leave(StringLiteral& node);
     virtual void leave(BooleanLiteral& node);
-    // virtual void leave(NameExpression& node);
+    virtual void leave(NullLiteral& node);
+    virtual void leave(NameExpression& node);
     virtual void leave(BinaryOperation& node);
     virtual void leave(PrefixOperation& node);
-    // virtual void leave(PrefixOperation& node);
+    virtual void leave(ClassInstanceCreator& node);
+    virtual void leave(ArrayCreator& node);
     virtual void leave(CastExpression& node);
     virtual void leave(ParenthesizedExpression& node);
     // virtual void leave(ChainableExpression& node);

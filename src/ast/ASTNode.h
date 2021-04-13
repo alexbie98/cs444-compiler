@@ -263,7 +263,8 @@ struct Expression : public ASTNode //abstract
             CHAR,
             // For Joos, we are not required to implement strings as constant literals for the purpose of constant expressions in the sense of JLS 15.28.
             STRING, // UNUSED
-            BOOL
+            BOOL,
+            REF_TYPE
         };
 
         union ConstantValueContents 
@@ -278,6 +279,8 @@ struct Expression : public ASTNode //abstract
 
         ConstantValueType type;
         ConstantValueContents value;
+
+        Type* refType = nullptr;
 
         bool isNumeric()
         {
