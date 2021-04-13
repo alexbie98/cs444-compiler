@@ -181,7 +181,7 @@ ASTNode* buildAST(ParseTreeNode* node)
         case CHAR_LIT:
         {
             CharLiteral* lit = new CharLiteral();
-            lit->value = (char16_t) node->token->second[0];
+            lit->value = (char16_t) (node->token->second[1]);
             return lit;
         }
         case STRING_LIT:
