@@ -1175,22 +1175,21 @@ void CodeGenerator::CodeGenVisitor::leave(InstanceOfExpression& node)
     size_t type_offset = getTypeSubtypeIndex(node.type);
 
     std::string& object = node.expression->code;
-    node.code += object;
 
-    std::string finished = useLabel(cg.freshenLabel("instanceof_result"));
+    std::string finished = cg.freshenLabel("instanceof_result");
 
     node.code = commentAsm("Check if object is null");
+    node.code += object;
     node.code += "cmp eax, 0\n";
-    node.code += "je " + finished + "\n";
+    node.code += "je " + useLabel(finished) + "\n";
 
     node.code += getClassInfo();
     node.code += getSubtypeColumn();
-    node.code += "mov ecx, 0\n";
-    node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax *"+ std::to_string(cg.subtype_column_count) + "+" + std::to_string(type_offset) + "]\n";
-    node.code += "mov eax, ecx\n";
+    node.code += "imul eax, " + std::to_string(cg.subtype_column_count) + '\n';
+    node.code += "mov eax, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + " + std::to_string(type_offset) + "]\n";
 
     node.code += labelAsm(finished);
-    node.code = commentAsm("InstanceOfExpression End");
+    node.code += commentAsm("InstanceOfExpression End");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(ExpressionStatement& node)
