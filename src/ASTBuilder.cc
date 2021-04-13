@@ -553,11 +553,9 @@ ASTNode* buildAST(ParseTreeNode* node)
 
             for(Statement* statement: original_statements)
             {   
-                ExpressionStatement* exp_statement = dynamic_cast<ExpressionStatement*>(statement);
-                if(exp_statement)
+                if(ExpressionStatement * exp_statement = dynamic_cast<ExpressionStatement*>(statement))
                 {
-                    VariableDeclarationExpression* var_exp = dynamic_cast<VariableDeclarationExpression*>(exp_statement->expression);
-                    if(var_exp)
+                    if (VariableDeclarationExpression * var_exp = dynamic_cast<VariableDeclarationExpression*>(exp_statement->expression))
                     {
                         // Create a new block and add it to the current blocks statements
                         Block* new_block = new Block();
@@ -570,6 +568,20 @@ ASTNode* buildAST(ParseTreeNode* node)
                         current_block = new_block;
                     }
                 }
+                else if (ForStatement * for_exp = dynamic_cast<ForStatement*>(statement))
+                {
+                    if (VariableDeclarationExpression * var_exp = dynamic_cast<VariableDeclarationExpression*>(for_exp->forInit))
+                    {
+                        // If for statement declares a var it needs a new block for entirety of for loop
+                        Block* new_block = new Block();
+                        new_block->statements = new ASTNodeList<Statement>();
+                        new_block->statements->elements.push_back(for_exp);
+                        current_block->statements->elements.push_back(new_block);
+                        continue;
+                    }
+                }
+
+
                 current_block->statements->elements.push_back(statement);
             }
 
