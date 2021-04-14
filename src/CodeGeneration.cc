@@ -756,6 +756,8 @@ void CodeGenerator::CodeGenVisitor::leave(BinaryOperation& node)
         case BinaryOperation::DIVIDE:
         case BinaryOperation::REMAINDER:
             node.code += evaluateTwoNodes(*node.lhs, *node.rhs);
+            node.code += "cmp eax, 0\n";
+            node.code += "je " + useLabel(EXCEPTION) + "\n";
             node.code += "mov ecx, eax\n";
             node.code += "mov eax, ebx\n";
             node.code += "cdq\n";
