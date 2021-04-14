@@ -1,5 +1,4 @@
 #include "StaticAnalysis.h"
-#include "NameResolution.h"
 #include <assert.h>
 #include <iostream>
 #include <functional>
@@ -12,13 +11,13 @@ void ReachabilityVisitor::visit(MethodDeclaration& node)
 void ReachabilityVisitor::leave(MethodDeclaration& node)
 {
     PrimitiveType* return_type = dynamic_cast<PrimitiveType*>(node.type);
-    if(node.body
-       && (!return_type || return_type->type != PrimitiveType::VOID)
-       && (out.find(node.body) == out.end() || out[node.body] == MAYBE))
-       {
-            std::cout << "Missing return statement in \"" << node.name->getString() << "\" " << std::endl;
-            exit(42);
-       }
+    if (node.body
+        && (!return_type || return_type->type != PrimitiveType::VOID)
+        && (out.find(node.body) == out.end() || out[node.body] == MAYBE))
+    {
+        std::cout << "Missing return statement in \"" << node.name->getString() << "\" " << std::endl;
+        exit(42);
+    }
 }
 
 void ReachabilityVisitor::visit(ConstructorDeclaration& node)
@@ -29,25 +28,25 @@ void ReachabilityVisitor::visit(ConstructorDeclaration& node)
 void ReachabilityVisitor::visit(Statement& node)
 {
     // If node does not have an in defined yet
-    if(in.find(&node) == in.end())
+    if (in.find(&node) == in.end())
     {
         Statement* last = lastStatement(&node);
         assert(last);
         in[&node] = out[last];
     }
-    
+
     // Default reachability for statement
     out[&node] = in[&node];
 }
 
 // void ReachabilityVisitor::leave(ExpressionStatement& node)
 // {
-    
+
 // }
 
 // void ReachabilityVisitor::leave(EmptyStatement& node)
 // {
-    
+
 // }
 
 void ReachabilityVisitor::visit(ReturnStatement& node)
@@ -61,7 +60,7 @@ void ReachabilityVisitor::visit(IfStatement& node)
     ASTNodeVisitor::visit(node);
     assert(in.find(&node) != in.end());
 
-    if(node.elseBody)
+    if (node.elseBody)
     {
         in[node.ifBody] = in[&node];
         in[node.elseBody] = in[&node];
@@ -75,7 +74,7 @@ void ReachabilityVisitor::visit(IfStatement& node)
 
 void ReachabilityVisitor::leave(IfStatement& node)
 {
-    if(node.elseBody)
+    if (node.elseBody)
     {
         assert(out.find(node.elseBody) != out.end());
         assert(out.find(node.ifBody) != out.end());
@@ -89,29 +88,29 @@ void ReachabilityVisitor::visit(ForStatement& node)
     ASTNodeVisitor::visit(node);
     assert(in.find(&node) != in.end());
 
-    if(node.forCheck)
+    if (node.forCheck)
     {
         ConstantExpressionVisitor v;
         node.forCheck->visitAll(v);
     }
 
     // No forCheck is equivalent to forCheck == true
-    if(!node.forCheck || node.forCheck->constant_value)
+    if (!node.forCheck || node.forCheck->constant_value)
     {
-        if(!node.forCheck || node.forCheck->constant_value->value._bool == true)
+        if (!node.forCheck || node.forCheck->constant_value->value._bool == true)
         {
-            if(node.body) in[node.body] = in[&node];
+            if (node.body) in[node.body] = in[&node];
             out[&node] = NO;
         }
         else
         {
-            if(node.body) in[node.body] = NO;
+            if (node.body) in[node.body] = NO;
             out[&node] = in[&node];
         }
     }
     else
     {
-        if(node.body) in[node.body] = in[&node];
+        if (node.body) in[node.body] = in[&node];
         out[&node] = in[&node];
     }
 }
@@ -124,22 +123,22 @@ void ReachabilityVisitor::visit(WhileStatement& node)
     ConstantExpressionVisitor v;
     node.condition->visitAll(v);
 
-    if(node.condition->constant_value)
+    if (node.condition->constant_value)
     {
-        if(node.condition->constant_value->value._bool == true)
+        if (node.condition->constant_value->value._bool == true)
         {
-            if(node.body) in[node.body] = in[&node];
+            if (node.body) in[node.body] = in[&node];
             out[&node] = NO;
         }
         else
         {
-            if(node.body) in[node.body] = NO;
+            if (node.body) in[node.body] = NO;
             out[&node] = in[&node];
         }
     }
     else
     {
-        if(node.body) in[node.body] = in[&node];
+        if (node.body) in[node.body] = in[&node];
         out[&node] = in[&node];
     }
 }
@@ -149,14 +148,14 @@ void ReachabilityVisitor::visit(Block& node)
     ASTNodeVisitor::visit(node);
     assert(in.find(&node) != in.end());
 
-    if(node.statements->elements.size())
+    if (node.statements->elements.size())
     {
         in[node.statements->elements[0]] = in[&node];
-        
-        if(node.statements->elements.size() >= 2)
+
+        if (node.statements->elements.size() >= 2)
         {
             // Push statments onto stack in reverse order
-            for(int i = node.statements->elements.size() - 2; i >= 0; i--)
+            for (int i = node.statements->elements.size() - 2; i >= 0; i--)
             {
                 block_statements.push_back(node.statements->elements[i]);
             }
@@ -166,7 +165,7 @@ void ReachabilityVisitor::visit(Block& node)
 
 void ReachabilityVisitor::leave(Block& node)
 {
-    if(node.statements->elements.size())
+    if (node.statements->elements.size())
     {
         assert(out.find(node.statements->elements.back()) != out.end());
         out[&node] = out[node.statements->elements.back()];
@@ -180,9 +179,9 @@ void ReachabilityVisitor::leave(Block& node)
 
 void ReachabilityVisitor::leave(CompilerUnit& node)
 {
-    for(auto it: in) 
+    for (auto it : in)
     {
-        if(it.second == NO)
+        if (it.second == NO)
         {
             std::cout << "Unreachable statement found (" << it.first->toString() << ")" << std::endl;
             exit(42);
@@ -202,54 +201,10 @@ void ReachabilityVisitor::leave(VariableDeclarationExpression& node)
 
 void ReachabilityVisitor::visit(NameExpression& node)
 {
-    if(node.name && current_variable_decl && node.name->refers_to == current_variable_decl)
+    if (node.name && current_variable_decl && node.name->refers_to == current_variable_decl)
     {
         std::cout << "Local variable \"" << current_variable_decl->name->getString() << "\" occurs in its own initializer." << std::endl;
         exit(42);
-    }
-}
-
-void ConstantExpressionVisitor::visit(MethodDeclaration& node)
-{
-    fullyQualifiedName = node.originatingClass->fullyQualifiedName;
-    methodName = node.name->id;
-}
-
-void ConstantExpressionVisitor::leave(Statement& node)
-{
-    if (error != "")
-    {
-        std::cout << error << std::endl;
-        exit(42);
-    }
-}
-
-void ConstantExpressionVisitor::leave(VariableDeclarationExpression& node)
-{
-    // Only do for local vars not fields
-    if (dynamic_cast<FieldDeclaration*>(node.parent) == nullptr)
-    {
-        if (node.initializer->constant_value)
-        {
-            node.constant_value = node.initializer->constant_value;
-        }
-    }
-}
-
-void ConstantExpressionVisitor::leave(AssignmentExpression& node)
-{
-    if (NameExpression * nameLhs = dynamic_cast<NameExpression*>(node.lhs))
-    {
-        if (nameLhs->name)
-        {
-            if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(nameLhs->name->refers_to))
-            {
-                if (dynamic_cast<FieldDeclaration*>(var->parent) == nullptr)
-                {
-                    var->constant_value = nullptr;
-                }
-            }
-        }
     }
 }
 
@@ -277,110 +232,91 @@ void ConstantExpressionVisitor::leave(BooleanLiteral& node)
     node.constant_value->value._bool = node.value;
 }
 
-void ConstantExpressionVisitor::leave(NullLiteral& node)
-{
-    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
-}
-
-void ConstantExpressionVisitor::leave(NameExpression& node)
-{
-    if (node.name)
-    {
-        if (VariableDeclarationExpression * var = dynamic_cast<VariableDeclarationExpression*>(node.name->refers_to))
-        {
-            if (dynamic_cast<FieldDeclaration*>(var->parent) == nullptr)
-            {
-                node.constant_value = var->constant_value;
-            }
-        }
-    }
-}
-
 void ConstantExpressionVisitor::leave(BinaryOperation& node)
-{ 
+{
     using integer_type = decltype(Expression::ConstantValue::ConstantValueContents::_int);
 
-    if(node.rhs->constant_value && node.lhs->constant_value)
+    if (node.rhs->constant_value && node.lhs->constant_value)
     {
         bool both_bool = node.lhs->constant_value->type == Expression::ConstantValue::BOOL
-                         && node.rhs->constant_value->type == Expression::ConstantValue::BOOL;
+            && node.rhs->constant_value->type == Expression::ConstantValue::BOOL;
         bool both_numeric = node.lhs->constant_value->isNumeric() && node.rhs->constant_value->isNumeric();
 
         Expression::ConstantValue result;
 
-        std::function<int(int,int)> arithmetic = nullptr;
-        std::function<bool(int,int)> int_comparison = nullptr;
-        std::function<bool(bool,bool)> bool_comparison = nullptr;
+        std::function<int(int, int)> arithmetic = nullptr;
+        std::function<bool(int, int)> int_comparison = nullptr;
+        std::function<bool(bool, bool)> bool_comparison = nullptr;
 
-        switch(node.op)
+        switch (node.op)
         {
             // Conditional AND and OR (Not Eager) do not short circuit during constant expression evaluation.
             // (true || (a == 1)) does not evaluate to true during constant expression evaluation if a is not final.
-            case BinaryOperation::AND: 
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
-                break;
-            case BinaryOperation::EAGER_AND: 
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
-                break;
-            case BinaryOperation::OR: 
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
-                break;
-            case BinaryOperation::EAGER_OR: 
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
-                break;
-            case BinaryOperation::XOR:
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool;
-                break;
-            case BinaryOperation::PLUS:
-                if (both_numeric) arithmetic = std::plus<integer_type>();
-                break;
-            case BinaryOperation::MINUS:
-                arithmetic = std::minus<integer_type>();
-                break;
-            case BinaryOperation::TIMES:
-                arithmetic = std::multiplies<integer_type>();
-                break;
-            case BinaryOperation::DIVIDE:
-                arithmetic = std::divides<integer_type>();
-                if (node.rhs->constant_value->asInt() == 0)
-                {
-                    error = "Cannot divide by 0 (Static Analysis)";
-                    return;
-                }
-                break;
-            case BinaryOperation::REMAINDER:
-                arithmetic = std::modulus<integer_type>();
-                if (node.rhs->constant_value->asInt() == 0)
-                {
-                    error = "Cannot divide by 0 (Static Analysis)";
-                    return;
-                }
-                break;
-            case BinaryOperation::EQ:
-                if(both_bool) bool_comparison = std::equal_to<bool>();
-                else if(both_numeric) int_comparison = std::equal_to<integer_type>();
-                break;
-            case BinaryOperation::NEQ:
-                if(both_bool) bool_comparison = std::not_equal_to<bool>();
-                else if(both_numeric) int_comparison = std::not_equal_to<integer_type>();
-                break;
-            case BinaryOperation::LEQ:
-                int_comparison = std::less_equal<integer_type>();
-                break;
-            case BinaryOperation::GEQ:
-                int_comparison = std::greater_equal<integer_type>();
-                break;
-            case BinaryOperation::LT:
-                int_comparison = std::less<integer_type>();
-                break;
-            case BinaryOperation::GT:
-                int_comparison = std::greater<integer_type>();
-                break;
+        case BinaryOperation::AND:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
+            break;
+        case BinaryOperation::EAGER_AND:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = node.lhs->constant_value->value._bool && node.rhs->constant_value->value._bool;
+            break;
+        case BinaryOperation::OR:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
+            break;
+        case BinaryOperation::EAGER_OR:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = node.lhs->constant_value->value._bool || node.rhs->constant_value->value._bool;
+            break;
+        case BinaryOperation::XOR:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = node.lhs->constant_value->value._bool != node.rhs->constant_value->value._bool;
+            break;
+        case BinaryOperation::PLUS:
+            arithmetic = std::plus<integer_type>();
+            break;
+        case BinaryOperation::MINUS:
+            arithmetic = std::minus<integer_type>();
+            break;
+        case BinaryOperation::TIMES:
+            arithmetic = std::multiplies<integer_type>();
+            break;
+        case BinaryOperation::DIVIDE:
+            arithmetic = std::divides<integer_type>();
+            if (node.rhs->constant_value->asInt() == 0)
+            {
+                // Divide by 0 is a runtime error so we cannot generate a constant val
+                return;
+            }
+            break;
+        case BinaryOperation::REMAINDER:
+            arithmetic = std::modulus<integer_type>();
+            if (node.rhs->constant_value->asInt() == 0)
+            {
+                // Divide by 0 is a runtime error so we cannot generate a constant val
+                return;
+            }
+            break;
+        case BinaryOperation::EQ:
+            if (both_bool) bool_comparison = std::equal_to<bool>();
+            else int_comparison = std::equal_to<integer_type>();
+            break;
+        case BinaryOperation::NEQ:
+            if (both_bool) bool_comparison = std::not_equal_to<bool>();
+            else int_comparison = std::not_equal_to<integer_type>();
+            break;
+        case BinaryOperation::LEQ:
+            int_comparison = std::less_equal<integer_type>();
+            break;
+        case BinaryOperation::GEQ:
+            int_comparison = std::greater_equal<integer_type>();
+            break;
+        case BinaryOperation::LT:
+            int_comparison = std::less<integer_type>();
+            break;
+        case BinaryOperation::GT:
+            int_comparison = std::greater<integer_type>();
+            break;
         }
 
         if (arithmetic)
@@ -403,99 +339,61 @@ void ConstantExpressionVisitor::leave(BinaryOperation& node)
         // TODO Correct default behaviour due to type checking?
         node.constant_value = new Expression::ConstantValue(result);
     }
-    else
-    {
-        switch (node.op)
-        {
-        case BinaryOperation::AND:
-        case BinaryOperation::OR:
-            if (error != "")
-            {
-                // Reevaluate lhs, if it came from rhs we're not guarenteed to have the error
-                error = "";
-                node.lhs->visitAll(*this);
-            }
-            break;
-        }
-    }
 }
 
 void ConstantExpressionVisitor::leave(PrefixOperation& node)
 {
-    if(node.operand->constant_value)
+    if (node.operand->constant_value)
     {
         Expression::ConstantValue result;
 
-        switch(node.op)
+        switch (node.op)
         {
-            case PrefixOperation::NOT: 
-                result.type = Expression::ConstantValue::BOOL;
-                result.value._bool = !node.operand->constant_value->value._bool;
-                break;
-            case PrefixOperation::MINUS: 
-                result.type = Expression::ConstantValue::INT;
-                result.value._int = -node.operand->constant_value->asInt();
-                break;
+        case PrefixOperation::NOT:
+            result.type = Expression::ConstantValue::BOOL;
+            result.value._bool = !node.operand->constant_value->value._bool;
+            break;
+        case PrefixOperation::MINUS:
+            result.type = Expression::ConstantValue::INT;
+            result.value._int = -node.operand->constant_value->asInt();
+            break;
         }
 
         node.constant_value = new Expression::ConstantValue(result);
     }
 }
 
-void ConstantExpressionVisitor::leave(ClassInstanceCreator& node)
-{
-    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
-    node.constant_value->refType = node.type;
-}
-
-void ConstantExpressionVisitor::leave(ArrayCreator& node)
-{
-    node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::REF_TYPE });
-    node.constant_value->refType = node.type;
-}
-
 void ConstantExpressionVisitor::leave(CastExpression& node)
 {
-    if (node.expression->constant_value)
+    PrimitiveType* primitive = dynamic_cast<PrimitiveType*>(node.castType);
+
+    if (node.expression->constant_value && primitive)
     {
-        if (PrimitiveType * primitive = dynamic_cast<PrimitiveType*>(node.castType))
+        switch (primitive->type)
         {
-            switch (primitive->type)
-            {
-            case PrimitiveType::BYTE:
-                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BYTE });
-                node.constant_value->value._byte = (decltype(Expression::ConstantValue::ConstantValueContents::_byte))node.expression->constant_value->asInt();
-                break;
-            case PrimitiveType::SHORT:
-                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::SHORT });
-                node.constant_value->value._short = (decltype(Expression::ConstantValue::ConstantValueContents::_short))node.expression->constant_value->asInt();
-                break;
-            case PrimitiveType::INT:
-                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::INT });
-                node.constant_value->value._int = (decltype(Expression::ConstantValue::ConstantValueContents::_int))node.expression->constant_value->asInt();
-                break;
-            case PrimitiveType::CHAR:
-                node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::CHAR });
-                node.constant_value->value._char = (decltype(Expression::ConstantValue::ConstantValueContents::_char))node.expression->constant_value->asInt();
-                break;
-            case PrimitiveType::BOOLEAN:
-                // Must be identity conversion
-                node.constant_value = new Expression::ConstantValue(*node.expression->constant_value);
-                break;
-            default:
-                assert(false);
-                break;
-            }
-        }
-        else
-        {
-            if (node.expression->constant_value->refType != nullptr)
-            {
-                if (!isRuntimeCastable(node.expression->constant_value->refType, node.castType))
-                {
-                    error = "Cast will never succeed (Static Analysis)";
-                }
-            }
+        case PrimitiveType::BYTE:
+            node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::BYTE });
+            node.constant_value->value._byte = (decltype(Expression::ConstantValue::ConstantValueContents::_byte))node.expression->constant_value->asInt();
+            break;
+        case PrimitiveType::SHORT:
+            node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::SHORT });
+            node.constant_value->value._short = (decltype(Expression::ConstantValue::ConstantValueContents::_short))node.expression->constant_value->asInt();
+            break;
+        case PrimitiveType::INT:
+            node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::INT });
+            node.constant_value->value._int = (decltype(Expression::ConstantValue::ConstantValueContents::_int))node.expression->constant_value->asInt();
+            break;
+        case PrimitiveType::CHAR:
+            node.constant_value = new Expression::ConstantValue({ Expression::ConstantValue::CHAR });
+            node.constant_value->value._char = (decltype(Expression::ConstantValue::ConstantValueContents::_char))node.expression->constant_value->asInt();
+            break;
+        case PrimitiveType::BOOLEAN:
+            // Must be identity conversion
+            node.constant_value = new Expression::ConstantValue(*node.expression->constant_value);
+            break;
+        default:
+            assert(false);
+            break;
         }
     }
 }

@@ -93,10 +93,6 @@ int main(int argc, char *argv[])
     ReachabilityVisitor reachability_visitor;
     for (ASTNode* ast : asts) ast->visitAll(reachability_visitor);
 
-    // Perform Furthur Static Analysis
-    ConstantExpressionVisitor constant_visitor;
-    for (ASTNode* ast : asts) ast->visitAll(constant_visitor);
-
     if (verbose){
         printEnvironment(globalEnv);
         cout << "---------------------------------------" << endl;
