@@ -931,12 +931,6 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         node.code += "pop eax\n";
         node.code += "cmp ecx, 0\n";
         node.code += "jne " + cast_allowed + "\n";
-
-        // Check if castType is instanceof expression type
-        node.code += "mov ecx, 0\n";
-        node.code += "imul ebx, " + std::to_string(cg.subtype_column_count) + '\n';
-        node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + ebx]\n";
-        node.code += "cmp ecx, 0\n";
         node.code += "je " + useLabel(EXCEPTION) + "\n";
 
         node.code += labelAsm(cast_allowed);
