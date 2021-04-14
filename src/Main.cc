@@ -102,78 +102,84 @@ int main(int argc, char *argv[])
         cout << "---------------------------------------" << endl;
     }
 
-    CodeGenerator code_generator(globalEnv);
-
-    // Generate assembly file containing common structures
-    ofstream common_asm;
-    common_asm.open ("output/common.s");
-    common_asm << code_generator.generateCommon();
-    common_asm.close();
-
-    std::string static_field_initializers;
-
-    for(auto it: globalEnv.classes)
-    {
-        ofstream class_asm;
-        class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
-        class_asm << code_generator.generateClassCode(it.second);
-        static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
-        class_asm.close();
-    }
-
-    for(auto it: globalEnv.interfaces)
-    {
-        ofstream class_asm;
-        class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
-        class_asm << code_generator.generateInterfaceArrayCode(it.second);
-        class_asm.close();
-    }
-
-    auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
-    {
-        ofstream parray_asm;
-        parray_asm.open ("output/c_" + file_name + ".s");
-        parray_asm << code_generator.generatePrimitiveArrayCode(type);
-        parray_asm.close();
-    };
-
-    generatePrimitiveArray(PrimitiveType::BOOLEAN, "boolean[]"); 
-    generatePrimitiveArray(PrimitiveType::BYTE, "byte[]"); 
-    generatePrimitiveArray(PrimitiveType::SHORT, "short[]"); 
-    generatePrimitiveArray(PrimitiveType::CHAR, "char[]"); 
-    generatePrimitiveArray(PrimitiveType::INT, "int[]"); 
-
     // Get entry point for program
     MethodDeclaration* entry_point = nullptr;
 
     CompilerUnit* first_file = dynamic_cast<CompilerUnit*>(asts[0]);
     assert(first_file); // TODO Make this a compile error?
     ClassDeclaration* first_class = dynamic_cast<ClassDeclaration*>(first_file->typeDecl);
-    assert(first_class);
-    for(MemberDeclaration* member: first_class->classBody->elements)
+    if(first_class)
     {
-        if(MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(member))
+        for(MemberDeclaration* member: first_class->classBody->elements)
         {
-            bool is_static = false;
-            for(Modifier* modifier: member->modifiers->elements)
+            if(MethodDeclaration * method = dynamic_cast<MethodDeclaration*>(member))
             {
-                if(modifier->type == Modifier::ModifierType::STATIC) is_static = true;
-            }
+                bool is_static = false;
+                for(Modifier* modifier: member->modifiers->elements)
+                {
+                    if(modifier->type == Modifier::ModifierType::STATIC) is_static = true;
+                }
 
-            if(is_static 
-               && method->name->getString() == "test" 
-               && dynamic_cast<PrimitiveType*>(method->type) 
-               && dynamic_cast<PrimitiveType*>(method->type)->type == PrimitiveType::INT )
-               {
-                   entry_point = method;
-               }
+                if(is_static 
+                && method->name->getString() == "test" 
+                && dynamic_cast<PrimitiveType*>(method->type) 
+                && dynamic_cast<PrimitiveType*>(method->type)->type == PrimitiveType::INT )
+                {
+                    entry_point = method;
+                }
+            }
         }
     }
 
-    ofstream start_asm;
-    start_asm.open ("output/start.s");
-    start_asm << code_generator.generateStart(static_field_initializers, entry_point);
-    start_asm.close();
+    // If entry point is not defined, do not generate code
+    if(entry_point)
+    {
+        CodeGenerator code_generator(globalEnv);
+
+        // Generate assembly file containing common structures
+        ofstream common_asm;
+        common_asm.open ("output/common.s");
+        common_asm << code_generator.generateCommon();
+        common_asm.close();
+
+        std::string static_field_initializers;
+
+        for(auto it: globalEnv.classes)
+        {
+            ofstream class_asm;
+            class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
+            class_asm << code_generator.generateClassCode(it.second);
+            static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
+            class_asm.close();
+        }
+
+        for(auto it: globalEnv.interfaces)
+        {
+            ofstream class_asm;
+            class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
+            class_asm << code_generator.generateInterfaceArrayCode(it.second);
+            class_asm.close();
+        }
+
+        auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
+        {
+            ofstream parray_asm;
+            parray_asm.open ("output/c_" + file_name + ".s");
+            parray_asm << code_generator.generatePrimitiveArrayCode(type);
+            parray_asm.close();
+        };
+
+        generatePrimitiveArray(PrimitiveType::BOOLEAN, "boolean[]"); 
+        generatePrimitiveArray(PrimitiveType::BYTE, "byte[]"); 
+        generatePrimitiveArray(PrimitiveType::SHORT, "short[]"); 
+        generatePrimitiveArray(PrimitiveType::CHAR, "char[]"); 
+        generatePrimitiveArray(PrimitiveType::INT, "int[]"); 
+
+        ofstream start_asm;
+        start_asm.open ("output/start.s");
+        start_asm << code_generator.generateStart(static_field_initializers, entry_point);
+        start_asm.close();
+    }
 
     // clean up extras in environment
     for (auto it: globalEnv.extras){
