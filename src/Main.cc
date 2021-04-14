@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 
     // Generate assembly file containing common structures
     ofstream common_asm;
-    common_asm.open ("output/common.s");
+    common_asm.open ("output/~common.s");
     common_asm << code_generator.generateCommon();
     common_asm.close();
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.classes)
     {
         ofstream class_asm;
-        class_asm.open ("output/" + it.second->getName()->getString() + ".s");
+        class_asm.open ("output/" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateClassCode(it.second);
         static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
         class_asm.close();
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.interfaces)
     {
         ofstream class_asm;
-        class_asm.open ("output/" + it.second->getName()->getString() + ".s");
+        class_asm.open ("output/" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateInterfaceArrayCode(it.second);
         class_asm.close();
     }
@@ -137,11 +137,11 @@ int main(int argc, char *argv[])
         parray_asm.close();
     };
 
-    generatePrimitiveArray(PrimitiveType::BOOLEAN, "BooleanArray"); 
-    generatePrimitiveArray(PrimitiveType::BYTE, "ByteArray"); 
-    generatePrimitiveArray(PrimitiveType::SHORT, "ShortArray"); 
-    generatePrimitiveArray(PrimitiveType::CHAR, "CharArray"); 
-    generatePrimitiveArray(PrimitiveType::INT, "IntArray"); 
+    generatePrimitiveArray(PrimitiveType::BOOLEAN, "~BooleanArray"); 
+    generatePrimitiveArray(PrimitiveType::BYTE, "~ByteArray"); 
+    generatePrimitiveArray(PrimitiveType::SHORT, "~ShortArray"); 
+    generatePrimitiveArray(PrimitiveType::CHAR, "~CharArray"); 
+    generatePrimitiveArray(PrimitiveType::INT, "~IntArray"); 
 
     // Get entry point for program
     MethodDeclaration* entry_point = nullptr;
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
     }
 
     ofstream start_asm;
-    start_asm.open ("output/start.s");
+    start_asm.open ("output/~start.s");
     start_asm << code_generator.generateStart(static_field_initializers, entry_point);
     start_asm.close();
 
