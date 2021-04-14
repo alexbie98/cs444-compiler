@@ -117,14 +117,16 @@ class CodeGenerator
 
     TypeDeclaration* containingType(MethodDeclaration* method)
     {
-        assert(dynamic_cast<TypeDeclaration*>(method->parent->parent));
-        return dynamic_cast<TypeDeclaration*>(method->parent->parent);
+        return method->originatingClass;
+        // assert(dynamic_cast<TypeDeclaration*>(method->parent->parent));
+        // return dynamic_cast<TypeDeclaration*>(method->parent->parent);
     }
 
     TypeDeclaration* containingType(ConstructorDeclaration* constructor)
     {
-        assert(dynamic_cast<TypeDeclaration*>(constructor->parent->parent));
-        return dynamic_cast<TypeDeclaration*>(constructor->parent->parent);
+        return constructor->originatingClass;
+        // assert(dynamic_cast<TypeDeclaration*>(constructor->parent->parent));
+        // return dynamic_cast<TypeDeclaration*>(constructor->parent->parent);
     }
 
     enum class ObjectType
