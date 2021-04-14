@@ -74,8 +74,8 @@ pair<int,int> runMarmosetTests(const string& path, const string& libPath, bool r
 	for (const string &t : testPaths){
 		auto testName = t.substr(t.rfind("/") + 1);
 		size_t index = testName.find("_");
-		int expect = testName[index - 1] == 'e' ? 42 : 0;
-		int runtimeExpect = testName[index - 1] == 'r' ? 13 : 123;
+		int expect = testName[1] == 'e' ? 42 : 0;
+		int runtimeExpect = testName[2] == 'e' ? 13 : 123;
 
 		string expectFile = "";
 
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]){
 			runMarmosetTests(
 				path, 
 				stdlib,
-				path == "assignment_testcases/a5" || path == "custom_testcases/example", 
+				true, 
 				regress
 			)
 		);
