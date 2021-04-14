@@ -26,6 +26,7 @@ class CodeGenerator
 
     // Map from MethodDeclarations to the selector index they correspond to
     std::unordered_map<MethodDeclaration*, size_t> sit_indices;
+    std::unordered_map<std::string, size_t> unique_method_signatures;
 
     // Map from MethodDeclarations/FieldDeclarations to their index in the method/field list of their classes info
     std::unordered_map<MethodDeclaration*, size_t> method_prefix_indices;

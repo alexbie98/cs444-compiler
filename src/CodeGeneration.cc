@@ -107,7 +107,6 @@ void CodeGenerator::createSubtypeInfo(ClassDeclaration* class_decl, TypeDeclarat
 CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, object_class_decl(nullptr)
 {
     // Generate SIT indices
-    std::unordered_map<std::string, size_t> unique_method_signatures;
     for(auto it: globalEnv.interfaces)
     {
         for(MemberDeclaration* member: it.second->interfaceBody->elements)
@@ -1925,30 +1924,63 @@ std::string CodeGenerator::CodeGenVisitor::createArrayFromLabel(const std::strin
 std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method, const std::string& object, std::vector<std::string> codeArgs)
 {
     assert(method);
-    assert(cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end());
-    size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
+    std::string ret; 
 
-    std::string ret = commentAsm("MethodCall Start");
-    ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
-    ret += object;
-    ret += cg.nullCheckAsm();
-    ret += "push eax\n";
-
-    size_t object_offset = 0;
-
-    for (std::string code : codeArgs)
+    if (cg.method_prefix_indices.find(method) != cg.method_prefix_indices.end())
     {
-        ret += code;
-        ret += "push eax\n";
-        object_offset += WORD_SIZE;
-    }
+        size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
 
-    ret += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
-    ret += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
-    ret += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
-    ret += "call eax\n";
-    ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
-    ret += commentAsm("MethodCall End");
+        ret = commentAsm("MethodCall Start");
+        ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
+        ret += object;
+        ret += cg.nullCheckAsm();
+        ret += "push eax\n";
+
+        size_t object_offset = 0;
+
+        for (std::string code : codeArgs)
+        {
+            ret += code;
+            ret += "push eax\n";
+            object_offset += WORD_SIZE;
+        }
+
+        ret += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
+        ret += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
+        ret += "mov eax, [eax + " + std::to_string(method_prefix_index) + "]\n";
+        ret += "call eax\n";
+        ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+        ret += commentAsm("MethodCall End");
+    }
+    else
+    {
+        assert(cg.unique_method_signatures.find(method->getSignature()) != cg.unique_method_signatures.end());
+        size_t sit_index = cg.unique_method_signatures[method->getSignature()];
+
+        ret = commentAsm("MethodCall Start (Interface method)");
+        ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
+        ret += object;
+        ret += cg.nullCheckAsm();
+        ret += "push eax\n";
+
+        size_t object_offset = 0;
+
+        for (std::string code : codeArgs)
+        {
+            ret += code;
+            ret += "push eax\n";
+            object_offset += WORD_SIZE;
+        }
+
+        ret += "mov eax, [esp + " + std::to_string(object_offset) + "]\n";
+        ret += "mov eax, [eax + " + std::to_string(CLASS_INFO_OFFSET) + "]\n";
+        ret += "mov eax, [eax + " + std::to_string(SIT_OFFSET) + "]\n";
+        ret += "mov eax, [eax + " + std::to_string(sit_index * WORD_SIZE) + "]\n";
+        ret += "call eax\n";
+        ret += "add esp, " + std::to_string(object_offset + WORD_SIZE) + '\n';
+        ret += commentAsm("MethodCall End");
+    }
+    
     return ret;
 }
 
