@@ -491,7 +491,7 @@ void ConstantExpressionVisitor::leave(CastExpression& node)
         {
             if (node.expression->constant_value->refType != nullptr)
             {
-                if (!isCastable(node.expression->constant_value->refType, node.castType))
+                if (!isRuntimeCastable(node.expression->constant_value->refType, node.castType))
                 {
                     error = "Cast will never succeed (Static Analysis)";
                 }

@@ -1117,6 +1117,80 @@ bool isCastable(Type* baseType, Type* castType)
     return false;
 }
 
+bool isRuntimeCastable(Type* baseType, Type* castType)
+{
+    if (isNullType(castType))
+    {
+        return false;
+    }
+
+    if (isNumericType(baseType) && isNumericType(castType))
+    {
+        return true;
+    }
+    else if (PrimitiveType * primBase = dynamic_cast<PrimitiveType*>(baseType))
+    {
+        if (PrimitiveType * primCast = dynamic_cast<PrimitiveType*>(castType))
+        {
+            return primBase->type == primCast->type;
+        }
+        else
+        {
+            return primBase->type == PrimitiveType::NULL_TYPE;
+        }
+    }
+    else if (QualifiedType * qualBase = dynamic_cast<QualifiedType*>(baseType))
+    {
+        if (QualifiedType * qualCast = dynamic_cast<QualifiedType*>(castType))
+        {
+            TypeDeclaration* baseDecl = dynamic_cast<TypeDeclaration*>(qualBase->name->refers_to);
+            TypeDeclaration* castDecl = dynamic_cast<TypeDeclaration*>(qualCast->name->refers_to);
+            assert(baseDecl != nullptr && castDecl != nullptr);
+
+            if (isDerived(castDecl, baseDecl))
+            {
+                return true;
+            }
+        }
+        else if (dynamic_cast<ArrayType*>(castType))
+        {
+            TypeDeclaration* baseDecl = dynamic_cast<TypeDeclaration*>(qualBase->name->refers_to);
+
+            return baseDecl->fullyQualifiedName == "java.lang.Object";
+        }
+    }
+    else if (ArrayType * arrayBase = dynamic_cast<ArrayType*>(baseType))
+    {
+        if (ArrayType * arrayCast = dynamic_cast<ArrayType*>(castType))
+        {
+            Type* baseElemType = arrayBase->elementType;
+            Type* castElemType = arrayCast->elementType;
+            if (PrimitiveType * primBase = dynamic_cast<PrimitiveType*>(baseElemType))
+            {
+                if (PrimitiveType * primCast = dynamic_cast<PrimitiveType*>(castElemType))
+                {
+                    return primBase->type == primCast->type;
+                }
+            }
+            else
+            {
+                return isRuntimeCastable(arrayBase->elementType, arrayCast->elementType);
+            }
+        }
+        else if (QualifiedType * qualType = dynamic_cast<QualifiedType*>(castType))
+        {
+            if (TypeDeclaration * type = dynamic_cast<TypeDeclaration*>(qualType->name->refers_to))
+            {
+                return type->fullyQualifiedName == "java.lang.Object" ||
+                    type->fullyQualifiedName == "java.lang.Cloneable" ||
+                    type->fullyQualifiedName == "java.io.Serializable";
+            }
+        }
+    }
+
+    return false;
+}
+
 bool TypeCheckingVisitor::validateMemberAccess(Expression* prevExpr, TypeDeclaration* accessingType, MemberDeclaration* member) const
 {
     set<Modifier::ModifierType> mods;

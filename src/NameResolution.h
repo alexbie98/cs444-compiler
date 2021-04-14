@@ -80,6 +80,7 @@ bool isRefType(Type* type);
 bool isNullType(Type* type);
 bool isInterfaceType(Type* type);
 bool isCastable(Type* baseType, Type* castType);
+bool isRuntimeCastable(Type* baseType, Type* castType);
 
 class TypeCheckingVisitor : public ASTNodeVisitor
 {
