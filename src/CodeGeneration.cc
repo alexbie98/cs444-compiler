@@ -29,13 +29,11 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
             class_info.methods_prefix = class_infos[baseClass].methods_prefix;
             class_info.fields_prefix = class_infos[baseClass].fields_prefix;
 
-            if(class_decl->containedConcreteMethods)
+            for(MemberDeclaration* member: class_decl->classBody->elements)
             {
-                for(auto member_it: *class_decl->containedConcreteMethods)
+                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+                if(method)
                 {
-                    MethodDeclaration* method = member_it.second;
-                    assert(method);
-                    
                     if(class_info.methods_prefix.find(method->getSignature()) != class_info.methods_prefix.end())
                     {
                         // Replace existing method in method prefix, so index remains the same
@@ -54,12 +52,11 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
         }
         else
         {
-            if(class_decl->containedConcreteMethods)
+            for(MemberDeclaration* member: class_decl->classBody->elements)
             {
-                for(auto member_it: *class_decl->containedConcreteMethods)
+                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
+                if(method)
                 {
-                    MethodDeclaration* method = member_it.second;
-                    assert(method);
                     assert(class_info.methods_prefix.find(method->getSignature()) == class_info.methods_prefix.end());
 
                     // Add new method to method prefix
@@ -467,7 +464,24 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     for(MethodDeclaration* method: expanded_method_prefix)
     {
         assert(method);
-        class_asm += wordAsm(useLabel(classMethodLabel(method)));
+
+        bool is_abstract = false;
+        for (Modifier* modifier : method->modifiers->elements)
+        {
+            if (modifier->type == Modifier::ABSTRACT)
+            {
+                is_abstract = true;
+            }
+        }
+
+        if(is_abstract)
+        {
+            class_asm += wordAsm(0);
+        }
+        else
+        {
+            class_asm += wordAsm(useLabel(classMethodLabel(method)));
+        }
     }
 
     if(otype == ObjectType::OBJECT && dynamic_cast<ClassDeclaration*>(root))
@@ -1958,7 +1972,8 @@ std::string CodeGenerator::CodeGenVisitor::callMethod(MethodDeclaration* method,
         size_t sit_index = cg.unique_method_signatures[method->getSignature()];
 
         ret = commentAsm("MethodCall Start (Interface method)");
-        ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
+        // NOTE: method->originatingClass may be nullptr
+        ret += commentAsm("Calling " + (method->originatingClass ? method->originatingClass->fullyQualifiedName : "Object") + '.' + method->name->id);
         ret += object;
         ret += cg.nullCheckAsm();
         ret += "push eax\n";
@@ -1991,7 +2006,7 @@ std::string CodeGenerator::CodeGenVisitor::callStaticMethod(MethodDeclaration* m
     size_t method_prefix_index = cg.method_prefix_indices[method] * WORD_SIZE + METHODS_OFFSET;
 
     std::string ret = commentAsm("StaticMethodCall Start");
-    ret += commentAsm("Calling " + method->originatingClass->fullyQualifiedName + '.' + method->name->id);
+    ret += commentAsm("Calling " + (method->originatingClass ? method->originatingClass->fullyQualifiedName : "Object") + '.' + method->name->id);
 
     size_t object_offset = 0;
 

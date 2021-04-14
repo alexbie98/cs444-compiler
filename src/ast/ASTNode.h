@@ -886,7 +886,7 @@ struct MemberDeclaration : public ASTNode // abstract
 {
     ASTNodeList<Modifier>* modifiers = nullptr;
 
-    TypeDeclaration* originatingClass;
+    TypeDeclaration* originatingClass = nullptr;
 
     virtual ~MemberDeclaration();
     virtual std::string toString() { return "MemberDeclaration"; }

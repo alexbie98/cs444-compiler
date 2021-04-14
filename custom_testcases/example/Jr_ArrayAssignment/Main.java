@@ -1,5 +1,5 @@
-public class A1 {
-    public A1() {}
+public class Main {
+    public Main() {}
     public static int test() {
         Apple[] apples = new Apple[1];
         Orange orange = new Orange();

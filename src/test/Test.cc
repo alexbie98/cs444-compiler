@@ -111,12 +111,12 @@ bool runIOTest(const string& testName,
     }
 
     // compile
-    // std::cout << command << std::endl;
     int result = system(command.c_str());
     result = WEXITSTATUS(result);
     bool compilePass = (result == expect);
 
     if (!compilePass){
+        std::cout << command << std::endl;
         printCompileFailMsg(testName, result, expect);
         return false;
     }
