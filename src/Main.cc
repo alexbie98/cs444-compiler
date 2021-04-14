@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 
     // Generate assembly file containing common structures
     ofstream common_asm;
-    common_asm.open ("output/~common.s");
+    common_asm.open ("output/common.s");
     common_asm << code_generator.generateCommon();
     common_asm.close();
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.classes)
     {
         ofstream class_asm;
-        class_asm.open ("output/$" + it.second->fullyQualifiedName + ".s");
+        class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateClassCode(it.second);
         static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
         class_asm.close();
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.interfaces)
     {
         ofstream class_asm;
-        class_asm.open ("output/$" + it.second->fullyQualifiedName + ".s");
+        class_asm.open ("output/c_" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateInterfaceArrayCode(it.second);
         class_asm.close();
     }
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
     {
         ofstream parray_asm;
-        parray_asm.open ("output/$" + file_name + ".s");
+        parray_asm.open ("output/c_" + file_name + ".s");
         parray_asm << code_generator.generatePrimitiveArrayCode(type);
         parray_asm.close();
     };
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
     }
 
     ofstream start_asm;
-    start_asm.open ("output/~start.s");
+    start_asm.open ("output/start.s");
     start_asm << code_generator.generateStart(static_field_initializers, entry_point);
     start_asm.close();
 
