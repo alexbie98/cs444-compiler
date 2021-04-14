@@ -61,7 +61,7 @@ void printRuntimeOutputFailMsg(const string& name, const string& result, const s
 }
 
 bool runIOTest(const string& testName,
-               const vector<string>& testSourceFiles, 
+               vector<string> testSourceFiles, 
                const vector<string>& libSourceFiles,
                const vector<string>& libAssemblyFiles,
                int expect, 
@@ -79,8 +79,30 @@ bool runIOTest(const string& testName,
         system("mkdir output");
     }
 
+    auto has_suffix = [](const std::string &str, const std::string &suffix)
+    {
+        return str.size() >= suffix.size() &&
+            str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    };
+
     // build the command
     string command = "./joosc ";
+    // For multifile tests, provide Main.java as the first file which contains the static int test() entrypoint
+    if(testSourceFiles.size() > 1)
+    {
+        std::string main;
+        for (auto it = testSourceFiles.begin(); it != testSourceFiles.end(); it++){
+            if(has_suffix(*it, "Main.java"))
+            {
+                main = *it;
+                testSourceFiles.erase(it);
+                break;
+            } 
+        }
+        
+        assert(!main.empty());
+        command += main + " ";
+    }
     for (const string& s: testSourceFiles){
         command += s + " ";
     }
@@ -89,6 +111,7 @@ bool runIOTest(const string& testName,
     }
 
     // compile
+    // std::cout << command << std::endl;
     int result = system(command.c_str());
     result = WEXITSTATUS(result);
     bool compilePass = (result == expect);

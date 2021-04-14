@@ -4,7 +4,7 @@
 #include <vector>
 
 bool runIOTest(const std::string &testName,
-               const std::vector<std::string> &testSourceFiles,
+               std::vector<std::string> testSourceFiles,
                const std::vector<std::string> &libSourceFiles,
                const std::vector<std::string> &libAssemblyFiles,
                int expect,
