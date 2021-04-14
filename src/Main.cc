@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         parray_asm.close();
     };
 
-    generatePrimitiveArray(PrimitiveType::BOOLEAN, "int[]"); 
+    generatePrimitiveArray(PrimitiveType::BOOLEAN, "boolean[]"); 
     generatePrimitiveArray(PrimitiveType::BYTE, "byte[]"); 
     generatePrimitiveArray(PrimitiveType::SHORT, "short[]"); 
     generatePrimitiveArray(PrimitiveType::CHAR, "char[]"); 
