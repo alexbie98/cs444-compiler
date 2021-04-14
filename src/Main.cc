@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.classes)
     {
         ofstream class_asm;
-        class_asm.open ("output/" + it.second->fullyQualifiedName + ".s");
+        class_asm.open ("output/$" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateClassCode(it.second);
         static_field_initializers += code_generator.getAndResetStaticFieldInitializers();
         class_asm.close();
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     for(auto it: globalEnv.interfaces)
     {
         ofstream class_asm;
-        class_asm.open ("output/" + it.second->fullyQualifiedName + ".s");
+        class_asm.open ("output/$" + it.second->fullyQualifiedName + ".s");
         class_asm << code_generator.generateInterfaceArrayCode(it.second);
         class_asm.close();
     }
@@ -132,16 +132,16 @@ int main(int argc, char *argv[])
     auto generatePrimitiveArray = [&](PrimitiveType::BasicType type, std::string file_name)
     {
         ofstream parray_asm;
-        parray_asm.open ("output/" + file_name + ".s");
+        parray_asm.open ("output/$" + file_name + ".s");
         parray_asm << code_generator.generatePrimitiveArrayCode(type);
         parray_asm.close();
     };
 
-    generatePrimitiveArray(PrimitiveType::BOOLEAN, "~BooleanArray"); 
-    generatePrimitiveArray(PrimitiveType::BYTE, "~ByteArray"); 
-    generatePrimitiveArray(PrimitiveType::SHORT, "~ShortArray"); 
-    generatePrimitiveArray(PrimitiveType::CHAR, "~CharArray"); 
-    generatePrimitiveArray(PrimitiveType::INT, "~IntArray"); 
+    generatePrimitiveArray(PrimitiveType::BOOLEAN, "int[]"); 
+    generatePrimitiveArray(PrimitiveType::BYTE, "byte[]"); 
+    generatePrimitiveArray(PrimitiveType::SHORT, "short[]"); 
+    generatePrimitiveArray(PrimitiveType::CHAR, "char[]"); 
+    generatePrimitiveArray(PrimitiveType::INT, "int[]"); 
 
     // Get entry point for program
     MethodDeclaration* entry_point = nullptr;
