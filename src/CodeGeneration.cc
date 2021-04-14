@@ -930,7 +930,6 @@ void CodeGenerator::CodeGenVisitor::leave(CastExpression& node)
         node.code += "mov cl, [" + useLabel(SUBTYPE_TABLE_LABEL) + "+ eax + ebx]\n";
         node.code += "pop eax\n";
         node.code += "cmp ecx, 0\n";
-        node.code += "jne " + cast_allowed + "\n";
         node.code += "je " + useLabel(EXCEPTION) + "\n";
 
         node.code += labelAsm(cast_allowed);
