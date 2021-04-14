@@ -5,7 +5,7 @@
 #include <vector>
 #include <iostream>
 
-class ReachabilityVisitor: public ASTNodeVisitor
+class ReachabilityVisitor : public ASTNodeVisitor
 {
     enum Reachable
     {
@@ -22,17 +22,17 @@ class ReachabilityVisitor: public ASTNodeVisitor
 
     Statement* lastStatement(Statement* current)
     {
-        if(block_statements.size())
+        if (block_statements.size())
         {
             Statement* result = block_statements.back();
             block_statements.pop_back();
-            return result; 
+            return result;
         }
 
         return nullptr;
     }
 
-public: 
+public:
     virtual void visit(MethodDeclaration& node);
     virtual void visit(ConstructorDeclaration& node);
     virtual void visit(Statement& node);
@@ -53,30 +53,17 @@ public:
     virtual void visit(NameExpression& node);
 };
 
-class ConstantExpressionVisitor: public ASTNodeVisitor
+class ConstantExpressionVisitor : public ASTNodeVisitor
 {
-    std::string fullyQualifiedName;
-    std::string methodName;
-    std::string error;
-public: 
-
-    virtual void visit(MethodDeclaration& node);
-
-    virtual void leave(Statement& node);
-
-    virtual void leave(VariableDeclarationExpression& node);
-    virtual void leave(AssignmentExpression& node);
-
+public:
     virtual void leave(IntLiteral& node);
     virtual void leave(CharLiteral& node);
     virtual void leave(StringLiteral& node);
     virtual void leave(BooleanLiteral& node);
-    virtual void leave(NullLiteral& node);
-    virtual void leave(NameExpression& node);
+    // virtual void leave(NameExpression& node);
     virtual void leave(BinaryOperation& node);
     virtual void leave(PrefixOperation& node);
-    virtual void leave(ClassInstanceCreator& node);
-    virtual void leave(ArrayCreator& node);
+    // virtual void leave(PrefixOperation& node);
     virtual void leave(CastExpression& node);
     virtual void leave(ParenthesizedExpression& node);
     // virtual void leave(ChainableExpression& node);
