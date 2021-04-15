@@ -139,7 +139,7 @@ bool runIOTest(const string& testName,
             cout << command << endl;
             printLinkAssembleFailMsg(testName);
             cout << f << " failed to assemble" << endl;
-            throw;
+            return false;
         }
     }
     result = system("ld -melf_i386 -o output/main output/*.o");
@@ -149,7 +149,7 @@ bool runIOTest(const string& testName,
         cout << command << endl;
         printLinkAssembleFailMsg(testName);
         cout << " failed to link" << endl;
-        throw;
+        return false;
     }
 
     if (expectFile != ""){
@@ -166,8 +166,6 @@ bool runIOTest(const string& testName,
         printRuntimeReturnCodeFailMsg(testName, result, runtimeExpect);
         return false;
     }
-    //system("echo -n \"Hello, World!\n\" > output/out.txt");
-
 
     if (expectFile == ""){
         printPassMsg(testName, printPass);
