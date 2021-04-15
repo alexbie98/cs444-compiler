@@ -116,7 +116,7 @@ bool runIOTest(const string& testName,
     bool compilePass = (result == expect);
 
     if (!compilePass){
-        std::cout << command << std::endl;
+        cout << command << endl;
         printCompileFailMsg(testName, result, expect);
         return false;
     }
@@ -136,6 +136,7 @@ bool runIOTest(const string& testName,
         result = WEXITSTATUS(result);
         if (result != 0)
         {
+            cout << command << endl;
             printLinkAssembleFailMsg(testName);
             cout << f << " failed to assemble" << endl;
             throw;
@@ -145,15 +146,23 @@ bool runIOTest(const string& testName,
     result = WEXITSTATUS(result);
     if (result != 0)
     {
+        cout << command << endl;
         printLinkAssembleFailMsg(testName);
         cout << " failed to link" << endl;
         throw;
     }
 
-    result = system("./output/main > output/out.txt");
+    if (expectFile != ""){
+        result = system("./output/main > output/out.txt");
+    }
+    else{
+        result = system("./output/main");
+    }
     result = WEXITSTATUS(result);
+
     if (result != runtimeExpect)
     {
+        cout << command << endl;
         printRuntimeReturnCodeFailMsg(testName, result, runtimeExpect);
         return false;
     }
@@ -169,6 +178,7 @@ bool runIOTest(const string& testName,
     auto expectStr = load(expectFile);
 
     if (outStr != expectStr){
+        cout << command << endl;
         printRuntimeOutputFailMsg(testName, outStr, expectStr);
         return false;
     }
