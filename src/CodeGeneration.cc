@@ -76,7 +76,7 @@ void CodeGenerator::createMethodAndFieldPrefixes(ClassDeclaration* class_decl)
                 // Add new method to method prefix
                 size_t index = class_info.fields_prefix.size();
                 field_prefix_indices[field] = index;
-                class_info.fields_prefix[field->declaration->name->getString()] = {field, index};
+                class_info.fields_prefix.emplace_back(field);
             }
         }
     }

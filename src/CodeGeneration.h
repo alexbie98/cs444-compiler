@@ -15,8 +15,9 @@ struct ClassInfo
     // Mapping from signature to MethodDeclaration and its index in the method list
     std::unordered_map<std::string, std::pair<MethodDeclaration*, size_t> > methods_prefix; // Methods could be abstract
 
-    // Mapping from field name to index in fields prefix
-    std::unordered_map<std::string, std::pair<FieldDeclaration*, size_t> > fields_prefix;
+    // Fields prefix
+    // Fields never override, they can only shadow, hence this is a list with psosibly repeating field names
+    std::vector<FieldDeclaration*> fields_prefix;
 };
 
 class CodeGenerator
