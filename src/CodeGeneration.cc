@@ -118,14 +118,16 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, obj
         }
     }
 
-    // All interfaces implicitly define abstract versions of Object's methods
+    // All interfaces implicitly define abstract versions of Object's public methods
     assert(globalEnv.classes.find("java.lang.Object") != globalEnv.classes.end());
     object_class_decl = globalEnv.classes["java.lang.Object"];
 
     for(MemberDeclaration* member: object_class_decl->classBody->elements)
     {
         MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-        if(method && unique_method_signatures.find(method->getSignature()) == unique_method_signatures.end())
+        if(method 
+           && hasModifier(Modifier::PUBLIC, method->modifiers)
+           && unique_method_signatures.find(method->getSignature()) == unique_method_signatures.end())
         {
             unique_method_signatures[method->getSignature()] = sit_column_size;
             sit_column_size++;
@@ -229,13 +231,7 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, obj
     {
         for(MemberDeclaration* member: it.second->classBody->elements)
         {
-            bool is_static = false;
-            for(Modifier* modifier: member->modifiers->elements)
-            {
-                if(modifier->type == Modifier::ModifierType::STATIC) is_static = true;
-            }
-
-            if(is_static)
+            if(hasModifier(Modifier::STATIC, member->modifiers))
             {
                 MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
                 FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(member);
@@ -464,17 +460,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     for(MethodDeclaration* method: expanded_method_prefix)
     {
         assert(method);
-
-        bool is_abstract = false;
-        for (Modifier* modifier : method->modifiers->elements)
-        {
-            if (modifier->type == Modifier::ABSTRACT)
-            {
-                is_abstract = true;
-            }
-        }
-
-        if(is_abstract)
+        if(hasModifier(Modifier::ABSTRACT, method->modifiers))
         {
             class_asm += wordAsm(0);
         }
@@ -569,15 +555,7 @@ void CodeGenerator::CodeGenVisitor::visit(VariableDeclarationExpression& node)
 
 void CodeGenerator::CodeGenVisitor::visit(FieldDeclaration& node)
 {
-    inStaticField = false;
-    for (Modifier* mod : node.modifiers->elements)
-    {
-        if (mod->type == Modifier::STATIC)
-        {
-            inStaticField = true;
-            break;
-        }
-    }
+    inStaticField = hasModifier(Modifier::STATIC, node.modifiers);
 }
 
 void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
@@ -628,16 +606,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
             node.addr = "mov eax, ebp";
             node.addr += "add eax, " + std::to_string(thisOffset);
 
-            bool isStatic = false;
-            for (Modifier* modifier : field->modifiers->elements)
-            {
-                if (modifier->type == Modifier::STATIC)
-                {
-                    isStatic = true;
-                }
-            }
-
-            if (isStatic)
+            if (hasModifier(Modifier::STATIC, field->modifiers))
             {
                 node.addr = labelAddr(field->staticLabel);
                 node.code = node.addr + addrVal();
@@ -663,16 +632,7 @@ void CodeGenerator::CodeGenVisitor::leave(NameExpression& node)
                 node.addr = "mov eax, ebp";
                 node.addr += "add eax, " + std::to_string(thisOffset);
 
-                bool isStatic = false;
-                for (Modifier* modifier : field->modifiers->elements)
-                {
-                    if (modifier->type == Modifier::STATIC)
-                    {
-                        isStatic = true;
-                    }
-                }
-
-                if (isStatic)
+                if (hasModifier(Modifier::STATIC, field->modifiers))
                 {
                     node.addr = labelAddr(field->staticLabel);
                     node.code = node.addr + addrVal();
@@ -1058,16 +1018,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldAccess& node)
 
     if (field)
     {
-        bool isStatic = false;
-        for (Modifier* modifier : field->modifiers->elements)
-        {
-            if (modifier->type == Modifier::STATIC)
-            {
-                isStatic = true;
-            }
-        }
-
-        if (isStatic)
+        if (hasModifier(Modifier::STATIC, field->modifiers))
         {
             node.addr = labelAddr(field->staticLabel);
             node.code = node.addr + addrVal();
@@ -1111,17 +1062,7 @@ void CodeGenerator::CodeGenVisitor::leave(MethodCall& node)
         args.push_back(arg->code);
     }
 
-    bool isStatic = false;
-    for (Modifier* mod : method->modifiers->elements)
-    {
-        if (mod->type == Modifier::STATIC)
-        {
-            isStatic = true;
-            break;
-        }
-    }
-
-    if (isStatic)
+    if (hasModifier(Modifier::STATIC, method->modifiers))
     {
         node.code = callStaticMethod(method, args);
     }
@@ -1374,16 +1315,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
             {
                 if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
                 {
-                    bool isStatic = false;
-                    for (Modifier* modifier : field->modifiers->elements)
-                    {
-                        if (modifier->type == Modifier::STATIC)
-                        {
-                            isStatic = true;
-                        }
-                    }
-
-                    if (!isStatic)
+                    if (!hasModifier(Modifier::STATIC, field->modifiers))
                     {
                         // Regen code, because this reference is different 
                         field->visitAll(*this);
@@ -1411,13 +1343,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
     {
         if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
         {
-            for (Modifier* modifier : field->modifiers->elements)
-            {
-                if (modifier->type == Modifier::STATIC)
-                {
-                    staticFields += field->code;
-                }
-            }
+            if(hasModifier(Modifier::STATIC, field->modifiers)) staticFields += field->code;
         }
         else
         {
@@ -1447,16 +1373,7 @@ void CodeGenerator::CodeGenVisitor::leave(ConstructorDeclaration& node)
 
 void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 {
-    bool isStatic = false;
-    for (Modifier* modifier : node.modifiers->elements)
-    {
-        if (modifier->type == Modifier::STATIC)
-        {
-            isStatic = true;
-        }
-    }
-
-    if (isStatic)
+    if (hasModifier(Modifier::STATIC, node.modifiers))
     {
         node.code += globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
@@ -1510,45 +1427,30 @@ void CodeGenerator::CodeGenVisitor::leave(MethodDeclaration& node)
         node.code += methodCallReturn();
         node.code += commentAsm("MethodDeclaration End");
     }
-    else
+    else if (hasModifier(Modifier::NATIVE, node.modifiers))
     {
-        bool isNative = false;
+        node.code = commentAsm("MethodDeclaration Start");
+        node.code += globalAsm(cg.classMethodLabel(&node));
+        node.code += labelAsm(cg.classMethodLabel(&node));
+        node.code += methodCallHeader();
 
-        for (Modifier* mod : node.modifiers->elements)
+        node.code += commentAsm("Push local vars to stack");
+        for (int i = 0; i < localVariableCount; i++)
         {
-            if (mod->type == Modifier::NATIVE)
-            {
-                isNative = true;
-                break;
-            }
+            node.code += "push 0\n";
         }
 
-        if (isNative)
-        {
-            node.code = commentAsm("MethodDeclaration Start");
-            node.code += globalAsm(cg.classMethodLabel(&node));
-            node.code += labelAsm(cg.classMethodLabel(&node));
-            node.code += methodCallHeader();
+        node.code += pushCalleeSaveRegs();
 
-            node.code += commentAsm("Push local vars to stack");
-            for (int i = 0; i < localVariableCount; i++)
-            {
-                node.code += "push 0\n";
-            }
+        assert(node.parameters->elements.size() == 1);
 
-            node.code += pushCalleeSaveRegs();
+        node.code += frameOffsetAddr(node.parameters->elements[0]->paramOffset);
+        node.code += addrVal();
+        node.code += "call " + useLabel("NATIVE" + node.originatingClass->fullyQualifiedName + '.' + node.name->id);
 
-            assert(node.parameters->elements.size() == 1);
-
-            node.code += frameOffsetAddr(node.parameters->elements[0]->paramOffset);
-            node.code += addrVal();
-            node.code += "call " + useLabel("NATIVE" + node.originatingClass->fullyQualifiedName + '.' + node.name->id);
-
-            node.code += popCalleeSaveRegs();
-            node.code += methodCallReturn();
-            node.code += commentAsm("MethodDeclaration End");
-        }
-
+        node.code += popCalleeSaveRegs();
+        node.code += methodCallReturn();
+        node.code += commentAsm("MethodDeclaration End");
     }
     inMethod = false;
 }

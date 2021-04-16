@@ -130,6 +130,20 @@ class CodeGenerator
         // return dynamic_cast<TypeDeclaration*>(constructor->parent->parent);
     }
 
+    static bool hasModifier(Modifier::ModifierType type, ASTNodeList<Modifier>* modifiers)
+    {
+        bool is_modifier = false;
+        for (Modifier* modifier : modifiers->elements)
+        {
+            if (modifier->type == type)
+            {
+                is_modifier = true;
+                break;
+            }
+        }
+        return is_modifier;
+    }
+
     enum class ObjectType
     {
         OBJECT,
