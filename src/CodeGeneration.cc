@@ -4,7 +4,6 @@
 #include <iostream>
 #include <set>
 
-const std::string CodeGenerator::SUBTYPE_COLUMN_COUNT_LABEL = "SUBTYPE_COLUMN_COUNT";
 const std::string CodeGenerator::SUBTYPE_TABLE_LABEL = "SUBTYPE_TABLE";
 const std::string CodeGenerator::EXCEPTION = "__exception";
 const std::string CodeGenerator::DEXIT = "__debexit";
@@ -225,33 +224,6 @@ CodeGenerator::CodeGenerator(Environment& globalEnv): global_env{globalEnv}, obj
     {
         it.second.subtype_column = getObjectSubtypeIndex(it.first);
     }
-
-    // Get static fields and methods
-    for(auto it: globalEnv.classes)
-    {
-        for(MemberDeclaration* member: it.second->classBody->elements)
-        {
-            if(hasModifier(Modifier::STATIC, member->modifiers))
-            {
-                MethodDeclaration* method = dynamic_cast<MethodDeclaration*>(member);
-                FieldDeclaration* field = dynamic_cast<FieldDeclaration*>(member);
-
-                if(method)
-                {
-                    static_methods[method] = it.second;
-                }
-                else if(field)
-                {
-                    static_fields[field] = it.second;
-                }
-            }
-        }
-    }
-
-    // Create array SIT columns
-    // The interfaces java.io.Serializable and Cloneable are implemented by arrays
-    // Since Serializable and Cloneable are empty, SIT column for all arrays is identical to Object's SIT column
-    array_sit_column = sit_table[object_class_decl];
     
     // Create ClassInfos for object arrays
     for(auto it: globalEnv.classes)
@@ -292,9 +264,6 @@ std::string CodeGenerator::generateCommon()
     std::string common_asm;
 
     common_asm += TEXT_DIR;
-
-    common_asm += labelAsm(SUBTYPE_COLUMN_COUNT_LABEL);
-    common_asm += wordAsm(subtype_column_count);
 
     common_asm += globalAsm(SUBTYPE_TABLE_LABEL);
     common_asm += labelAsm(SUBTYPE_TABLE_LABEL);
@@ -389,7 +358,8 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     } 
     else if(otype == ObjectType::OBJECT_ARRAY)
     {
-        // Uses same sit column as object
+        // The interfaces java.io.Serializable and Cloneable are implemented by arrays
+        // Since Serializable and Cloneable are empty, SIT column for all arrays is identical to Object's SIT column
         column_label = sitColumnClassLabel(object_class_decl);
         column = &sit_table[object_class_decl];
         class_info = &array_class_infos[root];
@@ -400,7 +370,7 @@ std::string CodeGenerator::generateObjectCode(TypeDeclaration* root, ObjectType 
     } 
     else if(otype == ObjectType::PRIMITIVE_ARRAY)
     {
-        // Uses same sit column as object
+        // Uses same SIT column as object
         column_label = sitColumnClassLabel(object_class_decl);
         column = &sit_table[object_class_decl];
         class_info = &primitive_array_class_infos[ptype];

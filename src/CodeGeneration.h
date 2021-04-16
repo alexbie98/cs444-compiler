@@ -9,7 +9,6 @@ struct ClassInfo
 {
     // SIT column can be obtained using sit_table map in CodeGenerator 
     // TODO Link it here?
-    // std::string sit_column; // Label corresponding to address of column
     size_t subtype_column; // Index of subtype column in the subtype table
 
     // Mapping from signature to MethodDeclaration and its index in the method list
@@ -36,7 +35,6 @@ class CodeGenerator
     // Structures to be turned into code during generation
     size_t sit_column_size = 0;
     std::unordered_map<ClassDeclaration*, std::vector<MethodDeclaration*> > sit_table;
-    std::vector<MethodDeclaration*> array_sit_column;
     std::unordered_map<ClassDeclaration*, ClassInfo> class_infos;
     std::unordered_map<TypeDeclaration*, ClassInfo> array_class_infos;
     std::unordered_map<PrimitiveType::BasicType, ClassInfo> primitive_array_class_infos;
@@ -57,11 +55,7 @@ class CodeGenerator
     size_t getObjectSubtypeIndex(TypeDeclaration* type){ size_t i = subtype_table_object_index[type]; assert(i < subtype_column_count); return i; }
     size_t getPrimitiveArraySubtypeIndex(PrimitiveType::BasicType type){ size_t i = subtype_table_primitive_array_index[type]; assert(i < subtype_column_count); return i; }
 
-    std::unordered_map<FieldDeclaration*, ClassDeclaration*> static_fields;
-    std::unordered_map<MethodDeclaration*, ClassDeclaration*> static_methods;
-
     // Assembly helpers
-    static const std::string SUBTYPE_COLUMN_COUNT_LABEL;
     static const std::string SUBTYPE_TABLE_LABEL;
     static const std::string EXCEPTION;
     static const std::string DEXIT;
