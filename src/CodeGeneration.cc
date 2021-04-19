@@ -530,7 +530,7 @@ void CodeGenerator::CodeGenVisitor::visit(FieldDeclaration& node)
 
 void CodeGenerator::CodeGenVisitor::leave(IntLiteral& node)
 {
-    node.code += "mov eax, " + std::to_string(node.value) + " " + commentAsm("IntLiteral");
+    node.code = "mov eax, " + std::to_string(node.value) + " " + commentAsm("IntLiteral");
 }
 
 void CodeGenerator::CodeGenVisitor::leave(CharLiteral& node)
@@ -1070,7 +1070,7 @@ std::string CodeGenerator::CodeGenVisitor::indexArray(ArrayAccess& node)
 
 void CodeGenerator::CodeGenVisitor::leave(ArrayAccess& node)
 {
-    node.addr += getArray(node);
+    node.addr = getArray(node);
     node.addr += indexArray(node);
 
     node.code = node.addr + addrVal();
@@ -1083,7 +1083,7 @@ void CodeGenerator::CodeGenVisitor::leave(ThisExpression& node)
 {
     node.addr = thisAddr();
 
-    node.code += node.addr + addrVal();
+    node.code = node.addr + addrVal();
 
     node.addr = commentAsm("ThisExpression Addr") + node.addr + commentAsm("ThisExpression End");
     node.code = commentAsm("ThisExpression Code") + node.code + commentAsm("ThisExpression End");
@@ -1281,6 +1281,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
                 constructorSuper += commentAsm("Super Constructor Call End");
             }
 
+            constructorInitializers = "";
             for (MemberDeclaration* member : node.classBody->elements)
             {
                 if (FieldDeclaration * field = dynamic_cast<FieldDeclaration*>(member))
@@ -1326,6 +1327,7 @@ void CodeGenerator::CodeGenVisitor::leave(ClassDeclaration& node)
 
 void CodeGenerator::CodeGenVisitor::leave(InterfaceDeclaration& node)
 {
+    node.code = "";
     for (MemberDeclaration* member : node.interfaceBody->elements)
     {
         node.code += member->code;
@@ -1345,7 +1347,7 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
 {
     if (hasModifier(Modifier::STATIC, node.modifiers))
     {
-        node.code += globalAsm(node.staticLabel);
+        node.code = globalAsm(node.staticLabel);
         node.code += labelAsm(node.staticLabel);
         cg.defined_labels.insert(node.staticLabel); // Make sure static fields aren't externed in their source file
         node.code += "dd 0\n";
