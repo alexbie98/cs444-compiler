@@ -181,13 +181,16 @@ ASTNode* buildAST(ParseTreeNode* node)
         case CHAR_LIT:
         {
             CharLiteral* lit = new CharLiteral();
-            lit->value = (char16_t) ((node->token->second.size() == 1) ? node->token->second[0] : node->token->second[1]);
+            lit->value = (char16_t) ((node->token->second.size() == 1) ? (unsigned char) node->token->second[0] : (unsigned char) node->token->second[1]);
             return lit;
         }
         case STRING_LIT:
         {
             StringLiteral* lit = new StringLiteral();
-            lit->value = std::u16string{node->token->second.begin(), node->token->second.end()};
+            lit->value = std::u16string{};
+            for (char c: node->token->second){
+                lit->value.push_back((unsigned char)c);
+            }
             return lit;
         }
         case THIS:
