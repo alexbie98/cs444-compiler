@@ -1352,13 +1352,20 @@ void CodeGenerator::CodeGenVisitor::leave(FieldDeclaration& node)
         cg.defined_labels.insert(node.staticLabel); // Make sure static fields aren't externed in their source file
         node.code += "dd 0\n";
         
-        // We need to run all the static field initializers once in a seperate location at start of execution
-        staticFieldInitializers += commentAsm("Static FieldDeclaration Init Start");
-        staticFieldInitializers += node.declaration->code;
-        staticFieldInitializers += externAsm(node.staticLabel);
-        staticFieldInitializers += "mov ebx, " + node.staticLabel + '\n';
-        staticFieldInitializers += "mov [ebx], eax\n";
-        staticFieldInitializers += commentAsm("Static FieldDeclaration Init End") + "\n";
+        if (node.declaration->code != "")
+        {
+            // We need to run all the static field initializers once in a seperate location at start of execution
+            staticFieldInitializers += commentAsm("Static FieldDeclaration Init Start");
+            staticFieldInitializers += node.declaration->code;
+            staticFieldInitializers += externAsm(node.staticLabel);
+            staticFieldInitializers += "mov ebx, " + node.staticLabel + '\n';
+            staticFieldInitializers += "mov [ebx], eax\n";
+            staticFieldInitializers += commentAsm("Static FieldDeclaration Init End") + "\n";
+        }
+        else
+        {
+            staticFieldInitializers += externAsm(node.staticLabel);
+        }
     }
     else
     {
